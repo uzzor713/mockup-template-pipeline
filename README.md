@@ -10,7 +10,7 @@
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements-sam.txt   # 不重跑 SAM 分割的话,装 requirements.txt 就够
+.venv/bin/pip install -r requirements-sam.txt   # segment.py 要用;其余脚本只需 requirements.txt
 
 .venv/bin/python -I fetch_sources.py   # 下载竞品素材到 sources/
 .venv/bin/python -I segment.py         # SAM 2.1 分割牛仔裤 → work/jeans-mask.png;首次运行会从 Hugging Face 下载模型
@@ -25,7 +25,7 @@ python3.12 -m venv .venv
 | 文件 | 做什么 |
 | --- | --- |
 | `fetch_sources.py` | 下载竞品 Mockey 免费模板 04674 的底图和可印区域蒙版,并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割牛仔裤:传统的颜色加形态学方法和 SAM 2.1 各做一遍,对比图在 `work/jeans-compare.png`;SAM 的结果给 `pipeline.py` 用 |
+| `segment.py` | 分割牛仔裤:颜色加形态学的方法给出外接框,SAM 2.1 出蒙版给 `pipeline.py` 用;两种方法的对比图在 `work/jeans-compare.png` |
 | `pipeline.py` | 边缘细化、底图、起伏图、配置、自动校验 |
 | `preview.py` | 只读 `output/` 里的文件合成预览,和编辑页用同一套公式 |
 

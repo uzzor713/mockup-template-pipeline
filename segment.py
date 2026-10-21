@@ -1,5 +1,7 @@
-"""Segment the jeans two ways (classic color/morphology vs SAM 2 box+point prompt) for comparison.
-The SAM result (binary) goes to work/jeans-mask.png, which pipeline.py reads."""
+"""
+分割牛仔裤:颜色加形态学的方法先给出大致范围,作为 SAM 2.1 的外接框;SAM 的结果存 work/jeans-mask.png,给 pipeline.py 用。
+两种方法的对比图存 work/jeans-compare.png。用法:.venv/bin/python -I segment.py
+"""
 import sys, time
 from pathlib import Path
 import numpy as np, cv2, torch
@@ -15,7 +17,7 @@ photo8 = (photo * 255).round().astype(np.uint8)
 tee = rgba[..., 3] < 1
 H, W = tee.shape
 
-# --- classic: denim hue threshold → fill holes → open/close → largest component → GrabCut edge refine
+# 颜色加形态学:牛仔蓝色相阈值 → 填洞 → 开闭运算 → 最大连通块 → GrabCut 修边
 hsv = cv2.cvtColor(photo8, cv2.COLOR_RGB2HSV).astype(np.float32)
 h, s, v = hsv[..., 0] * 2, hsv[..., 1] / 255, hsv[..., 2] / 255
 seed = (h > 190) & (h < 240) & (s > 0.12) & (v > 0.18) & ~tee
@@ -32,7 +34,7 @@ gc[tee] = cv2.GC_BGD
 cv2.grabCut(cv2.cvtColor(photo8, cv2.COLOR_RGB2BGR), gc, None, np.zeros((1, 65)), np.zeros((1, 65)), 4, cv2.GC_INIT_WITH_MASK)
 classic = ((gc == cv2.GC_FGD) | (gc == cv2.GC_PR_FGD)) & ~tee
 
-# --- SAM 2.1: box from the classic mask + positive points on both legs, negative on shoes and shirt hem
+# SAM 2.1:外接框取上一步的范围,正提示点在两条裤腿上,负提示点在鞋面和 T 恤下摆
 from transformers import Sam2Model, Sam2Processor
 MODEL = sys.argv[1] if len(sys.argv) > 1 else 'facebook/sam2.1-hiera-base-plus'
 device = 'mps' if torch.backends.mps.is_available() else 'cpu'
@@ -66,7 +68,7 @@ def overlay(mask, name):
     Image.fromarray(vis.clip(0, 255).astype(np.uint8)).save(WORK / f'{name}.png')
 overlay(classic, 'jeans-classic'); overlay(sam, 'jeans-sam')
 
-# side by side: classic | SAM
+# 对比图:左为颜色加形态学,右为 SAM
 panels = [Image.open(WORK / f'{n}.png').crop((280, 690, 1235, 2000)).resize((474, 650), Image.LANCZOS)
           for n in ('jeans-classic', 'jeans-sam')]
 sheet = Image.new('RGB', (960, 650), 'white')

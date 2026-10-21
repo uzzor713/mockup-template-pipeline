@@ -1,6 +1,6 @@
 """
 只读 output/ 里的产出文件,按编辑页的公式合成预览:每件商品各自的颜色和设计稿 → 起伏位移 → 底图按 alpha 盖上。
-另出一张蒙版示意图。用法:.venv/bin/python -I preview.py
+另出边缘放大图和蒙版示意图。用法:.venv/bin/python -I preview.py
 """
 import json
 from pathlib import Path
@@ -21,7 +21,7 @@ template = json.loads((OUT / 'template.json').read_text())
 W, H = template['size']['width'], template['size']['height']
 base = read('base.webp')
 cover = read('cover.webp')
-# 起伏图每件商品一个通道,1/4 尺寸;双线性放大回模板尺寸,与编辑页的贴图采样一致
+# 双线性放大回模板尺寸,与编辑页的贴图采样一致
 height_map = cv2.resize(read('displacement.png')[..., :3], (W, H), interpolation=cv2.INTER_LINEAR)
 products = [read(r['product'])[..., 3] for r in template['regions']]
 prints = [read(r['print'])[..., 3] for r in template['regions']]
@@ -45,7 +45,7 @@ def render(colors, warp):
     canvas = np.zeros((H, W, 3), np.float32)
     for product, color in zip(products, colors):
         canvas += product[..., None] * hex_rgb(color)
-    # 边缘过渡已经在底图 alpha 里,颜色层按覆盖度归一,否则边缘再乘一次覆盖度会发暗
+    # 颜色层按覆盖度归一:边缘过渡由底图 alpha 负责
     canvas /= np.maximum(sum(products), 1e-4)[..., None]
     for index, (region, printable) in enumerate(zip(template['regions'], prints)):
         # 设计稿取所属商品那一层起伏
@@ -88,7 +88,7 @@ for tile in tiles:
     x += tile.width + 8
 sheet.save(OUT.parent / 'preview.png')
 
-# 边缘放大:每行一处容易出问题的边缘,按像素放大不插值
+# 边缘放大:每行一处边缘,按像素放大不插值
 SPOTS = [('Sleeve', 420, 700), ('Shoulder', 1040, 250), ('T-shirt over jeans', 760, 950),
          ('Bag strap', 610, 500), ('Crotch', 790, 1260), ('Hem over shoe', 1000, 1880)]
 columns = [('Cover', cover[..., :3]), ('Red / Black', render(['#C02828', '#1A1A1A'], 0)),

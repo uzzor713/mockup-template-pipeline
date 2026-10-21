@@ -91,18 +91,18 @@ photo = base_src[..., :3] * base_src[..., 3:] + (1 - base_src[..., 3:])
 Image.fromarray(np.round(photo * 255).astype(np.uint8)).save(OUT / 'cover.webp', quality=85)
 
 # ---- 2. 分割
-# 竞品的商品边缘是二值台阶,原图里也一样,只能平滑轮廓重出软边
+# 竞品的商品区是二值边缘,平滑轮廓后重出软边
 tee_bin = base_src[..., 3] < 1
 tee = quantize(soft(tee_bin))
 print_src = np.asarray(Image.open(SRC / 'tee-print.webp').convert('RGBA')).astype(np.float32) / 255
-# 源文件是有损 webp,白色只到 246–255
+# 有损 webp 的白色只到 246–255,拉回满值
 print_tee = np.minimum(np.clip((luma(print_src[..., :3]) - 0.03) / 0.93, 0, 1) * print_src[..., 3], tee)
 
 jeans_sam = np.asarray(Image.open(ROOT / 'work/jeans-mask.png').convert('L')) > 127
 jeans_bin = ndimage.binary_fill_holes(largest(jeans_sam)) & ~tee_bin
 band_px = max(1, round(BAND_RATIO * W))
 jeans = refine(jeans_bin, photo, band_px, max(1, band_px // 3))
-# 牛仔裤在 T 恤下面接着铺(取最近的 T 恤外像素),交界处两者相加为 1;重叠处归上层的 T 恤
+# 牛仔裤在 T 恤下面接着铺,交界处两者相加为 1;重叠处归上层的 T 恤
 _, (iy, ix) = ndimage.distance_transform_edt(tee_bin, return_indices=True)
 jeans = quantize(np.minimum(jeans[iy, ix], 1 - tee))
 jeans_bin = jeans > 0.5
@@ -122,7 +122,7 @@ keys = ['top', 'bottom']
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
-# 边缘像素是商品和背景的混色:亮度取商品自身的颜色,区外那份取背景色,否则改色后边缘留一圈原色
+# 边缘像素在照片里混着商品原色:亮度取商品实心部分的颜色,区外那份换成背景色
 L = luma(photo)
 L_norm = np.zeros_like(L)
 for product in products:
@@ -143,7 +143,7 @@ base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
 # ---- 4. 起伏图:每件商品一个通道(R / G / B = 第 1–3 件),1/4 尺寸
-# 各件商品的起伏在交界处不连续,合在一层里缩小或插值会互相串;分层后每层各自向外延伸,在交界处是连续的
+# 交界两侧的起伏不连续,每件商品单独一层、各自向外延伸,缩小和插值时才不混在一起
 sigma = SIGMA_RATIO * W
 layers = []
 for product in products:
