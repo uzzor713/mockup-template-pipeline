@@ -22,8 +22,11 @@ OUT.mkdir(exist_ok=True)
 BETA = 0.2  # 深色的保底亮度
 PERCENTILE = 90  # 归一化参考:商品区亮度的第 90 百分位当作白
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
-GAIN = 1.0  # 起伏图增益
 DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹理噪点;使用时双线性放大
+SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
+SLOPE_GAIN = 4.7e-4  # 位移 / 宽度 = SLOPE_GAIN × 起伏对(坐标 / 宽度)的坡度;样本 T 恤在 Warping 100% 时约 2% 的面积顶到上限
+STRETCH_RANGE = (0.5, 2.5)  # Warping 100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
+CAP_MARGIN = (0.05, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
 BAND_RATIO = 0.004  # 边缘细化带半宽 / 宽度,要盖住分割模型的边界误差
 
@@ -75,6 +78,36 @@ def largest(binary):
         return binary
     sizes = ndimage.sum(binary, labels, range(1, count + 1))
     return labels == 1 + int(np.argmax(sizes))
+
+
+def stretch_range(a, b, c, d):
+    """雅可比 [[a, b], [c, d]] 的最小、最大奇异值 = 各方向每像素前进量的范围;翻折时最小值记为负"""
+    det = a * d - b * c
+    q = a * a + b * b + c * c + d * d
+    disc = np.sqrt(np.maximum(q * q - 4 * det * det, 0))
+    return np.sqrt(np.maximum(q - disc, 0) / 2) * np.sign(det), np.sqrt((q + disc) / 2)
+
+
+def jacobian(ox, oy, cell):
+    """位移场(每格 cell 个模板像素)→ 模板像素下的雅可比"""
+    return (1 + np.gradient(ox, axis=1) / cell, np.gradient(ox, axis=0) / cell,
+            np.gradient(oy, axis=1) / cell, 1 + np.gradient(oy, axis=0) / cell)
+
+
+def cap(ox, oy, inside, low, high, rounds=10):
+    """形变超限的地方局部减弱位移:每轮算出每格能保留的最大比例,往外扩两格再平滑后乘上去,直到不超限"""
+    for _ in range(rounds):
+        a, b, c, d = jacobian(ox, oy, DISP_SCALE)
+        keep = np.zeros_like(ox)
+        for f in np.linspace(0, 1, 41):
+            smin, smax = stretch_range(1 + f * (a - 1), f * b, f * c, 1 + f * (d - 1))
+            keep = np.where((smin >= low) & (smax <= high), f, keep)
+        keep = np.where(inside, keep, 1).astype(np.float32)
+        if keep.min() == 1:
+            break
+        keep = cv2.GaussianBlur(cv2.erode(keep, np.ones((5, 5), np.uint8)), (0, 0), 1.5)
+        ox, oy = ox * keep, oy * keep
+    return ox, oy
 
 
 def save_mask(coverage, name):
@@ -142,22 +175,36 @@ rgb = ((1 - coverage)[..., None] * background + (coverage * a * g)[..., None]) /
 base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
-# ---- 4. 起伏图:每件商品一个通道(R / G / B = 第 1–3 件),1/4 尺寸
-# 交界两侧的起伏不连续,每件商品单独一层、各自向外延伸,缩小和插值时才不混在一起
+# ---- 4. 起伏图:每件商品一张流向图,R / G = Warping 100% 时 x / y 方向的位移,1/4 尺寸
+# 位移沿起伏的坡度,褶皱横着就上下压缩、竖着就左右压缩;压缩或拉伸超限的地方局部减弱,深褶处不翻折。
+# 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 sigma = SIGMA_RATIO * W
-layers = []
+small_size = (W // DISP_SCALE, H // DISP_SCALE)
+gain = SLOPE_GAIN * W * W / DISP_SCALE  # 缩小后每格的坡度 → 模板像素位移
+flows, guards = [], []
 for product in products:
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
     blurred = cv2.GaussianBlur(L_norm * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
-    value = np.clip(0.5 + GAIN * (blurred - blurred[inside].mean()), 0, 1)
-    # 区外 3σ 以内取最近的区内值,再往外为 0.5
-    distance, (iy, ix) = ndimage.distance_transform_edt(~inside, return_indices=True)
-    layers.append(np.where(distance <= 3 * sigma, value[iy, ix], 0.5).astype(np.float32))
-layers += [np.full((H, W), 0.5, np.float32)] * (3 - len(layers))
-small_size = (W // DISP_SCALE, H // DISP_SCALE)
-height_map = np.dstack([cv2.resize(layer, small_size, interpolation=cv2.INTER_AREA) for layer in layers])
-Image.fromarray(np.round(height_map * 255).astype(np.uint8), 'RGB').save(OUT / 'displacement.png', optimize=True)
+    # 区外取最近的区内值再缩小,边上的坡度不会因为区外突变而跳
+    _, (iy, ix) = ndimage.distance_transform_edt(~inside, return_indices=True)
+    height = cv2.resize(blurred[iy, ix], small_size, interpolation=cv2.INTER_AREA)
+    gy, gx = np.gradient(cv2.GaussianBlur(height, (0, 0), SLOPE_BLUR))
+    # 沾到商品的格子再往外两格都守住范围:双线性放大时商品边上的像素会插到外面一格
+    touched = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0
+    guarded = cv2.dilate(touched.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
+    ox, oy = cap(gain * gx, gain * gy, guarded, low, high)
+    # 离商品 3σ 以外不动
+    far = ndimage.distance_transform_edt(~inside) > 3 * sigma
+    far_cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
+    flows.append(np.dstack([np.where(far_cells, 0, o) for o in (ox, oy)]).astype(np.float32))
+    guards.append(guarded)
+# 通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉
+range_px = round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1)
+for index, flow in enumerate(flows, start=1):
+    rgb = np.dstack([0.5 + np.clip(flow, -range_px, range_px) / (2 * range_px), np.full(flow.shape[:2], 0.5, np.float32)])
+    Image.fromarray(np.round(rgb * 255).astype(np.uint8), 'RGB').save(OUT / f'displacement-{index}.png', optimize=True)
 
 for index, (product, printable) in enumerate(zip(products, prints), start=1):
     save_mask(product, f'product-{index}.png')
@@ -176,6 +223,7 @@ for index, (printable, name, key) in enumerate(zip(prints, names, keys), start=1
         'name': name,
         'product': f'product-{index}.png',
         'print': f'print-{index}.png',
+        'displacement': f'displacement-{index}.png',
         'recolorable': True,
         'logo': {'cx': round(float(cx) / W, 4), 'cy': round(float(cy) / H, 4), 'width': round(float(size) / W, 4),
                  'height': round(float(size) / H, 4), 'rotation': 0},
@@ -185,10 +233,12 @@ template = {
     'version': 1,
     'size': {'width': W, 'height': H},
     'category': 't-shirt',
-    'files': {'cover': 'cover.webp', 'base': 'base.webp', 'displacement': 'displacement.png'},
+    'files': {'cover': 'cover.webp', 'base': 'base.webp'},
+    'displacement': {'rangePx': range_px},
     'regions': regions,
     'pipeline': {'luminancePercentile': PERCENTILE, 'beta': BETA, 'blurSigma': round(float(sigma), 1),
-                 'displacementGain': GAIN, 'displacementScale': 1 / DISP_SCALE},
+                 'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'slopeGain': SLOPE_GAIN,
+                 'stretchRange': list(STRETCH_RANGE)},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
@@ -197,30 +247,38 @@ def read(name):
     return np.asarray(Image.open(OUT / name)).astype(np.float32) / 255
 
 base_out = read('base.webp')
-disp_out = read('displacement.png')
+d = [read(f'displacement-{i}.png') for i in (1, 2)]
 p = [read(f'product-{i}.png')[..., 3] for i in (1, 2)]
 q = [read(f'print-{i}.png')[..., 3] for i in (1, 2)]
 union = (p[0] > 0) | (p[1] > 0)
 
 
-def neutral_far(channel, product):
-    """离这件商品 3σ 以外的格子全是 0.5;没有对应商品的通道整张是 0.5"""
-    cells = np.ones(disp_out.shape[:2], bool)
-    if product is not None:
-        far = ndimage.distance_transform_edt(~(product > 0.5)) > 3 * sigma + DISP_SCALE
-        cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
-    return bool((np.abs(disp_out[..., channel][cells] - 0.5) <= 1 / 255).all())
+def neutral_far(flow, product):
+    """离这件商品 3σ 以外的格子 R、G 都是 0.5"""
+    far = ndimage.distance_transform_edt(~(product > 0.5)) > 3 * sigma + DISP_SCALE
+    cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
+    return bool((np.abs(flow[..., :2][cells] - 0.5) <= 1 / 255).all())
+
+
+def within_stretch(flow, product):
+    """按编辑页的方式双线性放大回模板尺寸,Warping 100% 时商品区内各方向每像素前进量都在范围内"""
+    offset = cv2.resize((flow[..., :2] - 0.5) * 2 * range_px, (W, H), interpolation=cv2.INTER_LINEAR)
+    smin, smax = stretch_range(*jacobian(offset[..., 0], offset[..., 1], 1))
+    inside = product > 0.5
+    return bool(smin[inside].min() >= STRETCH_RANGE[0] and smax[inside].max() <= STRETCH_RANGE[1])
 
 
 checks = {
     'sizes equal': all(x.shape[:2] == (H, W) for x in [base_out, *p, *q]),
-    'displacement 1/4 size, 3 channels': disp_out.shape == (H // DISP_SCALE, W // DISP_SCALE, 3),
+    'displacement 1/4 size, B unused': all(x.shape == (H // DISP_SCALE, W // DISP_SCALE, 3)
+                                           and bool((x[..., 2] == 128 / 255).all()) for x in d),
     'aspect 4:5': W * 5 == H * 4,
     'products overlap < 0.1%': float(((p[0] > 0.5) & (p[1] > 0.5)).sum() / max(1, (p[1] > 0.5).sum())) < 0.001,
     'print outside product < 0.1%': all(float(((qq > 0.5) & (pp < 0.5)).sum() / max(1, (qq > 0.5).sum())) < 0.001 for pp, qq in zip(p, q)),
     'base opaque outside products': bool((base_out[..., 3][~union] == 1).all()),
     'base matches formula (≤ 2/255)': bool(np.abs(base_out[..., 3] - alpha).max() <= 2 / 255 + 1e-6),
-    'displacement neutral far outside': all(neutral_far(i, p[i] if i < len(p) else None) for i in range(3)),
+    'displacement neutral far outside': all(neutral_far(dd, pp) for dd, pp in zip(d, p)),
+    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 100%': all(within_stretch(dd, pp) for dd, pp in zip(d, p)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(largest(qq > 0.5).sum() / (qq > 0.5).sum() >= 0.8 for qq in q),
     'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),

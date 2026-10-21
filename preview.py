@@ -10,7 +10,6 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 OUT = Path(__file__).parent / 'output'
-WARP_PX = 120  # Warping 100% 时,起伏偏离 0.5 一个单位对应的位移(模板像素)
 
 
 def read(name):
@@ -21,8 +20,10 @@ template = json.loads((OUT / 'template.json').read_text())
 W, H = template['size']['width'], template['size']['height']
 base = read('base.webp')
 cover = read('cover.webp')
-# 双线性放大回模板尺寸,与编辑页的贴图采样一致
-height_map = cv2.resize(read('displacement.png')[..., :3], (W, H), interpolation=cv2.INTER_LINEAR)
+# 流向图双线性放大回模板尺寸,与编辑页的贴图采样一致;通道值 0 / 1 对应 ∓rangePx
+range_px = template['displacement']['rangePx']
+flows = [cv2.resize((read(r['displacement'])[..., :2] - 0.5) * 2 * range_px, (W, H), interpolation=cv2.INTER_LINEAR)
+         for r in template['regions']]
 products = [read(r['product'])[..., 3] for r in template['regions']]
 prints = [read(r['print'])[..., 3] for r in template['regions']]
 
@@ -48,9 +49,8 @@ def render(colors, warp):
     # 颜色层按覆盖度归一:边缘过渡由底图 alpha 负责
     canvas /= np.maximum(sum(products), 1e-4)[..., None]
     for index, (region, printable) in enumerate(zip(template['regions'], prints)):
-        # 设计稿取所属商品那一层起伏
-        offset = (height_map[..., index] - 0.5) * warp * WARP_PX
-        px, py = xs + offset, ys + offset
+        # 设计稿取所属商品那张流向图,x、y 各自位移
+        px, py = xs + flows[index][..., 0] * warp, ys + flows[index][..., 1] * warp
         box = region['logo']
         bw, bh = box['width'] * W, box['height'] * H
         u = (px - (box['cx'] * W - bw / 2)) / bw
@@ -67,9 +67,9 @@ def render(colors, warp):
 CROP = (int(0.18 * W), int(0.06 * H), int(0.82 * W), int(0.98 * H))
 panels = [
     ('Cover', cover[..., :3]),
-    ('White / White, Warping 15%', render(['#FFFFFF', '#FFFFFF'], 0.15)),
-    ('Red / Navy, Warping 15%', render(['#C02828', '#1F2A5A'], 0.15)),
-    ('Black / Black, Warping 15%', render(['#1A1A1A', '#1A1A1A'], 0.15)),
+    ('White / White, Warping 50%', render(['#FFFFFF', '#FFFFFF'], 0.5)),
+    ('Red / Navy, Warping 50%', render(['#C02828', '#1F2A5A'], 0.5)),
+    ('Black / Black, Warping 50%', render(['#1A1A1A', '#1A1A1A'], 0.5)),
     ('Mustard / Olive, Warping 100%', render(['#D4A017', '#5B6B2F'], 1.0)),
 ]
 scale = 0.32
