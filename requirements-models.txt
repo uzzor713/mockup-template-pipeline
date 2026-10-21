@@ -2,3 +2,4 @@
 torch==2.14.1
 torchvision==0.29.1
 transformers==5.20.2
+diffusers==0.41.0

@@ -1,6 +1,7 @@
 """
-分割牛仔裤:颜色加形态学的方法先给出大致范围,作为 SAM 2.1 的外接框;SAM 的结果存 work/jeans-mask.png,给 pipeline.py 用。
-两种方法的对比图存 work/jeans-compare.png。用法:.venv/bin/python -I segment.py
+分割牛仔裤:颜色加形态学的方法先给出大致范围,作为 SAM 2.1 的外接框;SAM 的结果存 work/jeans-mask.png;
+ViTMatte 在分割边界两侧求透明度,存 work/jeans-alpha.png(16 位),给 pipeline.py 用。
+颜色加形态学和 SAM 的对比图存 work/jeans-compare.png。用法:.venv/bin/python -I segment.py
 """
 import sys, time
 from pathlib import Path
@@ -58,6 +59,44 @@ print(f'model load {t1 - t0:.1f}s, inference {time.time() - t1:.1f}s, device {de
 print('classic frac', classic.mean().round(4), 'sam frac', (sam > 0.5).mean().round(4),
       'IoU', ((classic & (sam > 0.5)).sum() / (classic | (sam > 0.5)).sum()).round(4),
       'sam soft-edge px', int(((sam > 0.02) & (sam < 0.98)).sum()))
+
+# ViTMatte:只在牛仔裤和背景的交界留待求带;和 T 恤的交界不算边缘,T 恤下面由 pipeline.py 接着铺
+from transformers import VitMatteForImageMatting, VitMatteImageProcessor
+MATTE = 'hustvl/vitmatte-small-composition-1k'
+BAND_RATIO = 0.004  # 待求带向外的半宽 / 宽度,要盖住 SAM 的边界误差;向内收 1/3
+TILE, OVERLAP = 768, 128  # 整图一次推理要十几 GB 内存,按块推理
+labels, n = ndimage.label(sam > 0.5)
+jeans = labels == (1 + int(np.argmax(ndimage.sum(sam > 0.5, labels, range(1, n + 1)))))
+jeans = ndimage.binary_fill_holes(jeans) & ~tee
+band = max(1, round(BAND_RATIO * W))
+disk = lambda r: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1,) * 2)
+near_tee = cv2.dilate(tee.astype(np.uint8), disk(band)) > 0
+fg = (cv2.erode(jeans.astype(np.uint8), disk(max(1, band // 3))) > 0) | (jeans & near_tee)
+bg = (cv2.dilate(jeans.astype(np.uint8), disk(band)) == 0) | tee
+unknown = ~fg & ~bg
+trimap = np.where(fg, 255, np.where(bg, 0, 128)).astype(np.uint8)
+t2 = time.time()
+matte_processor = VitMatteImageProcessor.from_pretrained(MATTE)
+matte_model = VitMatteForImageMatting.from_pretrained(MATTE).to(device).eval()
+total, weight = np.zeros((H, W), np.float32), np.zeros((H, W), np.float32)
+ramp = lambda k: np.minimum(np.arange(k) + 1, k - np.arange(k)).astype(np.float32)
+for ty in range(0, H, TILE - OVERLAP):
+    for tx in range(0, W, TILE - OVERLAP):
+        sl = (slice(ty, min(ty + TILE, H)), slice(tx, min(tx + TILE, W)))
+        if not unknown[sl].any():
+            continue
+        inputs = matte_processor(images=Image.fromarray(photo8[sl]), trimaps=Image.fromarray(trimap[sl]),
+                                 return_tensors='pt').to(device)
+        with torch.no_grad():
+            pred = matte_model(**inputs).alphas[0, 0].float().cpu().numpy()
+        h, w = trimap[sl].shape
+        # 块边上缺上下文,按离块边的距离加权拼接
+        feather = np.clip(np.minimum.outer(ramp(h), ramp(w)) / (OVERLAP / 2), 1e-3, 1)
+        total[sl] += pred[:h, :w] * feather
+        weight[sl] += feather
+alpha = np.where(unknown, np.clip(total / np.maximum(weight, 1e-6), 0, 1), fg)
+Image.fromarray(np.round(alpha * 65535).astype(np.uint16)).save(WORK / 'jeans-alpha.png')
+print(f'matting {time.time() - t2:.1f}s, unknown band {unknown.mean() * 100:.2f}%')
 
 def overlay(mask, name):
     vis = photo8.astype(np.float32).copy()

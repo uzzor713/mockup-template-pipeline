@@ -1,9 +1,10 @@
 """
 按素材管线生成一个两件商品(T 恤 + 牛仔裤)的模板样本。
 
-分割(第 2 步)的来源:
-- T 恤:竞品 Mockey 模板 04674 已分割好的结果(底图透明度 = 商品区,mask-design = 可印区域);
-- 牛仔裤:本地 SAM 2.1(segment.py 产出 work/jeans-mask.png),可印区域按规则从商品区里取。
+模型的结果由前面的脚本存在 work/:
+- 分割(第 2 步):T 恤用竞品 Mockey 模板 04674 已分割好的结果(底图透明度 = 商品区,mask-design = 可印区域);
+  牛仔裤用本地 SAM 2.1 分割、ViTMatte 求边缘透明度(segment.py 产出 work/jeans-alpha.png),可印区域按规则从商品区里取。
+- 明暗(第 3、4 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
 其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py
 """
 import json
@@ -28,11 +29,19 @@ SLOPE_GAIN = 4.7e-4  # 位移 / 宽度 = SLOPE_GAIN × 起伏对(坐标 / 宽度
 STRETCH_RANGE = (0.5, 2.5)  # Warping 100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
 CAP_MARGIN = (0.05, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
-BAND_RATIO = 0.004  # 边缘细化带半宽 / 宽度,要盖住分割模型的边界误差
 
 
 def luma(rgb):
     return rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+
+
+def to_linear(c):
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4).astype(np.float32)
+
+
+def to_srgb(c):
+    c = np.clip(c, 0, 1)
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055).astype(np.float32)
 
 
 def soft(binary, smooth=SMOOTH):
@@ -52,19 +61,9 @@ def local_mean(image, weight, sigma):
     return mean
 
 
-def refine(binary, photo, band, inward):
-    """边缘细化:分割边界向外 band px、向内 inward px 内,把像素颜色投影到「区内颜色 → 区外颜色」的连线上求覆盖度。
-    向内收得少:离边界远的商品高光会被当成背景"""
-    disk = lambda r: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1,) * 2)
-    fg = cv2.erode(binary.astype(np.uint8), disk(inward)).astype(np.float32)
-    bg = 1 - cv2.dilate(binary.astype(np.uint8), disk(band)).astype(np.float32)
-    F, B = local_mean(photo, fg, band), local_mean(photo, bg, band)
-    d = F - B
-    norm2 = (d * d).sum(-1)
-    alpha = np.clip(((photo - B) * d).sum(-1) / np.maximum(norm2, 1e-6), 0, 1)
-    trust = np.clip(np.sqrt(norm2) / 0.15, 0, 1)  # 两侧颜色太近时投影不可信,退回分割结果
-    alpha = cv2.medianBlur((trust * alpha + (1 - trust) * soft(binary)).astype(np.float32), 3)
-    return np.where(fg > 0, 1, np.where(bg > 0, 0, alpha)).astype(np.float32)
+def read_layer(name):
+    """intrinsic.py 存的 16 位线性 RGB"""
+    return cv2.imread(str(ROOT / 'work' / name), cv2.IMREAD_UNCHANGED)[..., ::-1].astype(np.float32) / 65535
 
 
 def quantize(coverage):
@@ -131,10 +130,7 @@ print_src = np.asarray(Image.open(SRC / 'tee-print.webp').convert('RGBA')).astyp
 # 有损 webp 的白色只到 246–255,拉回满值
 print_tee = np.minimum(np.clip((luma(print_src[..., :3]) - 0.03) / 0.93, 0, 1) * print_src[..., 3], tee)
 
-jeans_sam = np.asarray(Image.open(ROOT / 'work/jeans-mask.png').convert('L')) > 127
-jeans_bin = ndimage.binary_fill_holes(largest(jeans_sam)) & ~tee_bin
-band_px = max(1, round(BAND_RATIO * W))
-jeans = refine(jeans_bin, photo, band_px, max(1, band_px // 3))
+jeans = np.asarray(Image.open(ROOT / 'work/jeans-alpha.png')).astype(np.float32) / 65535
 # 牛仔裤在 T 恤下面接着铺,交界处两者相加为 1;重叠处归上层的 T 恤
 _, (iy, ix) = ndimage.distance_transform_edt(tee_bin, return_indices=True)
 jeans = quantize(np.minimum(jeans[iy, ix], 1 - tee))
@@ -155,14 +151,25 @@ keys = ['top', 'bottom']
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
-# 边缘像素在照片里混着商品原色:亮度取商品实心部分的颜色,区外那份换成背景色
-L = luma(photo)
-L_norm = np.zeros_like(L)
+# 明暗取「这件商品如果是白色」的亮度:照片 ≈ 固有色 × s·光照 + r·残差,光照和残差只到相差一个比例,
+# 每件商品在实心部分拟合 s、r,花纹和染料留在固有色里。模型分辨率以下的细纹理从照片补回
+layers = {name: cv2.resize(read_layer(f'{name}.png'), (W, H), interpolation=cv2.INTER_LINEAR)
+          for name in ('albedo', 'shading', 'residual')}
+photo_linear = to_linear(photo)
+I = luma(photo_linear)
+detail_blur = W / read_layer('shading.png').shape[1]
+detail = I / np.maximum(cv2.GaussianBlur(I, (0, 0), detail_blur), 1e-4)
+# 边缘像素在照片里混着商品原色:亮度取商品实心部分的值,区外那份换成背景色
+L_norm = np.zeros((H, W), np.float32)
 for product in products:
     inside = product > 0.5
-    ref = np.percentile(L[inside], PERCENTILE)
     solid = product == 1
-    own = np.where(solid, L, luma(local_mean(photo, solid.astype(np.float32), 2)))
+    terms = np.stack([(layers['albedo'] * layers['shading'])[solid].ravel(), layers['residual'][solid].ravel()], 1)
+    (s, r), *_ = np.linalg.lstsq(terms, photo_linear[solid].ravel(), rcond=None)
+    white = luma(s * layers['shading'] + max(r, 0) * layers['residual']) * detail
+    white = to_srgb(white / np.percentile(white[solid], 99))
+    ref = np.percentile(white[inside], PERCENTILE)
+    own = np.where(solid, white, local_mean(np.repeat(white[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
     L_norm += product * np.minimum(1, own / ref)
 L_norm = np.where(coverage > 0, L_norm / np.maximum(coverage, 1e-6), 0)
 a = 1 - (1 - BETA) * L_norm
