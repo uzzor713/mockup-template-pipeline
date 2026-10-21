@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.DS_Store
+
+# 竞品素材和由它生成的图只留在本地,按 README 重新生成
+sources/
+work/
+output/
+/*.png
