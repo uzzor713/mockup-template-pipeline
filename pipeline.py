@@ -25,9 +25,10 @@ PERCENTILE = 90  # 归一化参考:商品区亮度的第 90 百分位当作白
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
 DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹理噪点;使用时双线性放大
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
-SLOPE_GAIN = 4.7e-4  # 位移 / 宽度 = SLOPE_GAIN × 起伏对(坐标 / 宽度)的坡度;样本 T 恤在 Warping 100% 时约 2% 的面积顶到上限
 STRETCH_RANGE = (0.5, 2.5)  # Warping 100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
-CAP_MARGIN = (0.05, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
+CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
+CAP_AREA = 0.2  # 每件商品的坡度系数按它定:Warping 100% 时可印区域里这么多面积刚好顶到上限
+SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / 宽度)的坡度)的上限:几乎没褶的商品不把噪点放大成假褶皱
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
 
 
@@ -109,6 +110,16 @@ def cap(ox, oy, inside, low, high, rounds=10):
     return ox, oy
 
 
+def max_gain(gx, gy, low, high):
+    """位移 = g × 坡度时,每格各方向前进量还在 [low, high] 内的最大 g。
+    雅可比 = I + g·M,M 近似对称(起伏的二阶导),前进量就是 1 + g × M 的特征值"""
+    a, b, c, d = jacobian(gx, gy, DISP_SCALE)
+    half_gap = np.sqrt(((a - d) / 2) ** 2 + ((b + c) / 2) ** 2)
+    stretch, squeeze = (a + d - 2) / 2 + half_gap, (a + d - 2) / 2 - half_gap
+    with np.errstate(divide='ignore'):
+        return np.minimum(np.where(stretch > 0, (high - 1) / stretch, np.inf), np.where(squeeze < 0, (1 - low) / -squeeze, np.inf))
+
+
 def save_mask(coverage, name):
     """白色 + alpha = 覆盖度"""
     alpha = np.round(coverage * 255).astype(np.uint8)
@@ -184,12 +195,14 @@ Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.
 
 # ---- 4. 起伏图:每件商品一张流向图,R / G = Warping 100% 时 x / y 方向的位移,1/4 尺寸
 # 位移沿起伏的坡度,褶皱横着就上下压缩、竖着就左右压缩;压缩或拉伸超限的地方局部减弱,深褶处不翻折。
+# 系数按每件商品自己的褶皱定,Warping 100% 即不翻折的前提下最强的效果。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
-gain = SLOPE_GAIN * W * W / DISP_SCALE  # 缩小后每格的坡度 → 模板像素位移
-flows, guards = [], []
-for product in products:
+to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
+low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
+flows, guards, gains = [], [], []
+for product, printable in zip(products, prints):
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
     blurred = cv2.GaussianBlur(L_norm * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
@@ -200,8 +213,10 @@ for product in products:
     # 沾到商品的格子再往外两格都守住范围:双线性放大时商品边上的像素会插到外面一格
     touched = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0
     guarded = cv2.dilate(touched.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
-    low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
-    ox, oy = cap(gain * gx, gain * gy, guarded, low, high)
+    cells = cv2.resize(printable if (printable > 0.5).any() else product, small_size, interpolation=cv2.INTER_AREA) > 0.5
+    gain = min(SLOPE_GAIN_MAX, float(np.percentile(max_gain(gx, gy, low, high)[cells], CAP_AREA * 100)) / to_px)
+    gains.append(gain)
+    ox, oy = cap(gain * to_px * gx, gain * to_px * gy, guarded, low, high)
     # 离商品 3σ 以外不动
     far = ndimage.distance_transform_edt(~inside) > 3 * sigma
     far_cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
@@ -244,8 +259,8 @@ template = {
     'displacement': {'rangePx': range_px},
     'regions': regions,
     'pipeline': {'luminancePercentile': PERCENTILE, 'beta': BETA, 'blurSigma': round(float(sigma), 1),
-                 'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'slopeGain': SLOPE_GAIN,
-                 'stretchRange': list(STRETCH_RANGE)},
+                 'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
+                 'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains]},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
