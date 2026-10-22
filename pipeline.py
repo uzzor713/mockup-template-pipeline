@@ -2,8 +2,8 @@
 按素材管线生成一个两件商品(T 恤 + 牛仔裤)的模板样本。
 
 源图是竞品 Mockey 模板 04674 的底图叠在白色上,还原成白色 T 恤的照片。模型的结果由前面的脚本存在 work/:
-- 分割(第 2 步):本地 SAM 2.1 分出 T 恤、袖子、遮挡物和牛仔裤,ViTMatte 求边缘透明度(segment.py 产出 work/tee-alpha.png、
-  jeans-alpha.png、sleeves.png、occluders.png);可印区域按规则从商品区里取。
+- 分割(第 2 步):本地 SAM 2.1 分出 T 恤、袖子、遮挡物和牛仔裤,ViTMatte 求边缘透明度(run_segment.py 产出 work/tee-alpha.png、
+  tee-parts.png(袖子)、jeans-alpha.png、occluders.png);可印区域按规则从商品区里取。
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
 - 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 work/points.npy、geometry.json),
   褶皱取 Marigold 法线(normals.py 产出 work/normals.png)。
@@ -199,13 +199,13 @@ Image.fromarray(np.round(photo * 255).astype(np.uint8)).save(OUT / 'cover.webp',
 # 竞品底图半透明的部分在源图里是还原出来的白色,第 3 步换背景色时要用
 restored = base_src[..., 3] < 1
 
-# ---- 2. 分割(segment.py 的结果)
+# ---- 2. 分割(run_segment.py 的结果)
 read_alpha = lambda name: np.asarray(Image.open(ROOT / 'work' / name)).astype(np.float32) / 65535
 read_mask = lambda name: np.asarray(Image.open(ROOT / 'work' / name)) > 127
 # 这张源图里 T 恤是还原出来的,轮廓是台阶,抠图模型救不回来:按二值来源处理,平滑轮廓后重出软边
 tee_bin = read_alpha('tee-alpha.png') > 0.5
 tee = quantize(soft(tee_bin))
-sleeves, occluders = read_mask('sleeves.png'), read_mask('occluders.png')
+sleeves, occluders = read_mask('tee-parts.png'), read_mask('occluders.png')
 # T 恤可印区域(规则):减去袖子,领口、下摆按竖直方向往里收;左右两侧和遮挡物边上不收,
 # 设计稿一直铺到轮廓,被遮挡物挡住的部分由底图盖住
 hem = round(PRINT_HEM * W)

@@ -10,11 +10,11 @@
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements-models.txt   # segment.py、intrinsic.py、normals.py、geometry.py 要用;其余脚本只需 requirements.txt
+.venv/bin/pip install -r requirements-models.txt   # run_segment.py、intrinsic.py、normals.py、geometry.py 要用;其余脚本只需 requirements.txt
 .venv/bin/pip install --no-deps -r requirements-moge.txt   # geometry.py 要用
 
 .venv/bin/python -I fetch_sources.py   # 下载竞品素材到 sources/
-.venv/bin/python -I segment.py         # SAM 2.1 分割 T 恤、袖子、遮挡物和牛仔裤,ViTMatte 求边缘透明度 → work/ 下的透明度和蒙版
+.venv/bin/python -I run_segment.py specs/sample-tee-jeans.json   # SAM 2.1 分割商品、部件和遮挡物,ViTMatte 求边缘透明度 → work/
 .venv/bin/python -I intrinsic.py       # Marigold 本征分解 → work/albedo.png、shading.png、residual.png
 .venv/bin/python -I normals.py         # Marigold 法线 → work/normals.png
 .venv/bin/python -I geometry.py        # MoGe-2 的 3D 坐标和相机内参 → work/points.npy、geometry.json
@@ -22,7 +22,7 @@ python3.12 -m venv .venv
 .venv/bin/python -I preview.py         # 合成 preview.png、edges.png、masks.png
 ```
 
-四个模型脚本首次运行会从 Hugging Face 下载模型,`segment.py` 约 0.4GB,`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `segment.py` 约 20 秒、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,随机种子固定,重复运行结果一致。
+四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.4GB,`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 30 秒、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,随机种子固定,重复运行结果一致。
 
 `sources/`、`work/`、`output/` 和根目录的预览图都不进仓库,按上面的步骤在本地生成。竞品素材只作内部示例,不能用于产品。
 
@@ -31,7 +31,9 @@ python3.12 -m venv .venv
 | 文件 | 做什么 |
 | --- | --- |
 | `fetch_sources.py` | 下载竞品 Mockey 免费模板 04674 的底图(叠在白色上当源图)和可印区域蒙版(只用来对比),并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割:SAM 2.1 按外接框和提示点分出包带和包(遮挡物)、T 恤、两只袖子和牛仔裤(牛仔裤的外接框由颜色加形态学的方法给出),ViTMatte 在商品和背景、遮挡物的交界求透明度,结果给 `pipeline.py` 用;对比图 `work/tee-compare.png`(T 恤和竞品模板自带的商品区)、`work/jeans-compare.png`(牛仔裤的两种方法) |
+| `segment.py` | 分割的函数:SAM 2.1 按外接框和提示点分出遮挡物、商品和不可印部件,ViTMatte 在商品和背景、遮挡物的交界求透明度。不读写文件,不含具体模板的内容 |
+| `specs/*.json` | 每个模板一份分割配置:源图路径,遮挡物、各件商品(由上层到下层)和部件的外接框与提示点。样本是 `specs/sample-tee-jeans.json` |
+| `run_segment.py` | 读一份分割配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物蒙版,以及人工检查用的叠图 `work/segment-check.png`,给 `pipeline.py` 用 |
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出起伏图里的褶皱 |
 | `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出起伏图里的大曲面和透视 |
