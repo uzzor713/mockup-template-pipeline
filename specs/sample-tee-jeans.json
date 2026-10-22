@@ -31,9 +31,9 @@
       "key": "top",
       "name": "T-shirt",
       "text": "t-shirt",
-      "parts": [{ "text": "sleeve" }, { "text": "neckline" }],
+      "parts": [{ "text": "short sleeve" }, { "text": "neckline" }],
       "binaryEdge": true,
-      "print": { "inset": [0, 0.01] },
+      "print": { "inset": { "bottom": 0.012 } },
       "reference": {
         "product": { "file": "sources/tee-base.webp", "transparent": true },
         "print": { "file": "sources/tee-print.webp" }
@@ -44,7 +44,7 @@
       "key": "bottom",
       "name": "Jeans",
       "text": "jeans",
-      "print": { "rows": [0.08, 0.45], "inset": [0.01, 0.01] }
+      "print": { "rows": [0.08, 0.45], "inset": { "top": 0.01, "bottom": 0.01, "left": 0.01, "right": 0.01 } }
     }
   ],
   "preview": {

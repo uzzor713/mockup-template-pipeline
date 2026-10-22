@@ -189,19 +189,21 @@ def surface_flow(points, focal, product, small_size, sigma):
 
 
 def print_area(product, parts, cover, rule):
-    """可印区域:商品区减去不可印部件,只在商品和背景的交界按 rule 往里收 inset(x、y 方向各占宽度的比例),
-    再只留 rows 给的高度区间(占商品高度的比例)。cover 是盖在商品上的遮挡物和上层商品,这些边上和部件边上不收,
-    设计稿一直铺到被挡住的地方,由底图或上层商品盖住"""
-    kx, ky = (round(r * W) for r in rule.get('inset', (0, 0)))
+    """可印区域:商品区减去不可印部件,只在商品和背景的交界按 rule 的 inset 往里收(上下左右各占宽度的比例,
+    如下摆留边只写 bottom),再只留 rows 给的高度区间(占商品高度的比例)。cover 是盖在商品上的遮挡物和上层商品,
+    这些边上和部件边上不收,设计稿一直铺到被挡住的地方,由底图或上层商品盖住"""
+    top, bottom, left, right = (round(rule.get('inset', {}).get(side, 0) * W) for side in ('top', 'bottom', 'left', 'right'))
     solid = product > 0.5
     gap = round(GAP_RATIO * W)
     covered = solid | cover | (grow(solid, gap) & grow(cover, gap))
-    region = (cv2.erode(covered.astype(np.uint8), np.ones((2 * ky + 1, 2 * kx + 1), np.uint8)) > 0) & ~parts
+    # 某一侧往里收 = 那一侧一定距离内有背景就去掉:核只往那一侧伸
+    kernel = np.ones((top + bottom + 1, left + right + 1), np.uint8)
+    region = (cv2.erode(covered.astype(np.uint8), kernel, anchor=(left, top)) > 0) & ~parts
     if 'rows' in rule:
         ys = np.nonzero(solid)[0]
-        top, height = ys.min(), ys.max() - ys.min()
+        y0, height = ys.min(), ys.max() - ys.min()
         band = np.zeros_like(region)
-        band[int(top + rule['rows'][0] * height):int(top + rule['rows'][1] * height)] = True
+        band[int(y0 + rule['rows'][0] * height):int(y0 + rule['rows'][1] * height)] = True
         region &= band
     # 部件蒙版没贴到轮廓、遮挡物的地方会夹出零碎的小块
     visible = region & solid
