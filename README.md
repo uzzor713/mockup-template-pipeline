@@ -43,6 +43,15 @@ SPEC=specs/sample-tee-jeans.json
 | `pipeline.py` | 改色范围、可印区域、底图、流向图、`template.json`、自动校验 |
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
 
+`experiments/` 里是试验脚本,不在上面的流程里,结果写到 `work/<id>/experiments/`:
+
+| 文件 | 做什么 |
+| --- | --- |
+| `sam3_replicate.py` | 调 Replicate 上的 SAM 3 按文字提示分割,需要 `REPLICATE_API_TOKEN`,会把源图上传到 Replicate |
+| `detect_boxes.py` | 开放词汇检测模型(默认 Grounding DINO)按文字找出各部分的外接框 |
+| `sam21_auto.py` | 检测出的框直接当 SAM 2.1 的提示,和手点提示的结果对比 |
+| `seam_snap.py` | 以 `sam21_auto.py` 的袖子为大致范围,沿照片里的接缝(细暗线)重新切分袖子和身体 |
+
 ## 配置
 
 `specs/<模板>.json`,路径都相对仓库根目录:
