@@ -1,9 +1,9 @@
 """
 按素材管线生成一个两件商品(T 恤 + 牛仔裤)的模板样本。
 
-模型的结果由前面的脚本存在 work/:
-- 分割(第 2 步):T 恤用竞品 Mockey 模板 04674 已分割好的结果(底图透明度 = 商品区,mask-design = 可印区域);
-  牛仔裤用本地 SAM 2.1 分割、ViTMatte 求边缘透明度(segment.py 产出 work/jeans-alpha.png),可印区域按规则从商品区里取。
+源图是竞品 Mockey 模板 04674 的底图叠在白色上,还原成白色 T 恤的照片。模型的结果由前面的脚本存在 work/:
+- 分割(第 2 步):本地 SAM 2.1 分出 T 恤、袖子、遮挡物和牛仔裤,ViTMatte 求边缘透明度(segment.py 产出 work/tee-alpha.png、
+  jeans-alpha.png、sleeves.png、occluders.png);可印区域按规则从商品区里取。
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
 - 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 work/points.npy、geometry.json),
   褶皱取 Marigold 法线(normals.py 产出 work/normals.png)。
@@ -37,6 +37,7 @@ SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
+PRINT_HEM = 0.01  # 上衣可印区域在领口、下摆往里收的距离 / 宽度:罗纹和折边上不印
 
 
 def luma(rgb):
@@ -195,16 +196,23 @@ base_src = np.asarray(Image.open(SRC / 'tee-base.webp').convert('RGBA')).astype(
 H, W = base_src.shape[:2]
 photo = base_src[..., :3] * base_src[..., 3:] + (1 - base_src[..., 3:])
 Image.fromarray(np.round(photo * 255).astype(np.uint8)).save(OUT / 'cover.webp', quality=85)
+# 竞品底图半透明的部分在源图里是还原出来的白色,第 3 步换背景色时要用
+restored = base_src[..., 3] < 1
 
-# ---- 2. 分割
-# 竞品的商品区是二值边缘,平滑轮廓后重出软边
-tee_bin = base_src[..., 3] < 1
+# ---- 2. 分割(segment.py 的结果)
+read_alpha = lambda name: np.asarray(Image.open(ROOT / 'work' / name)).astype(np.float32) / 65535
+read_mask = lambda name: np.asarray(Image.open(ROOT / 'work' / name)) > 127
+# 这张源图里 T 恤是还原出来的,轮廓是台阶,抠图模型救不回来:按二值来源处理,平滑轮廓后重出软边
+tee_bin = read_alpha('tee-alpha.png') > 0.5
 tee = quantize(soft(tee_bin))
-print_src = np.asarray(Image.open(SRC / 'tee-print.webp').convert('RGBA')).astype(np.float32) / 255
-# 有损 webp 的白色只到 246–255,拉回满值
-print_tee = np.minimum(np.clip((luma(print_src[..., :3]) - 0.03) / 0.93, 0, 1) * print_src[..., 3], tee)
+sleeves, occluders = read_mask('sleeves.png'), read_mask('occluders.png')
+# T 恤可印区域(规则):减去袖子,领口、下摆按竖直方向往里收;左右两侧和遮挡物边上不收,
+# 设计稿一直铺到轮廓,被遮挡物挡住的部分由底图盖住
+hem = round(PRINT_HEM * W)
+torso = cv2.erode(((tee_bin | occluders) & ~sleeves).astype(np.uint8), np.ones((2 * hem + 1, 1), np.uint8)) > 0
+print_tee = np.minimum(soft(torso), tee)
 
-jeans = np.asarray(Image.open(ROOT / 'work/jeans-alpha.png')).astype(np.float32) / 65535
+jeans = read_alpha('jeans-alpha.png')
 # 牛仔裤在 T 恤下面接着铺,交界处两者相加为 1;重叠处归上层的 T 恤
 _, (iy, ix) = ndimage.distance_transform_edt(tee_bin, return_indices=True)
 jeans = quantize(np.minimum(jeans[iy, ix], 1 - tee))
@@ -256,8 +264,8 @@ gloss = np.clip(gloss, 0, 1)
 # 白色的结果不超过 1:超出的部分从明暗里扣,光泽留着,深色上主要看它
 shade = np.clip(shade, 0, 1 - gloss)
 alpha = 1 - coverage * shade
-# T 恤台阶上被平滑到区外的像素在原图里仍是白色,同样换成背景色
-dirty = (coverage > 0) | tee_bin
+# 源图里还原出来的白色落在商品区外的部分,同样换成背景色
+dirty = (coverage > 0) | restored
 background = np.where(dirty[..., None], local_mean(photo, (~dirty).astype(np.float32), 2), photo)
 premultiplied = (1 - coverage)[..., None] * to_linear(background) + (coverage * gloss)[..., None]
 rgb = to_srgb(premultiplied / np.maximum(alpha, 1e-6)[..., None])
@@ -408,5 +416,9 @@ checks = {
 (OUT / 'checks.json').write_text(json.dumps(checks, indent=2))
 for name, ok in checks.items():
     print(('PASS ' if ok else 'FAIL ') + name)
+# 和竞品模板自带的 T 恤商品区、可印区域对比,只作参考
+reference = np.asarray(Image.open(SRC / 'tee-print.webp').convert('RGBA')).astype(np.float32) / 255
+for name, ours, theirs in (('product-1', p[0] > 0.5, restored), ('print-1', q[0] > 0.5, luma(reference[..., :3]) * reference[..., 3] > 0.5)):
+    print(f'IoU vs Mockey 04674 {name}: {(ours & theirs).sum() / (ours | theirs).sum():.3f}')
 for f in sorted(OUT.iterdir()):
     print(f'{f.stat().st_size / 1024:8.1f} KB  {f.name}')

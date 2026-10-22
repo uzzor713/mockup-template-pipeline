@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 
 SOURCES = Path(__file__).parent / 'sources'
-# 竞品 Mockey 免费模板 04674:底图(商品区半透明)和可印区域蒙版。地址后缀是 .png,内容是 webp
+# 竞品 Mockey 免费模板 04674:底图(商品区半透明,叠在白色上当源图)和可印区域蒙版(只用来对比)。地址后缀是 .png,内容是 webp
 FILES = {
     'tee-base.webp': (
         'https://assets.mockey.ai/mockups/tshirt/1790268599918-model-4674.png',
