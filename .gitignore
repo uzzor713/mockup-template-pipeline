@@ -8,3 +8,6 @@ work/
 output/
 preview/
 /*.png
+
+# 本地密钥
+.env.local

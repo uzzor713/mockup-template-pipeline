@@ -47,7 +47,7 @@ SPEC=specs/sample-tee-jeans.json
 
 | 文件 | 做什么 |
 | --- | --- |
-| `sam3_replicate.py` | 调 Replicate 上的 SAM 3 按文字提示分割,需要 `REPLICATE_API_TOKEN`,会把源图上传到 Replicate |
+| `sam3_replicate.py` | 调 Replicate 上的 SAM 3 按文字提示分割,会把源图上传到 Replicate;token 取环境变量 `REPLICATE_API_TOKEN`,没有就读仓库根目录 `.env.local`(不进仓库)里的同名一行 |
 | `detect_boxes.py` | 开放词汇检测模型(默认 Grounding DINO)按文字找出各部分的外接框 |
 | `sam21_auto.py` | 检测出的框直接当 SAM 2.1 的提示,和手点提示的结果对比 |
 | `seam_snap.py` | 以 `sam21_auto.py` 的袖子为大致范围,沿照片里的接缝(细暗线)重新切分袖子和身体 |

@@ -1,7 +1,8 @@
 """
 试验:Replicate 上的 SAM 3(mattsays/sam3-image)按文字提示分割,看袖子、领口这类没有明显边界的部件能不能分准。
 每个提示存下各个实例的蒙版和一张叠图,结果在 work/<模板 id>/experiments/sam3/。会把源图上传到 Replicate。
-用法:REPLICATE_API_TOKEN=... .venv/bin/python -I experiments/sam3_replicate.py specs/<模板>.json [提示 ...]
+token 取环境变量 REPLICATE_API_TOKEN,没有就读仓库根目录 .env.local 里的同名一行(不进仓库)。
+用法:.venv/bin/python -I experiments/sam3_replicate.py specs/<模板>.json [提示 ...]
 """
 import io, json, os, sys, time, zipfile, urllib.request
 from pathlib import Path
@@ -13,7 +14,18 @@ import config
 
 VERSION = 'd73db077226443ba4fafd34e233b3626b552eac2a433f90c7c32a9ac89bd9e72'
 API = 'https://api.replicate.com/v1'
-TOKEN = os.environ['REPLICATE_API_TOKEN']
+
+
+def env_local(name):
+    path = config.ROOT / '.env.local'
+    lines = path.read_text().splitlines() if path.exists() else []
+    values = [line.split('=', 1)[1].strip().strip('"\'') for line in lines if line.startswith(f'{name}=')]
+    if not values or not values[-1]:
+        raise SystemExit(f'缺少 {name}:设环境变量,或写进 {path}')
+    return values[-1]
+
+
+TOKEN = os.environ.get('REPLICATE_API_TOKEN') or env_local('REPLICATE_API_TOKEN')
 PROMPTS = sys.argv[2:] or ['t-shirt', 'sleeve', 'neckline', 'bag', 'bag strap', 'jeans']
 COLORS = [(0, 200, 80), (255, 150, 0), (40, 120, 255), (220, 40, 40), (170, 60, 220), (0, 190, 200)]
 RATE_LIMIT_WAIT = 11  # 余额低的账号每分钟限 6 次
