@@ -5,7 +5,8 @@
 - 分割(第 2 步):T 恤用竞品 Mockey 模板 04674 已分割好的结果(底图透明度 = 商品区,mask-design = 可印区域);
   牛仔裤用本地 SAM 2.1 分割、ViTMatte 求边缘透明度(segment.py 产出 work/jeans-alpha.png),可印区域按规则从商品区里取。
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
-- 起伏图(第 4 步):Marigold 法线(normals.py 产出 work/normals.png)。
+- 起伏图(第 4 步):褶皱取 Marigold 法线(normals.py 产出 work/normals.png),大曲面和透视取 MoGe-2 的 3D 坐标
+  (geometry.py 产出 work/points.npy、geometry.json)。
 其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py
 """
 import json
@@ -14,7 +15,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
-from scipy import ndimage
+from scipy import ndimage, sparse
+from scipy.sparse.linalg import spsolve
 
 ROOT = Path(__file__).parent
 SRC = ROOT / 'sources'
@@ -31,6 +33,9 @@ STRETCH_RANGE = (0.5, 2.5)  # Warping 100% 时各方向每像素前进量的范�
 CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
 CAP_AREA = 0.2  # 每件商品的坡度系数按它定:Warping 100% 时可印区域里这么多面积刚好顶到上限
 SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / 宽度)的坡度)的上限:几乎没褶的商品不把噪点放大成假褶皱
+SURFACE_RATIO = 0.025  # 大曲面:3D 坐标的模糊半径 / 宽度,只留身体尺度的弧度,褶皱由法线那层管
+SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
+SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
 
 
@@ -96,13 +101,15 @@ def jacobian(ox, oy, cell):
             np.gradient(oy, axis=1) / cell, 1 + np.gradient(oy, axis=0) / cell)
 
 
-def cap(ox, oy, inside, low, high, rounds=10):
-    """形变超限的地方局部减弱位移:每轮算出每格能保留的最大比例,往外扩两格再平滑后乘上去,直到不超限"""
+def cap(ox, oy, inside, low, high, base, rounds=10):
+    """形变超限的地方局部减弱位移 ox、oy(base 不动,叠在它上面算):每轮算出每格能保留的最大比例,
+    往外扩两格再平滑后乘上去,直到不超限"""
+    a0, b0, c0, d0 = jacobian(*base, DISP_SCALE)
     for _ in range(rounds):
         a, b, c, d = jacobian(ox, oy, DISP_SCALE)
         keep = np.zeros_like(ox)
         for f in np.linspace(0, 1, 41):
-            smin, smax = stretch_range(1 + f * (a - 1), f * b, f * c, 1 + f * (d - 1))
+            smin, smax = stretch_range(a0 + f * (a - 1), b0 + f * b, c0 + f * c, d0 + f * (d - 1))
             keep = np.where((smin >= low) & (smax <= high), f, keep)
         keep = np.where(inside, keep, 1).astype(np.float32)
         if keep.min() == 1:
@@ -120,6 +127,52 @@ def max_gain(gx, gy, low, high):
     stretch, squeeze = (a + d - 2) / 2 + half_gap, (a + d - 2) / 2 - half_gap
     with np.errstate(divide='ignore'):
         return np.minimum(np.where(stretch > 0, (high - 1) / stretch, np.inf), np.where(squeeze < 0, (1 - low) / -squeeze, np.inf))
+
+
+def surface_flow(points, focal, product, small_size, sigma):
+    """大曲面:设计稿贴在曲面上时,屏幕上每像素对应曲面上多长(以商品中位深度处正对镜头时为 1),
+    最小二乘积分成位移(缩小后的格子,模板像素)。侧面压缩、近处略放大,透视也在里面"""
+    solid = cv2.erode((product > 0.5).astype(np.uint8), np.ones((2 * SURFACE_INSET + 1,) * 2, np.uint8)) > 0
+    _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
+    inside = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0.5
+    weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
+    p = cv2.resize(points[iy, ix], small_size, interpolation=cv2.INTER_AREA)
+    p = np.dstack([cv2.GaussianBlur(p[..., k] * inside, (0, 0), sigma) / np.maximum(weight, 1e-6) for k in range(3)])
+    # 3D 坐标对模板像素的导数,除以正对镜头时每像素的长度
+    unit = np.median(p[..., 2][inside]) / focal
+    dx, dy = (np.gradient(p, axis=axis) / DISP_SCALE / unit for axis in (1, 0))
+    g = np.stack([np.stack([(dx * dx).sum(-1), (dx * dy).sum(-1)], -1), np.stack([(dx * dy).sum(-1), (dy * dy).sum(-1)], -1)], -2)
+    values, vectors = np.linalg.eigh(g)
+    scale = np.clip(np.sqrt(np.maximum(values, 0)), *SURFACE_RANGE)
+    target = np.einsum('...ik,...k,...jk->...ij', vectors, scale, vectors) - np.eye(2)
+    # 相邻格子的位移差 = 目标雅可比 − I(每格 DISP_SCALE 个像素),最小二乘求位移,商品区内均值为 0。
+    # 商品外延伸一圈、目标为不变形,位移平滑地延伸出去,双线性放大时边上不跳
+    target[~inside] = 0
+    region = cv2.dilate((cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0).astype(np.uint8), np.ones((9, 9), np.uint8)) > 0
+    index = -np.ones(inside.shape, int)
+    index[region] = np.arange(region.sum())
+    rows, cols, values_, rhs = [], [], [], [[], []]
+    count = 0
+    for axis, (dy_, dx_) in enumerate(((0, 1), (1, 0))):
+        h, w = inside.shape[0] - dy_, inside.shape[1] - dx_
+        pair = region[:h, :w] & region[dy_:, dx_:]
+        i0, i1 = index[:h, :w][pair], index[dy_:, dx_:][pair]
+        r = np.arange(count, count + len(i0))
+        count += len(i0)
+        rows += [r, r]
+        cols += [i1, i0]
+        values_ += [np.ones(len(r)), -np.ones(len(r))]
+        for component in range(2):
+            t = target[..., component, axis] * DISP_SCALE
+            rhs[component].append((t[:h, :w][pair] + t[dy_:, dx_:][pair]) / 2)
+    A = sparse.csr_matrix((np.concatenate(values_), (np.concatenate(rows), np.concatenate(cols))), shape=(count, int(region.sum())))
+    normal = (A.T @ A + 1e-6 * sparse.eye(A.shape[1])).tocsc()
+    flow = np.zeros(inside.shape + (2,), np.float32)
+    for component in range(2):
+        solution = spsolve(normal, A.T @ np.concatenate(rhs[component]))
+        flow[..., component][region] = solution - solution[index[inside]].mean()
+    _, (iy, ix) = ndimage.distance_transform_edt(~region, return_indices=True)
+    return flow[iy, ix]
 
 
 def save_mask(coverage, name):
@@ -204,11 +257,15 @@ base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
 # ---- 4. 起伏图:每件商品一张流向图,R / G = Warping 100% 时 x / y 方向的位移,1/4 尺寸
-# 起伏取法线的 z 分量(表面正对镜头的程度):位移沿它的坡度,表面越侧向镜头图案越压缩,
-# 褶皱横着就上下压缩、竖着就左右压缩,和照片的光线方向无关;压缩或拉伸超限的地方局部减弱,深褶处不翻折。
-# 系数按每件商品自己的褶皱定,Warping 100% 即不翻折的前提下最强的效果。
+# 两层叠加:
+# - 大曲面:按 MoGe-2 的 3D 坐标,设计稿像贴在身体尺度的曲面上,侧面压缩、近处略放大;
+# - 褶皱:起伏取法线的 z 分量(表面正对镜头的程度),位移沿它的坡度,褶皱横着就上下压缩、竖着就左右压缩,
+#   和照片的光线方向无关;系数按每件商品自己的褶皱定,压缩或拉伸超限的地方局部减弱褶皱这层,深褶处不翻折。
+# 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
+points = np.load(ROOT / 'work/points.npy')
+focal = json.loads((ROOT / 'work/geometry.json').read_text())['intrinsics'][0][0] * W
 sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
@@ -228,11 +285,12 @@ for product, printable in zip(products, prints):
     cells = cv2.resize(printable if (printable > 0.5).any() else product, small_size, interpolation=cv2.INTER_AREA) > 0.5
     gain = min(SLOPE_GAIN_MAX, float(np.percentile(max_gain(gx, gy, low, high)[cells], CAP_AREA * 100)) / to_px)
     gains.append(gain)
-    ox, oy = cap(gain * to_px * gx, gain * to_px * gy, guarded, low, high)
+    surface = surface_flow(points, focal, product, small_size, SURFACE_RATIO * W / DISP_SCALE)
+    ox, oy = cap(gain * to_px * gx, gain * to_px * gy, guarded, low, high, (surface[..., 0], surface[..., 1]))
     # 离商品 3σ 以外不动
     far = ndimage.distance_transform_edt(~inside) > 3 * sigma
     far_cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
-    flows.append(np.dstack([np.where(far_cells, 0, o) for o in (ox, oy)]).astype(np.float32))
+    flows.append(np.dstack([np.where(far_cells, 0, s + o) for s, o in ((surface[..., 0], ox), (surface[..., 1], oy))]).astype(np.float32))
     guards.append(guarded)
 # 通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉
 range_px = round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1)
@@ -274,7 +332,8 @@ template = {
     'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
-                 'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains]},
+                 'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
+                 'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE)},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 

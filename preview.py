@@ -58,9 +58,10 @@ def render(colors, warp):
     # 颜色层按覆盖度归一:边缘过渡由底图 alpha 负责
     canvas /= np.maximum(sum(products), 1e-4)[..., None]
     for index, (region, printable) in enumerate(zip(template['regions'], prints)):
-        # 设计稿取所属商品那张流向图,x、y 各自位移
-        px, py = xs + flows[index][..., 0] * warp, ys + flows[index][..., 1] * warp
+        # 设计稿取所属商品那张流向图,x、y 各自位移,减去设计稿中心处的位移
         box = region['logo']
+        center = flows[index][int(box['cy'] * H), int(box['cx'] * W)]
+        px, py = xs + (flows[index][..., 0] - center[0]) * warp, ys + (flows[index][..., 1] - center[1]) * warp
         bw, bh = box['width'] * W, box['height'] * H
         u = (px - (box['cx'] * W - bw / 2)) / bw
         v = (py - (box['cy'] * H - bh / 2)) / bh

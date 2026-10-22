@@ -1,0 +1,4 @@
+# MoGe-2 推理用到的 torch、numpy、scipy、huggingface_hub 已由 requirements-models.txt 装好;
+# 它声明的其余依赖(gradio、trimesh 等)推理用不到,按 README 用 --no-deps 安装
+moge @ git+https://github.com/microsoft/MoGe.git@07444410f1e33f402353b99d6ccd26bd31e469e8
+utils3d @ git+https://github.com/EasternJournalist/utils3d.git@3fab839f0be9931dac7c8488eb0e1600c236e183
