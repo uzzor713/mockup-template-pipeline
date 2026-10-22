@@ -16,6 +16,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
+from pymatting import estimate_foreground_ml
 from scipy import ndimage, sparse
 from scipy.sparse.linalg import spsolve
 
@@ -64,14 +65,19 @@ def soft(binary, smooth=SMOOTH):
     return np.clip(0.5 + (blurred - 0.5) * smooth * np.sqrt(2 * np.pi), 0, 1)
 
 
-def local_mean(image, weight, sigma):
-    """weight 区域内颜色的局部均值,延伸到区外;离区太远的取最近的区内像素"""
-    total = cv2.GaussianBlur(weight, (0, 0), sigma)
-    mean = cv2.GaussianBlur(image * weight[..., None], (0, 0), sigma) / np.maximum(total, 1e-6)[..., None]
-    far = total < 1e-3
-    if far.any():
+def local_mean(image, weight, sigma, levels=5):
+    """weight 区域内颜色的局部均值,延伸到区外:离区越远取越大半径(逐级翻倍)的均值,不会拉出条纹;再远的取最近的区内像素"""
+    mean = np.zeros_like(image)
+    pending = np.ones(weight.shape, bool)
+    for level in range(levels):
+        total = cv2.GaussianBlur(weight, (0, 0), sigma * 2 ** level)
+        ready = pending & (total >= 1e-3)
+        blurred = cv2.GaussianBlur(image * weight[..., None], (0, 0), sigma * 2 ** level)
+        mean[ready] = (blurred / np.maximum(total, 1e-6)[..., None])[ready]
+        pending &= ~ready
+    if pending.any():
         _, (iy, ix) = ndimage.distance_transform_edt(weight < 0.5, return_indices=True)
-        mean[far] = image[iy[far], ix[far]]
+        mean[pending] = image[iy[pending], ix[pending]]
     return mean
 
 
@@ -229,7 +235,7 @@ restored = source_alpha < 1
 # ---- 2. 分割(run_segment.py 的结果),商品由上层到下层
 read_alpha = lambda name: np.asarray(Image.open(WORK / name)).astype(np.float32) / 65535
 read_mask = lambda name: np.asarray(Image.open(WORK / name)) > 127
-occluders = read_mask('occluders.png')
+occluders = read_alpha('occluders.png') > 0.5
 products, prints = [], []
 above, above_bin = np.zeros((H, W), np.float32), np.zeros((H, W), bool)  # 上层商品的覆盖度之和、二值范围
 for item in spec['products']:
@@ -279,9 +285,12 @@ shade, gloss = shade + (1 - GLOSS_KEEP) * gloss, GLOSS_KEEP * gloss
 shade_gain = round(max(1.0, float(np.percentile((shade / np.maximum(1 - gloss, 1e-6))[coverage > 0.5], SHADE_HEADROOM))), 3)
 shade = np.clip(shade, 0, shade_gain * (1 - gloss))
 alpha = 1 - coverage * shade / shade_gain
-# 源图里还原出来的白色落在商品区外的部分,同样换成背景色
+# 商品边缘的像素 = 商品色 × 覆盖度 + 背后的颜色 × (1 − 覆盖度),背后那份(背景、皮肤、头发等)按抠图的前景色估计解出来;
+# 源图里还原出来的像素带着还原时的白色,改取周围原始照片的局部均值
 dirty = (coverage > 0) | restored
-background = np.where(dirty[..., None], local_mean(photo, (~dirty).astype(np.float32), 2), photo)
+_, behind = estimate_foreground_ml(photo_linear.astype(np.float64), coverage.astype(np.float64), return_background=True)
+background = np.where((coverage > 0)[..., None], to_srgb(np.clip(behind, 0, 1)), photo)
+background = np.where(restored[..., None], local_mean(photo, (~dirty).astype(np.float32), 2), background)
 premultiplied = (1 - coverage)[..., None] * to_linear(background) + (coverage * gloss)[..., None]
 rgb = to_srgb(premultiplied / np.maximum(alpha, 1e-6)[..., None])
 base = np.dstack([rgb, alpha])

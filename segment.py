@@ -7,7 +7,7 @@ SAM 3 现在走 Replicate,会把源图上传过去。
 提示的格式(spec):
 - 一个提示是 {text: 名词短语}(SAM 3,图里所有符合的实例合在一起),
   或 {box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}(SAM 2.1,文字分不准时手点兜底);
-- occluders:遮挡物的提示列表,合成一张蒙版;
+- occluders:遮挡物的提示列表,合在一起求透明度;头发这类边上有细丝的,提示里加 matteBand(和商品交界的待求带半宽 / 宽度);
 - products:商品列表,由上层到下层,每项本身是一个提示,加可选的 parts(不可印部件的提示列表,如袖子、领口)。
 """
 import hashlib, io, json, time, zipfile, urllib.error, urllib.request
@@ -22,6 +22,7 @@ RATE_LIMIT_WAIT = 11  # Replicate 余额低的账号每分钟限 6 次
 RETRIES = 4  # 网络偶发 TLS 握手失败、连接中断
 MATTE_MODEL = 'hustvl/vitmatte-small-composition-1k'
 BAND_RATIO = 0.004  # 待求带向外的半宽 / 宽度,要盖住 SAM 的边界误差;向内收 1/3
+MATTE_FLOOR = 0.1  # 遮挡物待求带宽时,抠图在纯色衣服上也会给出这么多以内的透明度:低于它算 0、高于 1 − 它算 1,中间线性拉开
 SPECK_RATIO = 0.01  # 面积不到整件这么多的碎块去掉
 SPUR_RATIO = 0.005  # 部件边上伸进相邻部件的细长毛刺,按这个半径 / 宽度做开运算去掉
 TILE, OVERLAP = 768, 128  # 整图一次推理要十几 GB 内存,按块推理
@@ -187,21 +188,37 @@ def uses_text(spec):
 
 
 def segment(photo, spec, models):
-    """photo:H×W×3 uint8。返回遮挡物蒙版,和每件商品的 {alpha: 透明度, parts: 不可印部件蒙版}"""
+    """photo:H×W×3 uint8。返回遮挡物的透明度,和每件商品的 {alpha: 透明度, parts: 不可印部件蒙版}"""
     W = photo.shape[1]
     band = max(1, round(BAND_RATIO * W))
-    occluders = prompted(models, photo, spec.get('occluders', []))
+    prompts = spec.get('occluders', [])
+    masks = [prompted(models, photo, [prompt]) for prompt in prompts]
+    occluders = np.logical_or.reduce(masks) if masks else np.zeros(photo.shape[:2], bool)
+    raws = [ndimage.binary_fill_holes(prompted(models, photo, [item])) for item in spec['products']]
+    # 遮挡物和商品的交界两边都待求,遮挡物当前景抠(抠图模型最擅长头发这类前景),商品在这里的覆盖度 = 1 − 遮挡物透明度。
+    # 发丝伸出去多远按各自的 matteBand 给;离商品远的边不影响模板,不求
+    near = np.logical_or.reduce(raws)
+    unknown = np.zeros_like(occluders)
+    for prompt, mask in zip(prompts, masks):
+        r = max(1, round(prompt.get('matteBand', BAND_RATIO) * W))
+        unknown |= grow(mask, r) & ~shrink(mask, r) & grow(near, r)
+    hidden = models.matte(photo, occluders & ~unknown, ~occluders & ~unknown) if unknown.any() else occluders.astype(np.float32)
+    hidden = np.clip((hidden - MATTE_FLOOR) / (1 - 2 * MATTE_FLOOR), 0, 1)
+    covered = occluders | (hidden > 0.5)
+    _, (iy, ix) = ndimage.distance_transform_edt(covered, return_indices=True)  # 被盖住的像素离它最近的未遮挡像素
     above = np.zeros(photo.shape[:2], bool)  # 已经分好的上层商品
     products = []
-    for item in spec['products']:
+    for item, raw in zip(spec['products'], raws):
         # 遮挡物和上层商品分完再减,不在提示里排除:手点时在包带这类窄的遮挡物上放负点,会把旁边的商品一起切掉。
         # 遮挡物可能把商品切成几块,只去碎块,不取最大连通块
-        mask = drop_specks(ndimage.binary_fill_holes(prompted(models, photo, [item])) & ~occluders & ~above)
+        mask = drop_specks(raw & ~covered & ~above)
         parts = ndimage.binary_fill_holes(prompted(models, photo, item.get('parts', [])))
         parts = (cv2.morphologyEx(parts.astype(np.uint8), cv2.MORPH_OPEN, disk(round(SPUR_RATIO * W))) > 0) & mask
-        # 待求带只留在商品和背景、遮挡物的交界;和上层商品的交界不算边缘,下层商品在上层下面接着铺
-        alpha = models.matte(photo, shrink(mask, max(1, band // 3)) | (mask & grow(above, band)),
-                             ~grow(mask, band) | occluders | above)
+        # 遮挡物下面按最近的未遮挡像素归属,商品在下面接着铺;商品和背景的交界照常抠,再乘上没被遮挡的那份。
+        # 和上层商品的交界不算边缘,下层商品在上层下面接着铺
+        spread = mask | (covered & mask[iy, ix])
+        alpha = models.matte(photo, shrink(spread, max(1, band // 3)) | (spread & grow(above, band)),
+                             ~grow(spread, band) | above) * (1 - hidden)
         products.append({'alpha': alpha, 'parts': parts})
         above |= alpha > 0.5
-    return occluders, products
+    return hidden, products

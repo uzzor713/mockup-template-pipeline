@@ -96,7 +96,7 @@ np.savez_compressed(OUT / f'sam21-auto-{tag}.npz', tee=tee, jeans=jeans, occlude
 
 read = lambda name: np.asarray(Image.open(WORK / name))
 manual_tee, manual_jeans = read('tee-alpha.png') > 32767, read('jeans-alpha.png') > 32767
-manual_parts, manual_occ = read('tee-parts.png') > 127, read('occluders.png') > 127
+manual_parts, manual_occ = read('tee-parts.png') > 127, read('occluders.png') > 32767
 print(f'IoU vs manual: tee {iou(tee & ~occluders, manual_tee):.3f}  jeans {iou(jeans & ~tee, manual_jeans):.3f}  '
       f'occluders {iou(occluders, manual_occ):.3f}')
 for name, masks in variants.items():
