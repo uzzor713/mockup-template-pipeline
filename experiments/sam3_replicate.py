@@ -4,7 +4,7 @@
 token 取环境变量 REPLICATE_API_TOKEN,没有就读仓库根目录 .env.local 里的同名一行(不进仓库)。
 用法:.venv/bin/python -I experiments/sam3_replicate.py specs/<模板>.json [提示 ...]
 """
-import io, json, os, sys, time, zipfile, urllib.request
+import io, json, os, sys, time, zipfile, urllib.error, urllib.request
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
@@ -29,13 +29,27 @@ TOKEN = os.environ.get('REPLICATE_API_TOKEN') or env_local('REPLICATE_API_TOKEN'
 PROMPTS = sys.argv[2:] or ['t-shirt', 'sleeve', 'neckline', 'bag', 'bag strap', 'jeans']
 COLORS = [(0, 200, 80), (255, 150, 0), (40, 120, 255), (220, 40, 40), (170, 60, 220), (0, 190, 200)]
 RATE_LIMIT_WAIT = 11  # 余额低的账号每分钟限 6 次
+RETRIES = 4  # 网络偶发 TLS 握手失败、连接中断
+
+
+def fetch(request):
+    """取回响应内容;连接层面的失败重试,HTTP 错误照常抛出"""
+    for attempt in range(RETRIES):
+        try:
+            with urllib.request.urlopen(request, timeout=300) as response:
+                return response.read()
+        except urllib.error.HTTPError:
+            raise
+        except (urllib.error.URLError, ConnectionError, TimeoutError):
+            if attempt == RETRIES - 1:
+                raise
+            time.sleep(3 * (attempt + 1))
 
 
 def call(method, url, body=None, headers=None):
     request = urllib.request.Request(url, data=body, method=method,
                                      headers={'Authorization': f'Bearer {TOKEN}', **(headers or {})})
-    with urllib.request.urlopen(request, timeout=300) as response:
-        return json.loads(response.read())
+    return json.loads(fetch(request))
 
 
 def upload(path):
@@ -58,8 +72,7 @@ def predict(image, prompt):
         raise RuntimeError(f"{prompt}: {prediction['status']} {prediction.get('error')}")
     output = prediction['output']
     url = output if isinstance(output, str) else output[0]
-    with urllib.request.urlopen(url, timeout=300) as response:  # 结果在 replicate.delivery,不带 token
-        data = response.read()
+    data = fetch(url)  # 结果在 replicate.delivery,不带 token
     masks = []
     with zipfile.ZipFile(io.BytesIO(data)) as package:
         for name in sorted(package.namelist()):
