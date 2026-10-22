@@ -1,5 +1,5 @@
 """
-只读 output/ 里的产出文件,按编辑页的公式合成预览:每件商品各自的颜色和设计稿 → 起伏位移 → 底图按 alpha 在线性光下盖上。
+只读 output/ 里的产出文件,按编辑页的公式合成预览:每件商品各自的颜色和设计稿 → 按流向图位移 → 底图按 alpha 在线性光下盖上。
 另出边缘放大图和蒙版示意图。用法:.venv/bin/python -I preview.py
 """
 import json
@@ -21,9 +21,15 @@ W, H = template['size']['width'], template['size']['height']
 base = read('base.webp')
 cover = read('cover.webp')
 # 流向图双线性放大回模板尺寸,与编辑页的贴图采样一致;通道值 0 / 1 对应 ∓rangePx
-range_px = template['displacement']['rangePx']
-flows = [cv2.resize((read(r['displacement'])[..., :2] - 0.5) * 2 * range_px, (W, H), interpolation=cv2.INTER_LINEAR)
-         for r in template['regions']]
+ranges = template['displacement']
+
+
+def flow(name, range_px):
+    return cv2.resize((read(name)[..., :2] - 0.5) * 2 * range_px, (W, H), interpolation=cv2.INTER_LINEAR)
+
+
+surfaces = [flow(r['surface'], ranges['surfaceRangePx']) for r in template['regions']]
+folds = [flow(r['folds'], ranges['foldsRangePx']) for r in template['regions']]
 products = [read(r['product'])[..., 3] for r in template['regions']]
 prints = [read(r['print'])[..., 3] for r in template['regions']]
 
@@ -58,10 +64,11 @@ def render(colors, warp):
     # 颜色层按覆盖度归一:边缘过渡由底图 alpha 负责
     canvas /= np.maximum(sum(products), 1e-4)[..., None]
     for index, (region, printable) in enumerate(zip(template['regions'], prints)):
-        # 设计稿取所属商品那张流向图,x、y 各自位移,减去设计稿中心处的位移
+        # 设计稿取所属商品的流向图:大曲面固定,褶皱乘 Warping;x、y 各自位移,减去设计稿中心处的位移
         box = region['logo']
-        center = flows[index][int(box['cy'] * H), int(box['cx'] * W)]
-        px, py = xs + (flows[index][..., 0] - center[0]) * warp, ys + (flows[index][..., 1] - center[1]) * warp
+        c = int(box['cy'] * H), int(box['cx'] * W)
+        offset = surfaces[index] - surfaces[index][c] + (folds[index] - folds[index][c]) * warp
+        px, py = xs + offset[..., 0], ys + offset[..., 1]
         bw, bh = box['width'] * W, box['height'] * H
         u = (px - (box['cx'] * W - bw / 2)) / bw
         v = (py - (box['cy'] * H - bh / 2)) / bh

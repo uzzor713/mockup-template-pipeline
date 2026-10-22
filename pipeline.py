@@ -5,8 +5,8 @@
 - 分割(第 2 步):T 恤用竞品 Mockey 模板 04674 已分割好的结果(底图透明度 = 商品区,mask-design = 可印区域);
   牛仔裤用本地 SAM 2.1 分割、ViTMatte 求边缘透明度(segment.py 产出 work/jeans-alpha.png),可印区域按规则从商品区里取。
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
-- 起伏图(第 4 步):褶皱取 Marigold 法线(normals.py 产出 work/normals.png),大曲面和透视取 MoGe-2 的 3D 坐标
-  (geometry.py 产出 work/points.npy、geometry.json)。
+- 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 work/points.npy、geometry.json),
+  褶皱取 Marigold 法线(normals.py 产出 work/normals.png)。
 其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py
 """
 import json
@@ -29,11 +29,11 @@ TEXTURE_CLIP = (-0.65, 0.44)  # 纹理(对数)的截断,个别像素不过亮过
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
 DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹理噪点;使用时双线性放大
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
-STRETCH_RANGE = (0.5, 2.5)  # Warping 100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
+STRETCH_RANGE = (0.5, 2.5)  # Warping 0–100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
 CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
 CAP_AREA = 0.2  # 每件商品的坡度系数按它定:Warping 100% 时可印区域里这么多面积刚好顶到上限
 SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / 宽度)的坡度)的上限:几乎没褶的商品不把噪点放大成假褶皱
-SURFACE_RATIO = 0.025  # 大曲面:3D 坐标的模糊半径 / 宽度,只留身体尺度的弧度,褶皱由法线那层管
+SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
@@ -102,15 +102,17 @@ def jacobian(ox, oy, cell):
 
 
 def cap(ox, oy, inside, low, high, base, rounds=10):
-    """形变超限的地方局部减弱位移 ox、oy(base 不动,叠在它上面算):每轮算出每格能保留的最大比例,
-    往外扩两格再平滑后乘上去,直到不超限"""
+    """形变超限的地方局部减弱位移 ox、oy(base 不动,叠在它上面算):每轮算出每格能保留的最大比例
+    (0 到这个比例之间都不超限),往外扩两格再平滑后乘上去,直到不超限"""
     a0, b0, c0, d0 = jacobian(*base, DISP_SCALE)
     for _ in range(rounds):
         a, b, c, d = jacobian(ox, oy, DISP_SCALE)
         keep = np.zeros_like(ox)
+        ok = np.ones(ox.shape, bool)
         for f in np.linspace(0, 1, 41):
             smin, smax = stretch_range(a0 + f * (a - 1), b0 + f * b, c0 + f * c, d0 + f * (d - 1))
-            keep = np.where((smin >= low) & (smax <= high), f, keep)
+            ok &= (smin >= low) & (smax <= high)
+            keep = np.where(ok, f, keep)
         keep = np.where(inside, keep, 1).astype(np.float32)
         if keep.min() == 1:
             break
@@ -131,22 +133,28 @@ def max_gain(gx, gy, low, high):
 
 def surface_flow(points, focal, product, small_size, sigma):
     """大曲面:设计稿贴在曲面上时,屏幕上每像素对应曲面上多长(以商品中位深度处正对镜头时为 1),
-    最小二乘积分成位移(缩小后的格子,模板像素)。侧面压缩、近处略放大,透视也在里面"""
+    最小二乘积分成位移(缩小后的格子,模板像素)。侧面压缩、近处略放大,透视也在里面。
+    先求每像素的度量再在商品区内平滑:直接平滑 3D 坐标会把轮廓附近的坡度压平"""
     solid = cv2.erode((product > 0.5).astype(np.uint8), np.ones((2 * SURFACE_INSET + 1,) * 2, np.uint8)) > 0
     _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
-    inside = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0.5
-    weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
-    p = cv2.resize(points[iy, ix], small_size, interpolation=cv2.INTER_AREA)
-    p = np.dstack([cv2.GaussianBlur(p[..., k] * inside, (0, 0), sigma) / np.maximum(weight, 1e-6) for k in range(3)])
+    p = points[iy, ix]
     # 3D 坐标对模板像素的导数,除以正对镜头时每像素的长度
-    unit = np.median(p[..., 2][inside]) / focal
-    dx, dy = (np.gradient(p, axis=axis) / DISP_SCALE / unit for axis in (1, 0))
-    g = np.stack([np.stack([(dx * dx).sum(-1), (dx * dy).sum(-1)], -1), np.stack([(dx * dy).sum(-1), (dy * dy).sum(-1)], -1)], -2)
+    unit = np.median(p[..., 2][solid]) / focal
+    dx, dy = (np.gradient(p, axis=axis) / unit for axis in (1, 0))
+    # 轮廓上混着背景深度的像素导数会爆,各分量先截到范围上限的平方
+    top = SURFACE_RANGE[1] ** 2
+    weight = solid.astype(np.float32)
+    total = cv2.GaussianBlur(weight, (0, 0), sigma)
+    xx, xy, yy = (cv2.resize(cv2.GaussianBlur(np.clip(c, -top, top) * weight, (0, 0), sigma) / np.maximum(total, 1e-6),
+                             small_size, interpolation=cv2.INTER_AREA)
+                  for c in ((dx * dx).sum(-1), (dx * dy).sum(-1), (dy * dy).sum(-1)))
+    g = np.stack([np.stack([xx, xy], -1), np.stack([xy, yy], -1)], -2)
     values, vectors = np.linalg.eigh(g)
     scale = np.clip(np.sqrt(np.maximum(values, 0)), *SURFACE_RANGE)
     target = np.einsum('...ik,...k,...jk->...ij', vectors, scale, vectors) - np.eye(2)
     # 相邻格子的位移差 = 目标雅可比 − I(每格 DISP_SCALE 个像素),最小二乘求位移,商品区内均值为 0。
     # 商品外延伸一圈、目标为不变形,位移平滑地延伸出去,双线性放大时边上不跳
+    inside = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0.5
     target[~inside] = 0
     region = cv2.dilate((cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0).astype(np.uint8), np.ones((9, 9), np.uint8)) > 0
     index = -np.ones(inside.shape, int)
@@ -256,11 +264,11 @@ rgb = to_srgb(premultiplied / np.maximum(alpha, 1e-6)[..., None])
 base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
-# ---- 4. 起伏图:每件商品一张流向图,R / G = Warping 100% 时 x / y 方向的位移,1/4 尺寸
-# 两层叠加:
-# - 大曲面:按 MoGe-2 的 3D 坐标,设计稿像贴在身体尺度的曲面上,侧面压缩、近处略放大;
-# - 褶皱:起伏取法线的 z 分量(表面正对镜头的程度),位移沿它的坡度,褶皱横着就上下压缩、竖着就左右压缩,
-#   和照片的光线方向无关;系数按每件商品自己的褶皱定,压缩或拉伸超限的地方局部减弱褶皱这层,深褶处不翻折。
+# ---- 4. 流向图:每件商品两张,R / G = x / y 方向的位移,1/4 尺寸
+# - 大曲面(固定):按 MoGe-2 的 3D 坐标,设计稿像贴在曲面上,侧面压缩、近处略放大;
+# - 褶皱(Warping 100% 时):起伏取法线的 z 分量(表面正对镜头的程度),位移沿它的坡度,褶皱横着就上下压缩、
+#   竖着就左右压缩,和照片的光线方向无关;系数按每件商品自己的褶皱定,Warping 0–100% 时两层合起来超限的地方
+#   局部减弱褶皱这层,深褶处不翻折。
 # 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
@@ -270,8 +278,11 @@ sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
 low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
-flows, guards, gains = [], [], []
-for product, printable in zip(products, prints):
+surfaces = [surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) for product in products]
+# 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分
+slack = 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
+folds, guards, gains = [], [], []
+for index, (product, printable) in enumerate(zip(products, prints)):
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
     blurred = cv2.GaussianBlur(facing * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
@@ -285,18 +296,27 @@ for product, printable in zip(products, prints):
     cells = cv2.resize(printable if (printable > 0.5).any() else product, small_size, interpolation=cv2.INTER_AREA) > 0.5
     gain = min(SLOPE_GAIN_MAX, float(np.percentile(max_gain(gx, gy, low, high)[cells], CAP_AREA * 100)) / to_px)
     gains.append(gain)
-    surface = surface_flow(points, focal, product, small_size, SURFACE_RATIO * W / DISP_SCALE)
-    ox, oy = cap(gain * to_px * gx, gain * to_px * gy, guarded, low, high, (surface[..., 0], surface[..., 1]))
+    ox, oy = cap(gain * to_px * gx, gain * to_px * gy, guarded, low + slack, high - slack,
+                 (surfaces[index][..., 0], surfaces[index][..., 1]))
     # 离商品 3σ 以外不动
     far = ndimage.distance_transform_edt(~inside) > 3 * sigma
     far_cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
-    flows.append(np.dstack([np.where(far_cells, 0, s + o) for s, o in ((surface[..., 0], ox), (surface[..., 1], oy))]).astype(np.float32))
+    surfaces[index] = np.where(far_cells[..., None], 0, surfaces[index]).astype(np.float32)
+    folds.append(np.dstack([np.where(far_cells, 0, c) for c in (ox, oy)]).astype(np.float32))
     guards.append(guarded)
-# 通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉
-range_px = round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1)
-for index, flow in enumerate(flows, start=1):
-    rgb = np.dstack([0.5 + np.clip(flow, -range_px, range_px) / (2 * range_px), np.full(flow.shape[:2], 0.5, np.float32)])
-    Image.fromarray(np.round(rgb * 255).astype(np.uint8), 'RGB').save(OUT / f'displacement-{index}.png', optimize=True)
+
+
+def save_flows(flows, prefix):
+    """通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉"""
+    range_px = round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1)
+    for index, flow in enumerate(flows, start=1):
+        rgb = np.dstack([0.5 + np.clip(flow, -range_px, range_px) / (2 * range_px), np.full(flow.shape[:2], 0.5, np.float32)])
+        Image.fromarray(np.round(rgb * 255).astype(np.uint8), 'RGB').save(OUT / f'{prefix}-{index}.png', optimize=True)
+    return range_px
+
+
+surface_range = save_flows(surfaces, 'surface')
+folds_range = save_flows(folds, 'folds')
 
 for index, (product, printable) in enumerate(zip(products, prints), start=1):
     save_mask(product, f'product-{index}.png')
@@ -315,7 +335,8 @@ for index, (printable, name, key) in enumerate(zip(prints, names, keys), start=1
         'name': name,
         'product': f'product-{index}.png',
         'print': f'print-{index}.png',
-        'displacement': f'displacement-{index}.png',
+        'surface': f'surface-{index}.png',
+        'folds': f'folds-{index}.png',
         'recolorable': True,
         'logo': {'cx': round(float(cx) / W, 4), 'cy': round(float(cy) / H, 4), 'width': round(float(size) / W, 4),
                  'height': round(float(size) / H, 4), 'rotation': 0},
@@ -327,7 +348,7 @@ template = {
     'category': 't-shirt',
     'files': {'cover': 'cover.webp', 'base': 'base.webp'},
     'blend': 'linear',
-    'displacement': {'rangePx': range_px},
+    'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
     'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
@@ -342,7 +363,8 @@ def read(name):
     return np.asarray(Image.open(OUT / name)).astype(np.float32) / 255
 
 base_out = read('base.webp')
-d = [read(f'displacement-{i}.png') for i in (1, 2)]
+s = [read(f'surface-{i}.png') for i in (1, 2)]
+f = [read(f'folds-{i}.png') for i in (1, 2)]
 p = [read(f'product-{i}.png')[..., 3] for i in (1, 2)]
 q = [read(f'print-{i}.png')[..., 3] for i in (1, 2)]
 union = (p[0] > 0) | (p[1] > 0)
@@ -355,25 +377,30 @@ def neutral_far(flow, product):
     return bool((np.abs(flow[..., :2][cells] - 0.5) <= 1 / 255).all())
 
 
-def within_stretch(flow, product):
-    """按编辑页的方式双线性放大回模板尺寸,Warping 100% 时商品区内各方向每像素前进量都在范围内"""
-    offset = cv2.resize((flow[..., :2] - 0.5) * 2 * range_px, (W, H), interpolation=cv2.INTER_LINEAR)
-    smin, smax = stretch_range(*jacobian(offset[..., 0], offset[..., 1], 1))
+def within_stretch(surface, fold, product):
+    """按编辑页的方式双线性放大回模板尺寸,Warping 0–100% 时商品区内各方向每像素前进量都在范围内"""
+    surface, fold = (cv2.resize((x[..., :2] - 0.5) * 2 * r, (W, H), interpolation=cv2.INTER_LINEAR)
+                     for x, r in ((surface, surface_range), (fold, folds_range)))
     inside = product > 0.5
-    return bool(smin[inside].min() >= STRETCH_RANGE[0] and smax[inside].max() <= STRETCH_RANGE[1])
+    for warp in np.linspace(0, 1, 5):
+        offset = surface + warp * fold
+        smin, smax = stretch_range(*jacobian(offset[..., 0], offset[..., 1], 1))
+        if smin[inside].min() < STRETCH_RANGE[0] or smax[inside].max() > STRETCH_RANGE[1]:
+            return False
+    return True
 
 
 checks = {
     'sizes equal': all(x.shape[:2] == (H, W) for x in [base_out, *p, *q]),
-    'displacement 1/4 size, B unused': all(x.shape == (H // DISP_SCALE, W // DISP_SCALE, 3)
-                                           and bool((x[..., 2] == 128 / 255).all()) for x in d),
+    'flow maps 1/4 size, B unused': all(x.shape == (H // DISP_SCALE, W // DISP_SCALE, 3)
+                                        and bool((x[..., 2] == 128 / 255).all()) for x in s + f),
     'aspect 4:5': W * 5 == H * 4,
     'products overlap < 0.1%': float(((p[0] > 0.5) & (p[1] > 0.5)).sum() / max(1, (p[1] > 0.5).sum())) < 0.001,
     'print outside product < 0.1%': all(float(((qq > 0.5) & (pp < 0.5)).sum() / max(1, (qq > 0.5).sum())) < 0.001 for pp, qq in zip(p, q)),
     'base opaque outside products': bool((base_out[..., 3][~union] == 1).all()),
     'base matches formula (≤ 2/255)': bool(np.abs(base_out[..., 3] - alpha).max() <= 2 / 255 + 1e-6),
-    'displacement neutral far outside': all(neutral_far(dd, pp) for dd, pp in zip(d, p)),
-    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 100%': all(within_stretch(dd, pp) for dd, pp in zip(d, p)),
+    'flow maps neutral far outside': all(neutral_far(x, pp) for x, pp in zip(s + f, p + p)),
+    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100%': all(within_stretch(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(largest(qq > 0.5).sum() / (qq > 0.5).sum() >= 0.8 for qq in q),
     'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),
