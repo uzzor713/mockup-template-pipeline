@@ -92,7 +92,7 @@ def render(colors, warp):
         cover_amount = (inside * printable)[..., None]
         canvas = canvas * (1 - cover_amount) + sample * cover_amount
     alpha = base[..., 3:]
-    return to_srgb(to_linear(base[..., :3]) * alpha + to_linear(canvas) * (1 - alpha))
+    return to_srgb(to_linear(base[..., :3]) * alpha + template.get('shadeGain', 1) * to_linear(canvas) * (1 - alpha))
 
 
 options = spec.get('preview', {})

@@ -28,6 +28,7 @@ WORK, OUT = config.folder(spec, 'work'), config.folder(spec, 'output')
 
 WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(样本白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
 GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(样本上约为白色亮度的 3%)
+SHADE_HEADROOM = 99.9  # 明暗倍数让商品区这个百分位以内的明暗都放得下,更亮的极少数截掉:倍数越大,8 位 alpha 里明暗的精度越低
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
 TEXTURE_CLIP = (-0.65, 0.44)  # 纹理(对数)的截断,个别像素不过亮过暗
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
@@ -244,8 +245,8 @@ for item in spec['products']:
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
-# 编辑页在线性光下合成:结果 = 商品颜色 × (1 − alpha) + 底图 × alpha。
-# 商品区里 1 − alpha = 明暗 × 纹理,底图 × alpha = 光泽 × 纹理(光泽是不随颜色变的反光,纹理也作用在它上面)。
+# 编辑页在线性光下合成:结果 = 明暗倍数 × 商品颜色 × (1 − alpha) + 底图 × alpha。
+# 商品区里 倍数 × (1 − alpha) = 明暗 × 纹理,底图 × alpha = 光泽 × 纹理(光泽是不随颜色变的反光,纹理也作用在它上面)。
 # 照片 ≈ 固有色 × s·光照 + r·残差,光照和残差只到相差一个比例,每件商品在实心部分拟合 s、r,花纹和染料留在固有色里;
 # 明暗取白布料的固有色 × s·光照,光泽取 r·残差,纹理取照片里比纹理半径更细的起伏
 layers = {name: cv2.resize(read_layer(f'{name}.png'), (W, H), interpolation=cv2.INTER_LINEAR)
@@ -273,9 +274,11 @@ for product in products:
 shade, gloss = (np.where(coverage > 0, x / np.maximum(coverage, 1e-6), 0) for x in (shade, gloss))
 gloss = np.clip(gloss, 0, 1)
 shade, gloss = shade + (1 - GLOSS_KEEP) * gloss, GLOSS_KEEP * gloss
-# 白色的结果不超过 1:超出的部分从明暗里扣,光泽留着,深色上主要看它
-shade = np.clip(shade, 0, 1 - gloss)
-alpha = 1 - coverage * shade
+# 底图 RGB 不超过 1 要求 明暗 ÷ 倍数 + 光泽 ≤ 1,倍数按商品区要的取,不溢出的模板为 1。
+# 浅色超出 1 的部分留到渲染时按实际颜色截,深色的亮处不跟着压暗
+shade_gain = round(max(1.0, float(np.percentile((shade / np.maximum(1 - gloss, 1e-6))[coverage > 0.5], SHADE_HEADROOM))), 3)
+shade = np.clip(shade, 0, shade_gain * (1 - gloss))
+alpha = 1 - coverage * shade / shade_gain
 # 源图里还原出来的白色落在商品区外的部分,同样换成背景色
 dirty = (coverage > 0) | restored
 background = np.where(dirty[..., None], local_mean(photo, (~dirty).astype(np.float32), 2), photo)
@@ -368,6 +371,7 @@ template = {
     'category': spec['category'],
     'files': {'cover': 'cover.webp', 'base': 'base.webp'},
     'blend': 'linear',
+    'shadeGain': shade_gain,
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
     'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
