@@ -21,7 +21,7 @@ SRC = ROOT / 'sources'
 OUT = ROOT / 'output'
 OUT.mkdir(exist_ok=True)
 
-PERCENTILE = 90  # 归一化参考:商品区亮度的第 90 百分位当作白
+WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(样本白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
 TEXTURE_CLIP = (-0.65, 0.44)  # 纹理(对数)的截断,个别像素不过亮过暗
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
@@ -167,7 +167,7 @@ coverage = np.minimum(sum(products), 1)
 # 编辑页在线性光下合成:结果 = 商品颜色 × (1 − alpha) + 底图 × alpha。
 # 商品区里 1 − alpha = 明暗 × 纹理,底图 × alpha = 光泽 × 纹理(光泽是不随颜色变的反光,纹理也作用在它上面)。
 # 照片 ≈ 固有色 × s·光照 + r·残差,光照和残差只到相差一个比例,每件商品在实心部分拟合 s、r,花纹和染料留在固有色里;
-# 明暗取 s·光照,光泽取 r·残差,纹理取照片里比纹理半径更细的起伏
+# 明暗取白布料的固有色 × s·光照,光泽取 r·残差,纹理取照片里比纹理半径更细的起伏
 layers = {name: cv2.resize(read_layer(f'{name}.png'), (W, H), interpolation=cv2.INTER_LINEAR)
           for name in ('albedo', 'shading', 'residual')}
 photo_linear = to_linear(photo)
@@ -185,11 +185,10 @@ for product in products:
         return cv2.GaussianBlur(x * inside, (0, 0), radius) / np.maximum(weight, 1e-6)
 
     texture = np.exp(np.clip(np.log(np.maximum(I, 1e-4)) - np.log(np.maximum(blur(I), 1e-4)), *TEXTURE_CLIP))
-    diffuse = blur(luma(s * layers['shading'])) * texture
+    diffuse = WHITE_ALBEDO * blur(luma(s * layers['shading'])) * texture
     sheen = luma(max(r, 0) * layers['residual']) * texture
-    ref = np.percentile((diffuse + sheen)[inside], PERCENTILE)
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
-    for total, layer in ((shade, diffuse / ref), (gloss, sheen / ref)):
+    for total, layer in ((shade, diffuse), (gloss, sheen)):
         total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
 shade, gloss = (np.where(coverage > 0, x / np.maximum(coverage, 1e-6), 0) for x in (shade, gloss))
 gloss = np.clip(gloss, 0, 1)
@@ -272,7 +271,7 @@ template = {
     'blend': 'linear',
     'displacement': {'rangePx': range_px},
     'regions': regions,
-    'pipeline': {'luminancePercentile': PERCENTILE, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
+    'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains]},
