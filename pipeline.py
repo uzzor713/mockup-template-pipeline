@@ -21,6 +21,7 @@ from scipy.sparse.linalg import spsolve
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
+from segment import drop_specks, grow
 
 spec = config.load(sys.argv[1])
 WORK, OUT = config.folder(spec, 'work'), config.folder(spec, 'output')
@@ -39,6 +40,7 @@ SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
+GAP_RATIO = 0.004  # 商品和遮挡物之间的缝,两边都在这么远(× 宽度)以内的算遮挡物
 
 
 def luma(rgb):
@@ -185,17 +187,24 @@ def surface_flow(points, focal, product, small_size, sigma):
     return flow[iy, ix]
 
 
-def print_area(product, parts, occluders, rule):
-    """可印区域:商品区减去不可印部件,按 rule 往里收 inset(x、y 方向各占宽度的比例),
-    再只留 rows 给的高度区间(占商品高度的比例)。遮挡物边上不收,设计稿一直铺到被挡住的地方,由底图盖住"""
+def print_area(product, parts, cover, rule):
+    """可印区域:商品区减去不可印部件,只在商品和背景的交界按 rule 往里收 inset(x、y 方向各占宽度的比例),
+    再只留 rows 给的高度区间(占商品高度的比例)。cover 是盖在商品上的遮挡物和上层商品,这些边上和部件边上不收,
+    设计稿一直铺到被挡住的地方,由底图或上层商品盖住"""
     kx, ky = (round(r * W) for r in rule.get('inset', (0, 0)))
-    region = cv2.erode((((product > 0.5) | occluders) & ~parts).astype(np.uint8), np.ones((2 * ky + 1, 2 * kx + 1), np.uint8)) > 0
+    solid = product > 0.5
+    gap = round(GAP_RATIO * W)
+    covered = solid | cover | (grow(solid, gap) & grow(cover, gap))
+    region = (cv2.erode(covered.astype(np.uint8), np.ones((2 * ky + 1, 2 * kx + 1), np.uint8)) > 0) & ~parts
     if 'rows' in rule:
-        ys = np.nonzero(product > 0.5)[0]
+        ys = np.nonzero(solid)[0]
         top, height = ys.min(), ys.max() - ys.min()
         band = np.zeros_like(region)
         band[int(top + rule['rows'][0] * height):int(top + rule['rows'][1] * height)] = True
         region &= band
+    # 部件蒙版没贴到轮廓、遮挡物的地方会夹出零碎的小块
+    visible = region & solid
+    region &= drop_specks(visible) | ~visible
     return np.minimum(soft(region), product)
 
 
@@ -227,7 +236,7 @@ for item in spec['products']:
     _, (iy, ix) = ndimage.distance_transform_edt(above_bin, return_indices=True)
     product = quantize(np.minimum(alpha[iy, ix], 1 - above))
     products.append(product)
-    prints.append(quantize(print_area(product, read_mask(f"{item['id']}-parts.png"), occluders, item.get('print', {}))))
+    prints.append(quantize(print_area(product, read_mask(f"{item['id']}-parts.png"), occluders | above_bin, item.get('print', {}))))
     above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
 coverage = np.minimum(sum(products), 1)
 
