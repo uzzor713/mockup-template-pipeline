@@ -27,6 +27,7 @@ spec = config.load(sys.argv[1])
 WORK, OUT = config.folder(spec, 'work'), config.folder(spec, 'output')
 
 WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(样本白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
+GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(样本上约为白色亮度的 3%)
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
 TEXTURE_CLIP = (-0.65, 0.44)  # 纹理(对数)的截断,个别像素不过亮过暗
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
@@ -269,6 +270,7 @@ for product in products:
         total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
 shade, gloss = (np.where(coverage > 0, x / np.maximum(coverage, 1e-6), 0) for x in (shade, gloss))
 gloss = np.clip(gloss, 0, 1)
+shade, gloss = shade + (1 - GLOSS_KEEP) * gloss, GLOSS_KEEP * gloss
 # 白色的结果不超过 1:超出的部分从明暗里扣,光泽留着,深色上主要看它
 shade = np.clip(shade, 0, 1 - gloss)
 alpha = 1 - coverage * shade
@@ -366,7 +368,7 @@ template = {
     'blend': 'linear',
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
-    'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
+    'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
