@@ -1,7 +1,8 @@
 """
-法线:Marigold(法线版)估计照片里每个像素的表面朝向,存 work/normals.png(16 位,(n + 1) / 2,模型处理分辨率)。
-pipeline.py 用它出起伏图。用法:.venv/bin/python -I normals.py;首次运行会从 Hugging Face 下载模型(约 2.6GB)
+法线:Marigold(法线版)估计照片里每个像素的表面朝向,存 work/<id>/normals.png(16 位,(n + 1) / 2,模型处理分辨率)。
+pipeline.py 用它出流向图里的褶皱。用法:.venv/bin/python -I normals.py specs/<模板>.json;首次运行会从 Hugging Face 下载模型(约 2.6GB)
 """
+import sys
 import time
 from pathlib import Path
 
@@ -11,14 +12,15 @@ import torch
 from diffusers import MarigoldNormalsPipeline
 from PIL import Image
 
-ROOT = Path(__file__).parent
-WORK = ROOT / 'work'
-WORK.mkdir(exist_ok=True)
+sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
+import config
+
 MODEL = 'prs-eth/marigold-normals-v1-1'
 RESOLUTION = 768
 
-rgba = np.asarray(Image.open(ROOT / 'sources/tee-base.webp').convert('RGBA')).astype(np.float32) / 255
-photo = rgba[..., :3] * rgba[..., 3:] + (1 - rgba[..., 3:])
+spec = config.load(sys.argv[1])
+WORK = config.folder(spec, 'work')
+photo, _ = config.photo(spec)
 device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 t0 = time.time()
 pipe = MarigoldNormalsPipeline.from_pretrained(

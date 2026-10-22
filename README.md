@@ -1,6 +1,6 @@
 # Mockup 模板素材管线
 
-把一张商品照片加工成 Mockup 模板要用的素材:半透明底图、每件商品的改色范围和可印区域、起伏图、配置。样本是一个两件商品(T 恤 + 牛仔裤)的模板。
+把一张商品照片加工成 Mockup 模板要用的素材:半透明底图、每件商品的改色范围和可印区域、流向图、配置。每个模板写一份配置(`specs/<模板>.json`),脚本本身不含具体模板的内容;样本是一个两件商品(T 恤 + 牛仔裤)的模板,配置是 `specs/sample-tee-jeans.json`。
 
 编辑页的合成方式:每件商品先填上用户选的颜色,设计稿按所属商品的可印区域裁切并按流向图位移(大曲面层固定,褶皱层乘 Warping),最后在线性光下把底图按透明度盖在最上面,明暗、纹理和光泽都在底图里。
 
@@ -13,58 +13,79 @@ python3.12 -m venv .venv
 .venv/bin/pip install -r requirements-models.txt   # run_segment.py、intrinsic.py、normals.py、geometry.py 要用;其余脚本只需 requirements.txt
 .venv/bin/pip install --no-deps -r requirements-moge.txt   # geometry.py 要用
 
-.venv/bin/python -I fetch_sources.py   # 下载竞品素材到 sources/
-.venv/bin/python -I run_segment.py specs/sample-tee-jeans.json   # SAM 2.1 分割商品、部件和遮挡物,ViTMatte 求边缘透明度 → work/
-.venv/bin/python -I intrinsic.py       # Marigold 本征分解 → work/albedo.png、shading.png、residual.png
-.venv/bin/python -I normals.py         # Marigold 法线 → work/normals.png
-.venv/bin/python -I geometry.py        # MoGe-2 的 3D 坐标和相机内参 → work/points.npy、geometry.json
-.venv/bin/python -I pipeline.py        # 生成 output/,并跑自动校验
-.venv/bin/python -I preview.py         # 合成 preview.png、edges.png、masks.png
+SPEC=specs/sample-tee-jeans.json
+.venv/bin/python -I fetch_sources.py $SPEC   # 下载配置里 fetch 列出的素材
+.venv/bin/python -I run_segment.py $SPEC     # SAM 2.1 分割商品、部件和遮挡物,ViTMatte 求边缘透明度
+.venv/bin/python -I intrinsic.py $SPEC       # Marigold 本征分解
+.venv/bin/python -I normals.py $SPEC         # Marigold 法线
+.venv/bin/python -I geometry.py $SPEC        # MoGe-2 的 3D 坐标和相机内参
+.venv/bin/python -I pipeline.py $SPEC        # 生成模板文件,并跑自动校验
+.venv/bin/python -I preview.py $SPEC         # 合成预览图
 ```
+
+每个模板的中间结果在 `work/<id>/`,模板文件在 `output/<id>/`,预览图在 `preview/<id>/`,`<id>` 是配置里的 `id`。
 
 四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.4GB,`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 30 秒、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,随机种子固定,重复运行结果一致。
 
-`sources/`、`work/`、`output/` 和根目录的预览图都不进仓库,按上面的步骤在本地生成。竞品素材只作内部示例,不能用于产品。
+`sources/`、`work/`、`output/`、`preview/` 都不进仓库,按上面的步骤在本地生成。样本用的竞品素材只作内部示例,不能用于产品。
 
 ## 脚本
 
 | 文件 | 做什么 |
 | --- | --- |
-| `fetch_sources.py` | 下载竞品 Mockey 免费模板 04674 的底图(叠在白色上当源图)和可印区域蒙版(只用来对比),并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割的函数:SAM 2.1 按外接框和提示点分出遮挡物、商品和不可印部件,ViTMatte 在商品和背景、遮挡物的交界求透明度。不读写文件,不含具体模板的内容 |
-| `specs/*.json` | 每个模板一份分割配置:源图路径,遮挡物、各件商品(由上层到下层)和部件的外接框与提示点。样本是 `specs/sample-tee-jeans.json` |
-| `run_segment.py` | 读一份分割配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物蒙版,以及人工检查用的叠图 `work/segment-check.png`,给 `pipeline.py` 用 |
+| `config.py` | 读模板配置和源图,给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
+| `fetch_sources.py` | 按配置的 `fetch` 下载素材,并核对是否与生成样本时的文件一致 |
+| `segment.py` | 分割的函数:SAM 2.1 按外接框和提示点分出遮挡物、商品和不可印部件,ViTMatte 在商品和背景、遮挡物的交界求透明度。不读写文件 |
+| `run_segment.py` | 按配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物蒙版,以及人工检查用的叠图 `segment-check.png` |
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
-| `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出起伏图里的褶皱 |
-| `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出起伏图里的大曲面和透视 |
-| `pipeline.py` | 底图、流向图、配置、自动校验 |
-| `preview.py` | 只读 `output/` 里的文件合成预览,和编辑页用同一套公式 |
+| `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
+| `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出流向图里的大曲面和透视 |
+| `pipeline.py` | 改色范围、可印区域、底图、流向图、`template.json`、自动校验 |
+| `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
+
+## 配置
+
+`specs/<模板>.json`,路径都相对仓库根目录:
+
+| 字段 | 内容 |
+| --- | --- |
+| `id`、`category` | 模板 id(也是 `work/`、`output/`、`preview/` 下的目录名)、品类,写进 `template.json` |
+| `photo` | 源图。带透明度的叠在白色上;透明度不到 1 的像素视为不是原始照片(如从竞品底图还原的商品区),这些像素落在商品区外时,底图里换成周围的背景色 |
+| `fetch` | 可选,要下载的素材:`{路径: {url, sha256}}` |
+| `occluders` | 遮挡物的提示列表,每项 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`,`note` 只作说明 |
+| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`box` 和 `points`(分割提示)、可选的 `parts`(不可印部件的提示列表,如袖子)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference` |
+| `products[].print` | 可印区域规则:商品区减去 `parts`,`inset: [x, y]` 按宽度的比例往里收(遮挡物边上不收),`rows: [从, 到]` 只留这段高度(占商品高度的比例) |
+| `products[].binaryEdge` | 源图里这件商品的轮廓是台阶(如从竞品底图还原的),抠图救不回来:按二值来源处理,平滑轮廓后重出软边 |
+| `products[].reference` | 可选,对比用的参考蒙版 `{product, print}`,每项 `{file, transparent}`;`transparent` 取图里半透明的部分,否则取白色 × 透明度。`pipeline.py` 最后打印重合度,不算校验 |
+| `preview` | 预览的裁切范围 `crop`(占宽高的比例)和边缘放大的取样位置 `spots`(`[名称, x, y]`,模板像素) |
 
 ## 产出
 
-`output/` 里是模板本身:
+`output/<id>/` 里是模板本身,以样本为例:
 
 | 文件 | 内容 |
 | --- | --- |
 | `cover.webp` | 模板封面(原图) |
 | `base.webp` | 底图:T 恤、牛仔裤区域半透明,在线性光下合成时 1 − 透明度 = 明暗 × 纹理、颜色 × 透明度 = 光泽 × 纹理,不含花纹;背景、皮肤、包带不透明 |
-| `product-1.png` / `product-2.png` | T 恤 / 牛仔裤的改色范围(白色 + 透明度) |
+| `product-1.png` / `product-2.png` | T 恤 / 牛仔裤的改色范围(白色 + 透明度),编号按配置里商品的顺序 |
 | `print-1.png` / `print-2.png` | T 恤 / 牛仔裤的可印区域(白色 + 透明度) |
 | `surface-1.png` / `surface-2.png` | T 恤 / 牛仔裤的大曲面层流向图,固定叠上,不随 Warping 变:R / G = x / y 方向的位移,中灰 = 不位移,通道值 0 / 255 对应 ∓`surfaceRangePx`;B 未用;1/4 尺寸(400×500),使用时双线性放大 |
 | `folds-1.png` / `folds-2.png` | T 恤 / 牛仔裤的褶皱层流向图,格式同上,值是 Warping 100% 时的位移,通道值对应 ∓`foldsRangePx`,使用时乘 Warping |
 | `template.json` | 部件名、默认 Logo 框、合成方式 `blend: "linear"`、两层流向图的 `displacement.surfaceRangePx`、`foldsRangePx`、生成参数 |
 | `checks.json` | 自动校验结果(12 项) |
 
-示意图:
+`preview/<id>/` 里是示意图:
 
-- `preview.png`:只读上面这些文件合成的效果。从左到右依次是封面、白 / 白、红 / 藏青、黑 / 黑(Warping 50%)、芥末黄 / 橄榄绿(Warping 100%)。
-- `edges.png`:六处边缘(袖口、肩线、T 恤压牛仔裤、包带、裤裆、裤脚压鞋)按像素放大 3 倍,左起封面、红 / 黑、黑 / 芥末黄。
-- `masks.png`:绿色为 T 恤商品区,蓝色为牛仔裤商品区,黄线为可印区域,红框为默认 Logo 位置。
+- `preview.png`:只读模板文件合成的效果。从左到右依次是封面、白 / 白、红 / 藏青、黑 / 黑(Warping 50%)、芥末黄 / 橄榄绿(Warping 100%),颜色按商品顺序。
+- `edges.png`:配置里的几处边缘按像素放大 3 倍,左起封面、红 / 黑、黑 / 芥末黄。样本是袖口、肩线、T 恤压牛仔裤、包带、裤裆、裤脚压鞋。
+- `masks.png`:各件商品区依次着绿、蓝、紫,黄线为可印区域,红框为默认 Logo 位置。
 
 ## 怎么生成的
 
+以样本为例:
+
 - 分割:本地运行的 SAM 2.1 以外接框和几个提示点为输入,分出包带和包(遮挡物)、T 恤、两只袖子和牛仔裤,T 恤减去遮挡物;ViTMatte 在商品和背景、遮挡物的交界几个像素内求透明度。源图里的 T 恤是从竞品底图还原出来的,轮廓本身是台阶,抠图救不回来,所以 T 恤按二值来源处理:平滑轮廓后重出软边。牛仔裤和 T 恤的交界不算边缘,牛仔裤在 T 恤下面接着铺。
-- 可印区域按规则取:T 恤减去袖子,领口、下摆按竖直方向往里收 1% 宽度,左右两侧和包带边上不收,设计稿一直铺到轮廓,被包带挡住的部分由底图盖住;牛仔裤取大腿上段。`pipeline.py` 最后会打印和竞品模板自带蒙版的重合度,样本 T 恤商品区 0.993、可印区域 0.904。
+- 可印区域按配置里的规则取:T 恤减去袖子,领口、下摆按竖直方向往里收 1% 宽度,左右两侧和包带边上不收,设计稿一直铺到轮廓,被包带挡住的部分由底图盖住;牛仔裤往里收 1% 宽度,取裤腰以下到大腿中段。和竞品模板自带的蒙版相比,T 恤商品区重合度 0.993、可印区域 0.905。
 - 底图:Marigold 把照片拆成固有色、光照和残差,两者的比例按每件商品拟合。底图是「这件商品如果是白色」的样子,分三部分:明暗(光照)、光泽(残差,高光这类不随颜色变的反光)和纹理(照片里比长边 / 256 更细的起伏)。明暗和纹理乘在用户选的颜色上,光泽乘上纹理后叠加在最上面,所以深色衣服也有反光和布纹。做旧洗白、染料这些花纹留在固有色里,改色时不会带出来。「白色」按白布料的固有色算(样本白 T 恤在本征分解里约 0.87),选白色时和照片一样亮,不额外提亮。白色的结果不超过 1,亮处超出的部分从明暗里扣。
 - 流向图分两层,分开存:
   - 大曲面:MoGe-2 给出每个像素的 3D 坐标,由此算出屏幕上每像素在曲面上实际对应多长(以商品中位深度处正对镜头时为 1),在商品区内平滑约 32px(宽度的 2%):身体、裤腿转向侧面的地方压缩,轮廓内一二十像素压得最多,至多 2 倍;离镜头近的地方略放大,透视也在里面。再用最小二乘积分成位移。这层按形状算出来就是实际的样子,固定叠上,不随 Warping 变。
@@ -84,8 +105,8 @@ python3.12 -m venv .venv
 
 | 模型 | 用在 | 许可 |
 | --- | --- | --- |
-| SAM 2.1(`facebook/sam2.1-hiera-base-plus`) | 分割 T 恤、袖子、遮挡物和牛仔裤 | Apache-2.0 |
+| SAM 2.1(`facebook/sam2.1-hiera-base-plus`) | 分割商品、部件和遮挡物 | Apache-2.0 |
 | ViTMatte small(`hustvl/vitmatte-small-composition-1k`) | 边缘透明度 | 模型标注 Apache-2.0;训练数据 Composition-1k 出自 Adobe 的抠图数据集,商用前要确认该数据集的条款 |
 | Marigold 本征分解(`prs-eth/marigold-iid-lighting-v1-1`) | 底图的明暗和光泽,去掉花纹 | OpenRAIL++,可商用,附使用用途限制 |
-| Marigold 法线(`prs-eth/marigold-normals-v1-1`) | 起伏图里的褶皱 | OpenRAIL++,可商用,附使用用途限制 |
-| MoGe-2(`Ruicheng/moge-2-vitl-normal`) | 起伏图里的大曲面和透视 | MIT(代码和模型) |
+| Marigold 法线(`prs-eth/marigold-normals-v1-1`) | 流向图里的褶皱 | OpenRAIL++,可商用,附使用用途限制 |
+| MoGe-2(`Ruicheng/moge-2-vitl-normal`) | 流向图里的大曲面和透视 | MIT(代码和模型) |

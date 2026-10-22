@@ -1,15 +1,16 @@
 """
-按素材管线生成一个两件商品(T 恤 + 牛仔裤)的模板样本。
+按模板配置(specs/*.json)生成模板文件到 output/<id>/,并跑自动校验。
 
-源图是竞品 Mockey 模板 04674 的底图叠在白色上,还原成白色 T 恤的照片。模型的结果由前面的脚本存在 work/:
-- 分割(第 2 步):本地 SAM 2.1 分出 T 恤、袖子、遮挡物和牛仔裤,ViTMatte 求边缘透明度(run_segment.py 产出 work/tee-alpha.png、
-  tee-parts.png(袖子)、jeans-alpha.png、occluders.png);可印区域按规则从商品区里取。
-- 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
-- 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 work/points.npy、geometry.json),
-  褶皱取 Marigold 法线(normals.py 产出 work/normals.png)。
-其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py
+模型的结果由前面的脚本存在 work/<id>/:
+- 分割(第 2 步):SAM 2.1 分出的商品、不可印部件和遮挡物,ViTMatte 求的边缘透明度(run_segment.py);
+  可印区域按配置里的规则从商品区里取。
+- 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 albedo.png、shading.png、residual.png)。
+- 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 points.npy、geometry.json),
+  褶皱取 Marigold 法线(normals.py 产出 normals.png)。
+其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py specs/<模板>.json
 """
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -18,10 +19,11 @@ from PIL import Image
 from scipy import ndimage, sparse
 from scipy.sparse.linalg import spsolve
 
-ROOT = Path(__file__).parent
-SRC = ROOT / 'sources'
-OUT = ROOT / 'output'
-OUT.mkdir(exist_ok=True)
+sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
+import config
+
+spec = config.load(sys.argv[1])
+WORK, OUT = config.folder(spec, 'work'), config.folder(spec, 'output')
 
 WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(样本白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
@@ -37,7 +39,6 @@ SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
-PRINT_HEM = 0.01  # 上衣可印区域在领口、下摆往里收的距离 / 宽度:罗纹和折边上不印
 
 
 def luma(rgb):
@@ -72,7 +73,7 @@ def local_mean(image, weight, sigma):
 
 def read_layer(name):
     """intrinsic.py 存的 16 位线性 RGB"""
-    return cv2.imread(str(ROOT / 'work' / name), cv2.IMREAD_UNCHANGED)[..., ::-1].astype(np.float32) / 65535
+    return cv2.imread(str(WORK / name), cv2.IMREAD_UNCHANGED)[..., ::-1].astype(np.float32) / 65535
 
 
 def quantize(coverage):
@@ -184,6 +185,20 @@ def surface_flow(points, focal, product, small_size, sigma):
     return flow[iy, ix]
 
 
+def print_area(product, parts, occluders, rule):
+    """可印区域:商品区减去不可印部件,按 rule 往里收 inset(x、y 方向各占宽度的比例),
+    再只留 rows 给的高度区间(占商品高度的比例)。遮挡物边上不收,设计稿一直铺到被挡住的地方,由底图盖住"""
+    kx, ky = (round(r * W) for r in rule.get('inset', (0, 0)))
+    region = cv2.erode((((product > 0.5) | occluders) & ~parts).astype(np.uint8), np.ones((2 * ky + 1, 2 * kx + 1), np.uint8)) > 0
+    if 'rows' in rule:
+        ys = np.nonzero(product > 0.5)[0]
+        top, height = ys.min(), ys.max() - ys.min()
+        band = np.zeros_like(region)
+        band[int(top + rule['rows'][0] * height):int(top + rule['rows'][1] * height)] = True
+        region &= band
+    return np.minimum(soft(region), product)
+
+
 def save_mask(coverage, name):
     """白色 + alpha = 覆盖度"""
     alpha = np.round(coverage * 255).astype(np.uint8)
@@ -191,45 +206,29 @@ def save_mask(coverage, name):
     Image.fromarray(rgba, 'RGBA').save(OUT / name, optimize=True)
 
 
-# ---- 1. 源图:竞品底图叠在白色上 = 白色 T 恤的照片
-base_src = np.asarray(Image.open(SRC / 'tee-base.webp').convert('RGBA')).astype(np.float32) / 255
-H, W = base_src.shape[:2]
-photo = base_src[..., :3] * base_src[..., 3:] + (1 - base_src[..., 3:])
+# ---- 1. 源图
+photo, source_alpha = config.photo(spec)
+H, W = photo.shape[:2]
 Image.fromarray(np.round(photo * 255).astype(np.uint8)).save(OUT / 'cover.webp', quality=85)
-# 竞品底图半透明的部分在源图里是还原出来的白色,第 3 步换背景色时要用
-restored = base_src[..., 3] < 1
+# 源图里透明度不到 1 的像素不是原始照片(如从竞品底图还原的商品区),第 3 步换背景色时要用
+restored = source_alpha < 1
 
-# ---- 2. 分割(run_segment.py 的结果)
-read_alpha = lambda name: np.asarray(Image.open(ROOT / 'work' / name)).astype(np.float32) / 65535
-read_mask = lambda name: np.asarray(Image.open(ROOT / 'work' / name)) > 127
-# 这张源图里 T 恤是还原出来的,轮廓是台阶,抠图模型救不回来:按二值来源处理,平滑轮廓后重出软边
-tee_bin = read_alpha('tee-alpha.png') > 0.5
-tee = quantize(soft(tee_bin))
-sleeves, occluders = read_mask('tee-parts.png'), read_mask('occluders.png')
-# T 恤可印区域(规则):减去袖子,领口、下摆按竖直方向往里收;左右两侧和遮挡物边上不收,
-# 设计稿一直铺到轮廓,被遮挡物挡住的部分由底图盖住
-hem = round(PRINT_HEM * W)
-torso = cv2.erode(((tee_bin | occluders) & ~sleeves).astype(np.uint8), np.ones((2 * hem + 1, 1), np.uint8)) > 0
-print_tee = np.minimum(soft(torso), tee)
-
-jeans = read_alpha('jeans-alpha.png')
-# 牛仔裤在 T 恤下面接着铺,交界处两者相加为 1;重叠处归上层的 T 恤
-_, (iy, ix) = ndimage.distance_transform_edt(tee_bin, return_indices=True)
-jeans = quantize(np.minimum(jeans[iy, ix], 1 - tee))
-jeans_bin = jeans > 0.5
-
-# 牛仔裤可印区域(规则):向内收 1% 宽度,取裤腰以下到大腿中段
-ys = np.nonzero(jeans_bin)[0]
-top, height = ys.min(), ys.max() - ys.min()
-band = np.zeros_like(jeans_bin)
-band[int(top + 0.08 * height):int(top + 0.45 * height)] = True
-inner = cv2.erode(jeans_bin.astype(np.uint8), np.ones((33, 33), np.uint8)).astype(bool)
-print_jeans = np.minimum(soft(inner & band), jeans)
-
-products = [tee, jeans]
-prints = [quantize(print_tee), quantize(print_jeans)]
-names = ['T-shirt', 'Jeans']
-keys = ['top', 'bottom']
+# ---- 2. 分割(run_segment.py 的结果),商品由上层到下层
+read_alpha = lambda name: np.asarray(Image.open(WORK / name)).astype(np.float32) / 65535
+read_mask = lambda name: np.asarray(Image.open(WORK / name)) > 127
+occluders = read_mask('occluders.png')
+products, prints = [], []
+above, above_bin = np.zeros((H, W), np.float32), np.zeros((H, W), bool)  # 上层商品的覆盖度之和、二值范围
+for item in spec['products']:
+    segmented = read_alpha(f"{item['id']}-alpha.png")
+    # 源图里轮廓是台阶的商品(如从竞品底图还原的),抠图模型救不回来:按二值来源处理,平滑轮廓后重出软边
+    alpha = soft(segmented > 0.5) if item.get('binaryEdge') else segmented
+    # 下层商品在上层下面接着铺,交界处相加为 1;重叠处归上层
+    _, (iy, ix) = ndimage.distance_transform_edt(above_bin, return_indices=True)
+    product = quantize(np.minimum(alpha[iy, ix], 1 - above))
+    products.append(product)
+    prints.append(quantize(print_area(product, read_mask(f"{item['id']}-parts.png"), occluders, item.get('print', {}))))
+    above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
@@ -280,8 +279,8 @@ Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.
 # 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
-points = np.load(ROOT / 'work/points.npy')
-focal = json.loads((ROOT / 'work/geometry.json').read_text())['intrinsics'][0][0] * W
+points = np.load(WORK / 'points.npy')
+focal = json.loads((WORK / 'geometry.json').read_text())['intrinsics'][0][0] * W
 sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
@@ -332,28 +331,28 @@ for index, (product, printable) in enumerate(zip(products, prints), start=1):
 
 # ---- 5. 配置:默认 Logo 框取可印区域里离边最远的点
 regions = []
-for index, (printable, name, key) in enumerate(zip(prints, names, keys), start=1):
+for index, (printable, item) in enumerate(zip(prints, spec['products']), start=1):
     inside = printable > 0.5
     distance = cv2.distanceTransform(inside.astype(np.uint8), cv2.DIST_L2, 5)
     cy, cx = np.unravel_index(np.argmax(distance), distance.shape)
     xs = np.nonzero(inside)[1]
     size = min(0.4 * (xs.max() - xs.min()), 1.4 * distance.max())
     regions.append({
-        'key': key,
-        'name': name,
+        'key': item['key'],
+        'name': item['name'],
         'product': f'product-{index}.png',
         'print': f'print-{index}.png',
         'surface': f'surface-{index}.png',
         'folds': f'folds-{index}.png',
-        'recolorable': True,
+        'recolorable': item.get('recolorable', True),
         'logo': {'cx': round(float(cx) / W, 4), 'cy': round(float(cy) / H, 4), 'width': round(float(size) / W, 4),
                  'height': round(float(size) / H, 4), 'rotation': 0},
     })
 template = {
-    'id': 'sample-tee-jeans',
+    'id': spec['id'],
     'version': 1,
     'size': {'width': W, 'height': H},
-    'category': 't-shirt',
+    'category': spec['category'],
     'files': {'cover': 'cover.webp', 'base': 'base.webp'},
     'blend': 'linear',
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
@@ -371,11 +370,18 @@ def read(name):
     return np.asarray(Image.open(OUT / name)).astype(np.float32) / 255
 
 base_out = read('base.webp')
-s = [read(f'surface-{i}.png') for i in (1, 2)]
-f = [read(f'folds-{i}.png') for i in (1, 2)]
-p = [read(f'product-{i}.png')[..., 3] for i in (1, 2)]
-q = [read(f'print-{i}.png')[..., 3] for i in (1, 2)]
-union = (p[0] > 0) | (p[1] > 0)
+numbers = range(1, len(products) + 1)
+s = [read(f'surface-{i}.png') for i in numbers]
+f = [read(f'folds-{i}.png') for i in numbers]
+p = [read(f'product-{i}.png')[..., 3] for i in numbers]
+q = [read(f'print-{i}.png')[..., 3] for i in numbers]
+union = np.any([pp > 0 for pp in p], axis=0)
+
+
+def overlap(a, b):
+    """两件商品重叠的面积占较小那件的比例"""
+    a, b = a > 0.5, b > 0.5
+    return float((a & b).sum() / max(1, min(a.sum(), b.sum())))
 
 
 def neutral_far(flow, product):
@@ -402,8 +408,8 @@ checks = {
     'sizes equal': all(x.shape[:2] == (H, W) for x in [base_out, *p, *q]),
     'flow maps 1/4 size, B unused': all(x.shape == (H // DISP_SCALE, W // DISP_SCALE, 3)
                                         and bool((x[..., 2] == 128 / 255).all()) for x in s + f),
-    'aspect 4:5': W * 5 == H * 4,
-    'products overlap < 0.1%': float(((p[0] > 0.5) & (p[1] > 0.5)).sum() / max(1, (p[1] > 0.5).sum())) < 0.001,
+    'aspect 4:5 or 5:4': W * 5 == H * 4 or W * 4 == H * 5,
+    'products overlap < 0.1%': all(overlap(a, b) < 0.001 for i, a in enumerate(p) for b in p[i + 1:]),
     'print outside product < 0.1%': all(float(((qq > 0.5) & (pp < 0.5)).sum() / max(1, (qq > 0.5).sum())) < 0.001 for pp, qq in zip(p, q)),
     'base opaque outside products': bool((base_out[..., 3][~union] == 1).all()),
     'base matches formula (≤ 2/255)': bool(np.abs(base_out[..., 3] - alpha).max() <= 2 / 255 + 1e-6),
@@ -416,9 +422,14 @@ checks = {
 (OUT / 'checks.json').write_text(json.dumps(checks, indent=2))
 for name, ok in checks.items():
     print(('PASS ' if ok else 'FAIL ') + name)
-# 和竞品模板自带的 T 恤商品区、可印区域对比,只作参考
-reference = np.asarray(Image.open(SRC / 'tee-print.webp').convert('RGBA')).astype(np.float32) / 255
-for name, ours, theirs in (('product-1', p[0] > 0.5, restored), ('print-1', q[0] > 0.5, luma(reference[..., :3]) * reference[..., 3] > 0.5)):
-    print(f'IoU vs Mockey 04674 {name}: {(ours & theirs).sum() / (ours | theirs).sum():.3f}')
+# 和配置里的参考蒙版(如竞品模板自带的)对比,只作参考:transparent 取半透明的部分,否则取白色 × 透明度
+for index, item in enumerate(spec['products']):
+    for kind, ours in (('product', p[index]), ('print', q[index])):
+        if kind not in item.get('reference', {}):
+            continue
+        ref = item['reference'][kind]
+        rgba = np.asarray(Image.open(config.ROOT / ref['file']).convert('RGBA')).astype(np.float32) / 255
+        theirs = rgba[..., 3] < 1 if ref.get('transparent') else luma(rgba[..., :3]) * rgba[..., 3] > 0.5
+        print(f"IoU vs reference {kind}-{index + 1}: {((ours > 0.5) & theirs).sum() / ((ours > 0.5) | theirs).sum():.3f}")
 for f in sorted(OUT.iterdir()):
     print(f'{f.stat().st_size / 1024:8.1f} KB  {f.name}')

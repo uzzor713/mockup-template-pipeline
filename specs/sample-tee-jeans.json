@@ -1,8 +1,20 @@
 {
+  "id": "sample-tee-jeans",
+  "category": "t-shirt",
   "photo": "sources/tee-base.webp",
+  "fetch": {
+    "sources/tee-base.webp": {
+      "url": "https://assets.mockey.ai/mockups/tshirt/1790268599918-model-4674.png",
+      "sha256": "b9ff73138fe9d03cf3b5f54948396d2821c206fe70ad4e34b6f217978e44c33b"
+    },
+    "sources/tee-print.webp": {
+      "url": "https://assets.mockey.ai/mockups/tshirt/1790268600969-model-4674-mask-design.png",
+      "sha256": "5fb44b990a0454fb0f565d33a344675d134d933a55665000aa00b0bb4292981e"
+    }
+  },
   "occluders": [
     {
-      "name": "包带和包",
+      "note": "包带和包",
       "box": [500, 270, 655, 860],
       "points": [
         [625, 300, 1], [615, 400, 1], [607, 500, 1], [600, 575, 1],
@@ -14,7 +26,8 @@
   "products": [
     {
       "id": "tee",
-      "name": "T 恤",
+      "key": "top",
+      "name": "T-shirt",
       "box": [395, 185, 1185, 1040],
       "points": [
         [820, 500, 1], [750, 800, 1], [900, 650, 1], [470, 600, 1], [1080, 550, 1],
@@ -23,7 +36,7 @@
       ],
       "parts": [
         {
-          "name": "左袖:落肩接缝从 (513, 447) 斜到包带,接缝以上是躯干",
+          "note": "左袖:落肩接缝从 (513, 447) 斜到包带,接缝以上是躯干",
           "box": [400, 330, 600, 730],
           "points": [
             [470, 600, 1], [520, 580, 1], [440, 660, 1],
@@ -31,20 +44,35 @@
           ]
         },
         {
-          "name": "右袖",
+          "note": "右袖",
           "box": [970, 360, 1185, 730],
           "points": [[1080, 550, 1], [1030, 450, 1], [850, 500, 0]]
         }
-      ]
+      ],
+      "binaryEdge": true,
+      "print": { "inset": [0, 0.01] },
+      "reference": {
+        "product": { "file": "sources/tee-base.webp", "transparent": true },
+        "print": { "file": "sources/tee-print.webp" }
+      }
     },
     {
       "id": "jeans",
-      "name": "牛仔裤",
+      "key": "bottom",
+      "name": "Jeans",
       "box": [393, 773, 1119, 1947],
       "points": [
         [560, 1300, 1], [960, 1300, 1], [700, 900, 1],
         [500, 1925, 0], [915, 1930, 0], [760, 760, 0]
-      ]
+      ],
+      "print": { "rows": [0.08, 0.45], "inset": [0.01, 0.01] }
     }
-  ]
+  ],
+  "preview": {
+    "crop": [0.18, 0.06, 0.82, 0.98],
+    "spots": [
+      ["Sleeve", 420, 700], ["Shoulder", 1040, 250], ["T-shirt over jeans", 760, 950],
+      ["Bag strap", 610, 500], ["Crotch", 790, 1260], ["Hem over shoe", 1000, 1880]
+    ]
+  }
 }

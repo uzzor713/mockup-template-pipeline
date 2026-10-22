@@ -1,24 +1,21 @@
 """
-按模板的分割配置跑 segment.py,结果存到 work/:每件商品 <id>-alpha.png(16 位透明度)、<id>-parts.png(不可印部件),
-遮挡物 occluders.png,以及人工检查用的叠图 segment-check.png。
-配置见 specs/,源图路径相对仓库根目录;带透明度的源图叠在白色上。
-用法:.venv/bin/python -I run_segment.py specs/sample-tee-jeans.json
+按模板配置跑 segment.py,结果存到 work/<模板 id>/:每件商品 <商品 id>-alpha.png(16 位透明度)、<商品 id>-parts.png
+(不可印部件),遮挡物 occluders.png,以及人工检查用的叠图 segment-check.png。
+用法:.venv/bin/python -I run_segment.py specs/<模板>.json
 """
-import json, sys, time
+import sys, time
 from pathlib import Path
 import numpy as np
 from PIL import Image
 
-ROOT = Path(__file__).parent
-# -I 运行时脚本所在目录不在 sys.path 里
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
+import config
 from segment import Models, segment
 
-WORK = ROOT / 'work'
-WORK.mkdir(exist_ok=True)
-spec = json.loads(Path(sys.argv[1]).read_text())
-rgba = np.asarray(Image.open(ROOT / spec['photo']).convert('RGBA')).astype(np.float32) / 255
-photo = np.round((rgba[..., :3] * rgba[..., 3:] + 1 - rgba[..., 3:]) * 255).astype(np.uint8)
+spec = config.load(sys.argv[1])
+WORK = config.folder(spec, 'work')
+photo, _ = config.photo(spec)
+photo = np.round(photo * 255).astype(np.uint8)
 
 t0 = time.time()
 models = Models()
