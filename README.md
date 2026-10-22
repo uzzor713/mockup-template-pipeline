@@ -51,6 +51,7 @@ SPEC=specs/sample-tee-jeans.json
 | `detect_boxes.py` | 开放词汇检测模型(默认 Grounding DINO)按文字找出各部分的外接框 |
 | `sam21_auto.py` | 检测出的框直接当 SAM 2.1 的提示,和手点提示的结果对比 |
 | `seam_snap.py` | 以 `sam21_auto.py` 的袖子为大致范围,沿照片里的接缝(细暗线)重新切分袖子和身体 |
+| `compare_mockey.py` | 同一张铺满商品的网格,按竞品的位移算法(本地复现,和竞品截图对过)和我们的模板分别形变,并排对比 |
 
 ## 配置
 
@@ -67,6 +68,7 @@ SPEC=specs/sample-tee-jeans.json
 | `products[].binaryEdge` | 源图里这件商品的轮廓是台阶(如从竞品底图还原的),抠图救不回来:按二值来源处理,平滑轮廓后重出软边 |
 | `products[].reference` | 可选,对比用的参考蒙版 `{product, print}`,每项 `{file, transparent}`;`transparent` 取图里半透明的部分,否则取白色 × 透明度。`pipeline.py` 最后打印重合度,不算校验 |
 | `preview` | 预览的裁切范围 `crop`(占宽高的比例)和边缘放大的取样位置 `spots`(`[名称, x, y]`,模板像素) |
+| `competitor` | 可选,只给 `experiments/compare_mockey.py` 用:对应的商品 `product`、竞品位移图 `displacement`、舞台缩放 `stageScale`、默认 Warping `defaultWarping`、局部放大范围 `zoom` |
 
 ## 产出
 

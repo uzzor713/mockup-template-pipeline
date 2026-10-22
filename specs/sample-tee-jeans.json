@@ -10,7 +10,19 @@
     "sources/tee-print.webp": {
       "url": "https://assets.mockey.ai/mockups/tshirt/1790268600969-model-4674-mask-design.png",
       "sha256": "5fb44b990a0454fb0f565d33a344675d134d933a55665000aa00b0bb4292981e"
+    },
+    "sources/tee-displacement.webp": {
+      "url": "https://assets.mockey.ai/mockups/tshirt/1790268599842-model-4674-dlayer-i10.png",
+      "sha256": "b722507a2f6167ca9482de42c773eafe2fda7913c1c0b367f8930da32c25708f"
     }
+  },
+  "competitor": {
+    "note": "Mockey 04674 的位移图,只用来和竞品对比形变(experiments/compare_mockey.py)",
+    "product": "tee",
+    "displacement": "sources/tee-displacement.webp",
+    "stageScale": 2.6667,
+    "defaultWarping": 15,
+    "zoom": [[440, 330, 720, 900], [930, 330, 1210, 900]]
   },
   "occluders": [
     {
