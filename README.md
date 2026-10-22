@@ -15,7 +15,7 @@ python3.12 -m venv .venv
 
 SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I fetch_sources.py $SPEC   # 下载配置里 fetch 列出的素材
-.venv/bin/python -I run_segment.py $SPEC     # SAM 2.1 分割商品、部件和遮挡物,ViTMatte 求边缘透明度
+.venv/bin/python -I run_segment.py $SPEC     # SAM 3 按文字提示分割商品、部件和遮挡物,ViTMatte 求边缘透明度
 .venv/bin/python -I intrinsic.py $SPEC       # Marigold 本征分解
 .venv/bin/python -I normals.py $SPEC         # Marigold 法线
 .venv/bin/python -I geometry.py $SPEC        # MoGe-2 的 3D 坐标和相机内参
@@ -23,9 +23,11 @@ SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I preview.py $SPEC         # 合成预览图
 ```
 
+配置里用到文字提示时,`run_segment.py` 调 Replicate 上的 SAM 3,会把源图上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。
+
 每个模板的中间结果在 `work/<id>/`,模板文件在 `output/<id>/`,预览图在 `preview/<id>/`,`<id>` 是配置里的 `id`。
 
-四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.4GB,`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 30 秒、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,随机种子固定,重复运行结果一致。
+四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(大半是 Replicate 限流的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,随机种子固定,重复运行结果一致。
 
 `sources/`、`work/`、`output/`、`preview/` 都不进仓库,按上面的步骤在本地生成。样本用的竞品素材只作内部示例,不能用于产品。
 
@@ -33,9 +35,9 @@ SPEC=specs/sample-tee-jeans.json
 
 | 文件 | 做什么 |
 | --- | --- |
-| `config.py` | 读模板配置和源图,给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
+| `config.py` | 读模板配置、源图和密钥(环境变量或 `.env.local`),给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
 | `fetch_sources.py` | 按配置的 `fetch` 下载素材,并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割的函数:SAM 2.1 按外接框和提示点分出遮挡物、商品和不可印部件,ViTMatte 在商品和背景、遮挡物的交界求透明度。不读写文件 |
+| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;ViTMatte 在商品和背景、遮挡物的交界求透明度。不读写本地文件 |
 | `run_segment.py` | 按配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物蒙版,以及人工检查用的叠图 `segment-check.png` |
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
@@ -47,7 +49,7 @@ SPEC=specs/sample-tee-jeans.json
 
 | 文件 | 做什么 |
 | --- | --- |
-| `sam3_replicate.py` | 调 Replicate 上的 SAM 3 按文字提示分割,会把源图上传到 Replicate;token 取环境变量 `REPLICATE_API_TOKEN`,没有就读仓库根目录 `.env.local`(不进仓库)里的同名一行 |
+| `sam3_replicate.py` | SAM 3 按文字提示分割,每个实例分开存下来,用来给新模板挑提示词;token 和 `run_segment.py` 一样 |
 | `detect_boxes.py` | 开放词汇检测模型(默认 Grounding DINO)按文字找出各部分的外接框 |
 | `sam21_auto.py` | 检测出的框直接当 SAM 2.1 的提示,和手点提示的结果对比 |
 | `seam_snap.py` | 以 `sam21_auto.py` 的袖子为大致范围,沿照片里的接缝(细暗线)重新切分袖子和身体 |
@@ -62,8 +64,8 @@ SPEC=specs/sample-tee-jeans.json
 | `id`、`category` | 模板 id(也是 `work/`、`output/`、`preview/` 下的目录名)、品类,写进 `template.json` |
 | `photo` | 源图。带透明度的叠在白色上;透明度不到 1 的像素视为不是原始照片(如从竞品底图还原的商品区),这些像素落在商品区外时,底图里换成周围的背景色 |
 | `fetch` | 可选,要下载的素材:`{路径: {url, sha256}}` |
-| `occluders` | 遮挡物的提示列表,每项 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`,`note` 只作说明 |
-| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`box` 和 `points`(分割提示)、可选的 `parts`(不可印部件的提示列表,如袖子)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference` |
+| `occluders` | 遮挡物的提示列表。一个提示是 `{text: 名词短语}`(SAM 3,图里所有符合的实例合在一起,如 `"bag strap"`),或 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`(SAM 2.1,文字分不准时手点兜底);`note` 只作说明 |
+| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference` |
 | `products[].print` | 可印区域规则:商品区减去 `parts`,`inset: [x, y]` 按宽度的比例从商品和背景的交界往里收(部件、遮挡物和上层商品的边上不收),`rows: [从, 到]` 只留这段高度(占商品高度的比例) |
 | `products[].binaryEdge` | 源图里这件商品的轮廓是台阶(如从竞品底图还原的),抠图救不回来:按二值来源处理,平滑轮廓后重出软边 |
 | `products[].reference` | 可选,对比用的参考蒙版 `{product, print}`,每项 `{file, transparent}`;`transparent` 取图里半透明的部分,否则取白色 × 透明度。`pipeline.py` 最后打印重合度,不算校验 |
@@ -95,8 +97,8 @@ SPEC=specs/sample-tee-jeans.json
 
 以样本为例:
 
-- 分割:本地运行的 SAM 2.1 以外接框和几个提示点为输入,分出包带和包(遮挡物)、T 恤、两只袖子和牛仔裤,T 恤减去遮挡物;ViTMatte 在商品和背景、遮挡物的交界几个像素内求透明度。源图里的 T 恤是从竞品底图还原出来的,轮廓本身是台阶,抠图救不回来,所以 T 恤按二值来源处理:平滑轮廓后重出软边。牛仔裤和 T 恤的交界不算边缘,牛仔裤在 T 恤下面接着铺。
-- 可印区域按配置里的规则取,只从商品和背景的交界往里收;袖子、包带和上层商品的边上不收,设计稿铺到被挡住的地方,由底图或上层商品盖住,商品和包带之间几像素宽的缝算包带。T 恤减去袖子,领口、下摆按竖直方向往里收 1% 宽度,左右两侧不收;牛仔裤四周往里收 1% 宽度(T 恤下摆盖住的地方不收),取裤腰以下到大腿中段。袖子蒙版和轮廓、包带之间夹出的零碎小块去掉。和竞品模板自带的蒙版相比,T 恤商品区重合度 0.993、可印区域 0.912。
+- 分割:SAM 3 按文字提示分出包和包带(遮挡物)、T 恤、袖子、领口和牛仔裤,T 恤减去遮挡物;袖子沿落肩接缝分开,领口是那圈罗纹。ViTMatte 在商品和背景、遮挡物的交界几个像素内求透明度。源图里的 T 恤是从竞品底图还原出来的,轮廓本身是台阶,抠图救不回来,所以 T 恤按二值来源处理:平滑轮廓后重出软边。牛仔裤和 T 恤的交界不算边缘,牛仔裤在 T 恤下面接着铺。
+- 可印区域按配置里的规则取,只从商品和背景的交界往里收;袖子、包带和上层商品的边上不收,设计稿铺到被挡住的地方,由底图或上层商品盖住,商品和包带之间几像素宽的缝算包带。T 恤减去袖子和领口罗纹,和背景交界的地方(下摆、肩线)按竖直方向往里收 1% 宽度,左右两侧不收;牛仔裤四周往里收 1% 宽度(T 恤下摆盖住的地方不收),取裤腰以下到大腿中段。袖子蒙版和轮廓、包带之间夹出的零碎小块去掉。和竞品模板自带的蒙版相比,T 恤商品区重合度 0.994、可印区域 0.949。
 - 底图:Marigold 把照片拆成固有色、光照和残差,两者的比例按每件商品拟合。底图是「这件商品如果是白色」的样子,分三部分:明暗(光照)、光泽(残差,高光这类不随颜色变的反光)和纹理(照片里比长边 / 256 更细的起伏)。明暗和纹理乘在用户选的颜色上,光泽乘上纹理后叠加在最上面,所以深色衣服也有反光和布纹。做旧洗白、染料这些花纹留在固有色里,改色时不会带出来。「白色」按白布料的固有色算(样本白 T 恤在本征分解里约 0.87),选白色时和照片一样亮,不额外提亮。白色的结果不超过 1,亮处超出的部分从明暗里扣。
 - 流向图分两层,分开存:
   - 大曲面:MoGe-2 给出每个像素的 3D 坐标,由此算出屏幕上每像素在曲面上实际对应多长(以商品中位深度处正对镜头时为 1),在商品区内平滑约 32px(宽度的 2%):身体、裤腿转向侧面的地方压缩,轮廓内一二十像素压得最多,至多 2 倍;离镜头近的地方略放大,透视也在里面。再用最小二乘积分成位移。这层按形状算出来就是实际的样子,固定叠上,不随 Warping 变。
@@ -116,7 +118,8 @@ SPEC=specs/sample-tee-jeans.json
 
 | 模型 | 用在 | 许可 |
 | --- | --- | --- |
-| SAM 2.1(`facebook/sam2.1-hiera-base-plus`) | 分割商品、部件和遮挡物 | Apache-2.0 |
+| SAM 3(Replicate 上的 `mattsays/sam3-image`,权重 `facebook/sam3`) | 按文字提示分割商品、部件和遮挡物 | SAM License(Meta 自定的条款),商用前要确认;走 Replicate 时源图会上传过去 |
+| SAM 2.1(`facebook/sam2.1-hiera-base-plus`) | 按外接框和提示点分割(手点兜底) | Apache-2.0 |
 | ViTMatte small(`hustvl/vitmatte-small-composition-1k`) | 边缘透明度 | 模型标注 Apache-2.0;训练数据 Composition-1k 出自 Adobe 的抠图数据集,商用前要确认该数据集的条款 |
 | Marigold 本征分解(`prs-eth/marigold-iid-lighting-v1-1`) | 底图的明暗和光泽,去掉花纹 | OpenRAIL++,可商用,附使用用途限制 |
 | Marigold 法线(`prs-eth/marigold-normals-v1-1`) | 流向图里的褶皱 | OpenRAIL++,可商用,附使用用途限制 |

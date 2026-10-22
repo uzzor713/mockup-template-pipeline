@@ -1,8 +1,9 @@
 """
-模板配置(specs/*.json)的读取,各脚本共用。配置里的路径相对仓库根目录;
+模板配置(specs/*.json)和密钥的读取,各脚本共用。配置里的路径相对仓库根目录;
 每个模板的中间结果放 work/<id>/,模板文件放 output/<id>/,预览图放 preview/<id>/。
 """
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,18 @@ def folder(spec, kind):
     path = ROOT / kind / spec['id']
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def secret(name):
+    """先看环境变量,没有就读仓库根目录 .env.local(不进仓库)里的同名一行"""
+    if os.environ.get(name):
+        return os.environ[name]
+    path = ROOT / '.env.local'
+    lines = path.read_text().splitlines() if path.exists() else []
+    values = [line.split('=', 1)[1].strip().strip('"\'') for line in lines if line.startswith(f'{name}=')]
+    if not values or not values[-1]:
+        raise SystemExit(f'缺少 {name}:设环境变量,或写进 {path}')
+    return values[-1]
 
 
 def photo(spec):

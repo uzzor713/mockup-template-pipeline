@@ -2,7 +2,7 @@
 按模板配置(specs/*.json)生成模板文件到 output/<id>/,并跑自动校验。
 
 模型的结果由前面的脚本存在 work/<id>/:
-- 分割(第 2 步):SAM 2.1 分出的商品、不可印部件和遮挡物,ViTMatte 求的边缘透明度(run_segment.py);
+- 分割(第 2 步):SAM 3(文字提示)或 SAM 2.1(手点)分出的商品、不可印部件和遮挡物,ViTMatte 求的边缘透明度(run_segment.py);
   可印区域按配置里的规则从商品区里取。
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 albedo.png、shading.png、residual.png)。
 - 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 points.npy、geometry.json),

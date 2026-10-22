@@ -1,6 +1,7 @@
 """
 按模板配置跑 segment.py,结果存到 work/<模板 id>/:每件商品 <商品 id>-alpha.png(16 位透明度)、<商品 id>-parts.png
 (不可印部件),遮挡物 occluders.png,以及人工检查用的叠图 segment-check.png。
+用到文字提示时要 Replicate 的 token:环境变量或仓库根目录 .env.local 里的 REPLICATE_API_TOKEN。
 用法:.venv/bin/python -I run_segment.py specs/<模板>.json
 """
 import sys, time
@@ -10,7 +11,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
-from segment import Models, segment
+from segment import Models, Sam3Replicate, segment, uses_text
 
 spec = config.load(sys.argv[1])
 WORK = config.folder(spec, 'work')
@@ -18,7 +19,7 @@ photo, _ = config.photo(spec)
 photo = np.round(photo * 255).astype(np.uint8)
 
 t0 = time.time()
-models = Models()
+models = Models(sam3=Sam3Replicate(config.secret('REPLICATE_API_TOKEN')) if uses_text(spec) else None)
 t1 = time.time()
 occluders, products = segment(photo, spec, models)
 print(f'model load {t1 - t0:.1f}s, segment {time.time() - t1:.1f}s, device {models.device}')
