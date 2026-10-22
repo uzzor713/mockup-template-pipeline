@@ -1,5 +1,5 @@
 """
-只读 output/ 里的产出文件,按编辑页的公式合成预览:每件商品各自的颜色和设计稿 → 起伏位移 → 底图按 alpha 盖上。
+只读 output/ 里的产出文件,按编辑页的公式合成预览:每件商品各自的颜色和设计稿 → 起伏位移 → 底图按 alpha 在线性光下盖上。
 另出边缘放大图和蒙版示意图。用法:.venv/bin/python -I preview.py
 """
 import json
@@ -41,6 +41,15 @@ def hex_rgb(value):
     return np.array([int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)], np.float32)
 
 
+def to_linear(c):
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4).astype(np.float32)
+
+
+def to_srgb(c):
+    c = np.clip(c, 0, 1)
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055).astype(np.float32)
+
+
 def render(colors, warp):
     ys, xs = np.mgrid[0:H, 0:W].astype(np.float32)
     canvas = np.zeros((H, W, 3), np.float32)
@@ -61,7 +70,7 @@ def render(colors, warp):
         cover_amount = (inside * printable)[..., None]
         canvas = canvas * (1 - cover_amount) + sample * cover_amount
     alpha = base[..., 3:]
-    return base[..., :3] * alpha + canvas * (1 - alpha)
+    return to_srgb(to_linear(base[..., :3]) * alpha + to_linear(canvas) * (1 - alpha))
 
 
 CROP = (int(0.18 * W), int(0.06 * H), int(0.82 * W), int(0.98 * H))

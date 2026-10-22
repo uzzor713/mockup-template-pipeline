@@ -4,7 +4,8 @@
 模型的结果由前面的脚本存在 work/:
 - 分割(第 2 步):T 恤用竞品 Mockey 模板 04674 已分割好的结果(底图透明度 = 商品区,mask-design = 可印区域);
   牛仔裤用本地 SAM 2.1 分割、ViTMatte 求边缘透明度(segment.py 产出 work/jeans-alpha.png),可印区域按规则从商品区里取。
-- 明暗(第 3、4 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
+- 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 work/albedo.png、shading.png、residual.png)。
+- 起伏图(第 4 步):Marigold 法线(normals.py 产出 work/normals.png)。
 其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py
 """
 import json
@@ -20,8 +21,9 @@ SRC = ROOT / 'sources'
 OUT = ROOT / 'output'
 OUT.mkdir(exist_ok=True)
 
-BETA = 0.2  # 深色的保底亮度
 PERCENTILE = 90  # 归一化参考:商品区亮度的第 90 百分位当作白
+TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
+TEXTURE_CLIP = (-0.65, 0.44)  # 纹理(对数)的截断,个别像素不过亮过暗
 SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
 DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹理噪点;使用时双线性放大
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
@@ -162,41 +164,52 @@ keys = ['top', 'bottom']
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
-# 明暗取「这件商品如果是白色」的亮度:照片 ≈ 固有色 × s·光照 + r·残差,光照和残差只到相差一个比例,
-# 每件商品在实心部分拟合 s、r,花纹和染料留在固有色里。模型分辨率以下的细纹理从照片补回
+# 编辑页在线性光下合成:结果 = 商品颜色 × (1 − alpha) + 底图 × alpha。
+# 商品区里 1 − alpha = 明暗 × 纹理,底图 × alpha = 光泽 × 纹理(光泽是不随颜色变的反光,纹理也作用在它上面)。
+# 照片 ≈ 固有色 × s·光照 + r·残差,光照和残差只到相差一个比例,每件商品在实心部分拟合 s、r,花纹和染料留在固有色里;
+# 明暗取 s·光照,光泽取 r·残差,纹理取照片里比纹理半径更细的起伏
 layers = {name: cv2.resize(read_layer(f'{name}.png'), (W, H), interpolation=cv2.INTER_LINEAR)
           for name in ('albedo', 'shading', 'residual')}
 photo_linear = to_linear(photo)
 I = luma(photo_linear)
-detail_blur = W / read_layer('shading.png').shape[1]
-detail = I / np.maximum(cv2.GaussianBlur(I, (0, 0), detail_blur), 1e-4)
-# 边缘像素在照片里混着商品原色:亮度取商品实心部分的值,区外那份换成背景色
-L_norm = np.zeros((H, W), np.float32)
+radius = TEXTURE_RATIO * max(W, H)
+shade, gloss = np.zeros((H, W), np.float32), np.zeros((H, W), np.float32)
 for product in products:
     inside = product > 0.5
     solid = product == 1
     terms = np.stack([(layers['albedo'] * layers['shading'])[solid].ravel(), layers['residual'][solid].ravel()], 1)
     (s, r), *_ = np.linalg.lstsq(terms, photo_linear[solid].ravel(), rcond=None)
-    white = luma(s * layers['shading'] + max(r, 0) * layers['residual']) * detail
-    white = to_srgb(white / np.percentile(white[solid], 99))
-    ref = np.percentile(white[inside], PERCENTILE)
-    own = np.where(solid, white, local_mean(np.repeat(white[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
-    L_norm += product * np.minimum(1, own / ref)
-L_norm = np.where(coverage > 0, L_norm / np.maximum(coverage, 1e-6), 0)
-a = 1 - (1 - BETA) * L_norm
-g = BETA * L_norm / a
-alpha = (1 - coverage) + coverage * a
+    weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), radius)
+
+    def blur(x):
+        return cv2.GaussianBlur(x * inside, (0, 0), radius) / np.maximum(weight, 1e-6)
+
+    texture = np.exp(np.clip(np.log(np.maximum(I, 1e-4)) - np.log(np.maximum(blur(I), 1e-4)), *TEXTURE_CLIP))
+    diffuse = blur(luma(s * layers['shading'])) * texture
+    sheen = luma(max(r, 0) * layers['residual']) * texture
+    ref = np.percentile((diffuse + sheen)[inside], PERCENTILE)
+    # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
+    for total, layer in ((shade, diffuse / ref), (gloss, sheen / ref)):
+        total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
+shade, gloss = (np.where(coverage > 0, x / np.maximum(coverage, 1e-6), 0) for x in (shade, gloss))
+gloss = np.clip(gloss, 0, 1)
+# 白色的结果不超过 1:超出的部分从明暗里扣,光泽留着,深色上主要看它
+shade = np.clip(shade, 0, 1 - gloss)
+alpha = 1 - coverage * shade
 # T 恤台阶上被平滑到区外的像素在原图里仍是白色,同样换成背景色
 dirty = (coverage > 0) | tee_bin
 background = np.where(dirty[..., None], local_mean(photo, (~dirty).astype(np.float32), 2), photo)
-rgb = ((1 - coverage)[..., None] * background + (coverage * a * g)[..., None]) / alpha[..., None]
+premultiplied = (1 - coverage)[..., None] * to_linear(background) + (coverage * gloss)[..., None]
+rgb = to_srgb(premultiplied / np.maximum(alpha, 1e-6)[..., None])
 base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
 # ---- 4. 起伏图:每件商品一张流向图,R / G = Warping 100% 时 x / y 方向的位移,1/4 尺寸
-# 位移沿起伏的坡度,褶皱横着就上下压缩、竖着就左右压缩;压缩或拉伸超限的地方局部减弱,深褶处不翻折。
+# 起伏取法线的 z 分量(表面正对镜头的程度):位移沿它的坡度,表面越侧向镜头图案越压缩,
+# 褶皱横着就上下压缩、竖着就左右压缩,和照片的光线方向无关;压缩或拉伸超限的地方局部减弱,深褶处不翻折。
 # 系数按每件商品自己的褶皱定,Warping 100% 即不翻折的前提下最强的效果。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
+facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
 sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
@@ -205,7 +218,7 @@ flows, guards, gains = [], [], []
 for product, printable in zip(products, prints):
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
-    blurred = cv2.GaussianBlur(L_norm * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
+    blurred = cv2.GaussianBlur(facing * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
     # 区外取最近的区内值再缩小,边上的坡度不会因为区外突变而跳
     _, (iy, ix) = ndimage.distance_transform_edt(~inside, return_indices=True)
     height = cv2.resize(blurred[iy, ix], small_size, interpolation=cv2.INTER_AREA)
@@ -256,9 +269,11 @@ template = {
     'size': {'width': W, 'height': H},
     'category': 't-shirt',
     'files': {'cover': 'cover.webp', 'base': 'base.webp'},
+    'blend': 'linear',
     'displacement': {'rangePx': range_px},
     'regions': regions,
-    'pipeline': {'luminancePercentile': PERCENTILE, 'beta': BETA, 'blurSigma': round(float(sigma), 1),
+    'pipeline': {'luminancePercentile': PERCENTILE, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
+                 'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains]},
 }
