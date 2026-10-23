@@ -54,6 +54,7 @@ SPEC=specs/sample-tee-jeans.json
 | `sam21_auto.py` | 检测出的框直接当 SAM 2.1 的提示,和手点提示的结果对比 |
 | `seam_snap.py` | 以 `sam21_auto.py` 的袖子为大致范围,沿照片里的接缝(细暗线)重新切分袖子和身体 |
 | `compare_mockey.py` | 同一张铺满商品的网格,按竞品的位移算法(本地复现,和竞品截图对过)和我们的模板分别形变,并排对比 |
+| `compare_blend.py` | 模板墙用 img 直接叠图(读 `base-css.webp`)和线性光合成的对比,附编辑页带曲面褶皱的效果和胸口原尺寸细节;第二个参数是设计稿 PNG |
 
 ## 配置
 
