@@ -296,6 +296,14 @@ rgb = to_srgb(premultiplied / np.maximum(alpha, 1e-6)[..., None])
 base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
+# 模板墙的 CSS 叠图用的底图:浏览器只能按 sRGB 值普通叠加,由落盘的 base 换算,选白色、纯黑时和线性光结果一致,中间颜色按 sRGB 插值
+shipped = np.asarray(Image.open(OUT / 'base.webp')).astype(np.float32) / 255
+on_white = to_srgb(shade_gain * (1 - shipped[..., 3:]) + to_linear(shipped[..., :3]) * shipped[..., 3:])
+on_black = to_srgb(to_linear(shipped[..., :3]) * shipped[..., 3:])
+css_alpha = np.clip(1 - (on_white - on_black).mean(axis=2, keepdims=True), 1 / 255, 1)
+css_base = np.dstack([np.clip(on_black / css_alpha, 0, 1), css_alpha])
+Image.fromarray(np.round(css_base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base-css.webp', quality=85, alpha_quality=100)
+
 # ---- 4. 流向图:每件商品两张,R / G = x / y 方向的位移,1/4 尺寸
 # - 大曲面(固定):按 MoGe-2 的 3D 坐标,设计稿像贴在曲面上,侧面压缩、近处略放大;
 # - 褶皱(Warping 100% 时):起伏取法线的 z 分量(表面正对镜头的程度),位移沿它的坡度,褶皱横着就上下压缩、
@@ -378,7 +386,7 @@ template = {
     'version': 1,
     'size': {'width': W, 'height': H},
     'category': spec['category'],
-    'files': {'cover': 'cover.webp', 'base': 'base.webp'},
+    'files': {'cover': 'cover.webp', 'base': 'base.webp', 'baseCss': 'base-css.webp'},
     'blend': 'linear',
     'shadeGain': shade_gain,
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
@@ -396,6 +404,7 @@ def read(name):
     return np.asarray(Image.open(OUT / name)).astype(np.float32) / 255
 
 base_out = read('base.webp')
+css_out = read('base-css.webp')
 numbers = range(1, len(products) + 1)
 s = [read(f'surface-{i}.png') for i in numbers]
 f = [read(f'folds-{i}.png') for i in numbers]
@@ -415,6 +424,15 @@ def neutral_far(flow, product):
     far = ndimage.distance_transform_edt(~(product > 0.5)) > 3 * sigma + DISP_SCALE
     cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
     return bool((np.abs(flow[..., :2][cells] - 0.5) <= 1 / 255).all())
+
+
+def css_ends(css):
+    """CSS 底图按 sRGB 普通叠在白色、纯黑上,和线性光的结果比,商品区内的平均差和 99% 分位(0–255)。
+    一个透明度管不了三个通道各自的差,背后颜色带色的边缘、发丝处会差得多一些,只占极少数像素"""
+    a, rgb = css[..., 3:], css[..., :3]
+    inside = union[..., None].repeat(3, axis=2)
+    diffs = [np.abs(over - target)[inside] * 255 for over, target in ((1 - a + rgb * a, on_white), (rgb * a, on_black))]
+    return [(float(d.mean()), float(np.percentile(d, 99))) for d in diffs]
 
 
 def within_stretch(surface, fold, product):
@@ -439,6 +457,9 @@ checks = {
     'print outside product < 0.1%': all(float(((qq > 0.5) & (pp < 0.5)).sum() / max(1, (qq > 0.5).sum())) < 0.001 for pp, qq in zip(p, q)),
     'base opaque outside products': bool((base_out[..., 3][~union] == 1).all()),
     'base matches formula (≤ 2/255)': bool(np.abs(base_out[..., 3] - alpha).max() <= 2 / 255 + 1e-6),
+    # 防换算写错;有损压缩和边缘本身就会差几个色阶,公式错了会差几十
+    'base-css matches on white / black (mean ≤ 1, 99% ≤ 6 of 255)': all(mean <= 1 and p99 <= 6 for mean, p99 in css_ends(css_out)),
+    'base-css sizes equal': css_out.shape == base_out.shape,
     'flow maps neutral far outside': all(neutral_far(x, pp) for x, pp in zip(s + f, p + p)),
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100%': all(within_stretch(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
@@ -457,5 +478,6 @@ for index, item in enumerate(spec['products']):
         rgba = np.asarray(Image.open(config.ROOT / ref['file']).convert('RGBA')).astype(np.float32) / 255
         theirs = rgba[..., 3] < 1 if ref.get('transparent') else luma(rgba[..., :3]) * rgba[..., 3] > 0.5
         print(f"IoU vs reference {kind}-{index + 1}: {((ours > 0.5) & theirs).sum() / ((ours > 0.5) | theirs).sum():.3f}")
+print('base-css vs linear on white / black (mean, 99%, of 255): ' + ' / '.join(f'{m:.2f}, {q:.1f}' for m, q in css_ends(css_out)))
 for f in sorted(OUT.iterdir()):
     print(f'{f.stat().st_size / 1024:8.1f} KB  {f.name}')

@@ -42,7 +42,7 @@ SPEC=specs/sample-tee-jeans.json
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
 | `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出流向图里的大曲面和透视 |
-| `pipeline.py` | 改色范围、可印区域、底图、流向图、`template.json`、自动校验 |
+| `pipeline.py` | 改色范围、可印区域、底图(含模板墙用的 `base-css`)、流向图、`template.json`、自动校验 |
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
 
 `experiments/` 里是试验脚本,不在上面的流程里,结果写到 `work/<id>/experiments/`:
@@ -81,12 +81,13 @@ SPEC=specs/sample-tee-jeans.json
 | --- | --- |
 | `cover.webp` | 模板封面(原图) |
 | `base.webp` | 底图:T 恤、牛仔裤区域半透明,在线性光下合成时 `shadeGain` × (1 − 透明度) = 明暗 × 纹理、颜色 × 透明度 = 光泽 × 纹理,不含花纹;背景、皮肤、包带不透明 |
+| `base-css.webp` | 模板墙 CSS 叠图用的底图:由 `base.webp` 换算成按 sRGB 普通叠加的格式,选白色、纯黑时和线性光结果一致,中间颜色有几个到十几个色阶的偏差 |
 | `product-1.png` / `product-2.png` | T 恤 / 牛仔裤的改色范围(白色 + 透明度),编号按配置里商品的顺序 |
 | `print-1.png` / `print-2.png` | T 恤 / 牛仔裤的可印区域(白色 + 透明度) |
 | `surface-1.png` / `surface-2.png` | T 恤 / 牛仔裤的大曲面层流向图,固定叠上,不随 Warping 变:R / G = x / y 方向的位移,中灰 = 不位移,通道值 0 / 255 对应 ∓`surfaceRangePx`;B 未用;1/4 尺寸(400×500),使用时双线性放大 |
 | `folds-1.png` / `folds-2.png` | T 恤 / 牛仔裤的褶皱层流向图,格式同上,值是 Warping 100% 时的位移,通道值对应 ∓`foldsRangePx`,使用时乘 Warping |
-| `template.json` | 部件名、默认 Logo 框、合成方式 `blend: "linear"` 和明暗倍数 `shadeGain`、两层流向图的 `displacement.surfaceRangePx`、`foldsRangePx`、生成参数 |
-| `checks.json` | 自动校验结果(12 项) |
+| `template.json` | 文件名(含 `baseCss`)、部件名、默认 Logo 框、合成方式 `blend: "linear"` 和明暗倍数 `shadeGain`、两层流向图的 `displacement.surfaceRangePx`、`foldsRangePx`、生成参数 |
+| `checks.json` | 自动校验结果(14 项) |
 
 `preview/<id>/` 里是示意图:
 
