@@ -63,6 +63,7 @@ SPEC=specs/sample-tee-jeans.json
 | --- | --- |
 | `id`、`category` | 模板 id(也是 `work/`、`output/`、`preview/` 下的目录名)、品类,写进 `template.json` |
 | `photo` | 源图。带透明度的叠在白色上;透明度不到 1 的像素视为不是原始照片(如从竞品底图还原的商品区),这些像素落在商品区外时,底图里换成周围的背景色 |
+| `crop` | 可选,源图先按 `[x0, y0, x1, y1]`(像素)裁出这一块再用,比例不对时用;各脚本和封面都用裁好的图 |
 | `fetch` | 可选,要下载的素材:`{路径: {url, sha256}}` |
 | `occluders` | 遮挡物的提示列表。一个提示是 `{text: 名词短语}`(SAM 3,图里所有符合的实例合在一起,如 `"bag strap"`),或 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`(SAM 2.1,文字分不准时手点兜底);`note` 只作说明;`matteBand` 可选,和商品交界的待求带半宽 / 宽度,头发这类边上有细丝的放宽(如 `0.015`),不写为 0.004 |
 | `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference` |
