@@ -44,6 +44,7 @@ SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多�
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
 GAP_RATIO = 0.004  # 商品和遮挡物之间的缝,两边都在这么远(× 宽度)以内的算遮挡物
+FLOW_BLEND = 4  # 流向图商品外铺成边上的值,离守住范围的格子这么多格以外完全换成模糊过的值(格)
 
 
 def luma(rgb):
@@ -195,6 +196,21 @@ def surface_flow(points, focal, product, small_size, sigma):
     return flow[iy, ix]
 
 
+def extend_outside(flow, inside):
+    """inside 以外的格子换成离它最近的 inside 格的值,离 inside FLOW_BLEND 格以外渐变成模糊过的值。
+    渲染端整体减掉设计稿中心处的位移;商品外的位移若还在变,中心拖出商品时这份变得比拖动还快,设计稿会反着往商品里跑。
+    只铺最近值的话,凹进去的地方(领口、两腿之间)两条边的值在中线上会跳,所以远处再渐变成模糊值"""
+    distance, (iy, ix) = ndimage.distance_transform_edt(~inside, return_indices=True)
+    nearest = flow[iy, ix]
+    blurred = nearest
+    for _ in range(3):  # 盒式模糊连做三遍,近似高斯
+        blurred = cv2.blur(blurred, (2 * FLOW_BLEND + 1,) * 2, borderType=cv2.BORDER_REPLICATE)
+    t = np.minimum(1, distance / FLOW_BLEND)[..., None]
+    extended = nearest * (1 - t) + blurred * t
+    extended[inside] = flow[inside]
+    return extended.astype(np.float32)
+
+
 def print_area(product, parts, cover, rule):
     """可印区域:商品区减去不可印部件,只在商品和背景的交界按 rule 的 inset 往里收(上下左右各占宽度的比例,
     如下摆留边只写 bottom),再只留 rows 给的高度区间(占商品高度的比例)。cover 是盖在商品上的遮挡物和上层商品,
@@ -309,7 +325,7 @@ Image.fromarray(np.round(css_base * 255).astype(np.uint8), 'RGBA').save(OUT / 'b
 # - 褶皱(Warping 100% 时):起伏取法线的 z 分量(表面正对镜头的程度),位移沿它的坡度,褶皱横着就上下压缩、
 #   竖着就左右压缩,和照片的光线方向无关;系数按每件商品自己的褶皱定,Warping 0–100% 时两层合起来超限的地方
 #   局部减弱褶皱这层,深褶处不翻折。
-# 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动。
+# 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动;设计稿中心可以拖出商品,商品外按 extend_outside 铺平。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
 points = np.load(WORK / 'points.npy')
@@ -338,11 +354,9 @@ for index, (product, printable) in enumerate(zip(products, prints)):
     gains.append(gain)
     ox, oy = cap(gain * to_px * gx, gain * to_px * gy, guarded, low + slack, high - slack,
                  (surfaces[index][..., 0], surfaces[index][..., 1]))
-    # 离商品 3σ 以外不动
-    far = ndimage.distance_transform_edt(~inside) > 3 * sigma
-    far_cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
-    surfaces[index] = np.where(far_cells[..., None], 0, surfaces[index]).astype(np.float32)
-    folds.append(np.dstack([np.where(far_cells, 0, c) for c in (ox, oy)]).astype(np.float32))
+    # 守住范围的格子原样留着(商品边上的像素插值要用到它们),从它们往外铺
+    surfaces[index] = extend_outside(surfaces[index], guarded)
+    folds.append(extend_outside(np.dstack([ox, oy]).astype(np.float32), guarded))
     guards.append(guarded)
 
 
@@ -419,11 +433,31 @@ def overlap(a, b):
     return float((a & b).sum() / max(1, min(a.sum(), b.sum())))
 
 
-def neutral_far(flow, product):
-    """离这件商品 3σ 以外的格子 R、G 都是 0.5"""
-    far = ndimage.distance_transform_edt(~(product > 0.5)) > 3 * sigma + DISP_SCALE
-    cells = cv2.resize(far.astype(np.float32), small_size, interpolation=cv2.INTER_AREA) == 1
-    return bool((np.abs(flow[..., :2][cells] - 0.5) <= 1 / 255).all())
+def offsets(surface, fold, warp):
+    """按编辑页的方式双线性放大回模板尺寸,Warping 为 warp(0–1)时每像素的位移"""
+    surface, fold = (cv2.resize((x[..., :2] - 0.5) * 2 * r, (W, H), interpolation=cv2.INTER_LINEAR)
+                     for x, r in ((surface, surface_range), (fold, folds_range)))
+    return surface + warp * fold
+
+
+def drag_never_back(surface, fold, product):
+    """设计稿中心从商品中心沿各方向一路拖出画面,画上去的位置(中心 + 中心处位移)不往回走;
+    8 位量化本身有零点几像素的抖动,回退超过 1px 才算"""
+    ys, xs = np.nonzero(product > 0.5)
+    cx, cy = xs.mean(), ys.mean()
+    for warp in np.linspace(0, 1, 5):
+        offset = offsets(surface, fold, warp)
+        for angle in np.radians(np.arange(0, 360, 5)):
+            d = np.array([np.cos(angle), np.sin(angle)])
+            steps = np.arange(int(np.hypot(W, H)))
+            px, py = cx + d[0] * steps, cy + d[1] * steps
+            keep = (px >= 0) & (py >= 0) & (px <= W - 1) & (py <= H - 1)
+            px, py = px[keep], py[keep]
+            ox, oy = (ndimage.map_coordinates(offset[..., c], [py, px], order=1) for c in (0, 1))
+            drawn = (px + ox) * d[0] + (py + oy) * d[1]
+            if (np.diff(drawn) < -1).any():
+                return False
+    return True
 
 
 def css_ends(css):
@@ -436,12 +470,10 @@ def css_ends(css):
 
 
 def within_stretch(surface, fold, product):
-    """按编辑页的方式双线性放大回模板尺寸,Warping 0–100% 时商品区内各方向每像素前进量都在范围内"""
-    surface, fold = (cv2.resize((x[..., :2] - 0.5) * 2 * r, (W, H), interpolation=cv2.INTER_LINEAR)
-                     for x, r in ((surface, surface_range), (fold, folds_range)))
+    """Warping 0–100% 时商品区内各方向每像素前进量都在范围内"""
     inside = product > 0.5
     for warp in np.linspace(0, 1, 5):
-        offset = surface + warp * fold
+        offset = offsets(surface, fold, warp)
         smin, smax = stretch_range(*jacobian(offset[..., 0], offset[..., 1], 1))
         if smin[inside].min() < STRETCH_RANGE[0] or smax[inside].max() > STRETCH_RANGE[1]:
             return False
@@ -460,7 +492,7 @@ checks = {
     # 防换算写错;有损压缩和边缘本身就会差几个色阶,公式错了会差几十
     'base-css matches on white / black (mean ≤ 1, 99% ≤ 6 of 255)': all(mean <= 1 and p99 <= 6 for mean, p99 in css_ends(css_out)),
     'base-css sizes equal': css_out.shape == base_out.shape,
-    'flow maps neutral far outside': all(neutral_far(x, pp) for x, pp in zip(s + f, p + p)),
+    'design centre dragged outward never runs back': all(drag_never_back(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100%': all(within_stretch(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(largest(qq > 0.5).sum() / (qq > 0.5).sum() >= 0.8 for qq in q),
