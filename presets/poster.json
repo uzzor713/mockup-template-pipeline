@@ -1,0 +1,20 @@
+{
+  "category": "poster",
+  "occluders": [],
+  "products": [
+    {
+      "id": "poster",
+      "key": "main",
+      "name": "Poster",
+      "text": "poster",
+      "print": {
+        "inset": {
+          "top": 0.02,
+          "bottom": 0.02,
+          "left": 0.02,
+          "right": 0.02
+        }
+      }
+    }
+  ]
+}

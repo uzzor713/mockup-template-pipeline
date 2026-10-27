@@ -1,0 +1,17 @@
+{
+  "category": "paper-bag",
+  "occluders": [],
+  "products": [
+    {
+      "id": "bag",
+      "key": "main",
+      "name": "Paper bag",
+      "text": "paper bag",
+      "parts": [
+        {
+          "text": "bag handle"
+        }
+      ]
+    }
+  ]
+}

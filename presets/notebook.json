@@ -1,0 +1,16 @@
+{
+  "category": "notebook",
+  "occluders": [
+    {
+      "text": "pencil"
+    }
+  ],
+  "products": [
+    {
+      "id": "cover",
+      "key": "main",
+      "name": "Notebook",
+      "text": "notebook"
+    }
+  ]
+}

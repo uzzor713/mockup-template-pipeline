@@ -1,0 +1,12 @@
+{
+  "category": "coffee-pouch",
+  "occluders": [],
+  "products": [
+    {
+      "id": "pouch",
+      "key": "main",
+      "name": "Pouch",
+      "text": "pouch"
+    }
+  ]
+}

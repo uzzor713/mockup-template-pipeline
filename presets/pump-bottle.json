@@ -1,0 +1,12 @@
+{
+  "category": "pump-bottle",
+  "occluders": [],
+  "products": [
+    {
+      "id": "label",
+      "key": "main",
+      "name": "Label",
+      "text": "bottle label"
+    }
+  ]
+}

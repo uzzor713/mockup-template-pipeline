@@ -1,0 +1,17 @@
+{
+  "category": "cap",
+  "occluders": [],
+  "products": [
+    {
+      "id": "cap",
+      "key": "main",
+      "name": "Cap",
+      "text": "baseball cap",
+      "parts": [
+        {
+          "text": "cap brim"
+        }
+      ]
+    }
+  ]
+}

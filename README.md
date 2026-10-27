@@ -31,6 +31,33 @@ SPEC=specs/sample-tee-jeans.json
 
 `sources/`、`work/`、`output/`、`preview/` 都不进仓库,按上面的步骤在本地生成。样本用的竞品素材只作内部示例,不能用于产品。
 
+### 批量
+
+同一品类的商品、部件、可印规则和遮挡物写成预设 `presets/<预设>.json`,每张源图只在清单里写一行,`batch.py` 生成配置并跑完上面除 `fetch_sources.py` 以外的六步:
+
+```bash
+.venv/bin/python -I batch.py 清单.csv            # --jobs N 同时跑几个模板(每个峰值约 6–7GB 内存),--force 全部重跑
+```
+
+清单是 CSV,第一行列名:
+
+```csv
+source,preset,id,occluders,crop
+https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp,tee,,,
+/Users/me/mockups/02 Studio club sweatshirt.png,sweatshirt,,hair;hand;arm,
+```
+
+| 列 | 内容 |
+| --- | --- |
+| `source`、`preset` | 源图的地址或本地路径、预设名,必填;地址的源图下载到 `sources/<预设>/`,本地的直接引用 |
+| `id` | 可选,不写由文件名得出:去掉 `mockup-` 前缀和 `-blank` 后缀,转小写,字母数字以外的连成 `-`(`01 Slow days tee.png` → `01-slow-days-tee`) |
+| `occluders` | 可选,遮挡物提示词,`;` 隔开,替换预设里的(同名的沿用预设里的 `matteBand`);写 `-` 表示没有遮挡物 |
+| `crop` | 可选,`x0 y0 x1 y1`(源图像素),不写按预设的比例规则裁 |
+
+预设里除了配置的 `category`、`occluders`、`products`,还有裁切规则:竖图裁成 4:5、横图 5:4,正方形按 `square`(默认 `[4, 5]`);多出的宽度两边平分,多出的高度按 `trim`(`bottom` / `top` / `center`,默认 `center`)从哪边裁。现有预设:`tee`、`sweatshirt`、`tote-bag`、`cap`、`cushion`、`pump-bottle`(可编辑的是瓶身标签)、`coffee-pouch`、`notebook`、`poster`、`paper-bag`。
+
+结果在 `batches/<清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出),`review.html` 是抽查页,没通过的排前面,每个模板一张分割叠图和一张蒙版示意。看完改清单里那几行,重跑同一条命令:各步记下上次用到的配置字段和源图内容(`work/<id>/steps.json`),没变的跳过;改遮挡物只重跑分割和之后两步,三个模型脚本只看源图和裁切。
+
 ## 脚本
 
 | 文件 | 做什么 |
@@ -44,6 +71,7 @@ SPEC=specs/sample-tee-jeans.json
 | `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出流向图里的大曲面和透视 |
 | `pipeline.py` | 改色范围、可印区域、底图(含模板墙用的 `base-css`)、流向图、`template.json`、自动校验 |
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
+| `batch.py` | 按清单和品类预设批量生成配置、跑完各步,出汇总表和抽查页 |
 
 `experiments/` 里是试验脚本,不在上面的流程里,结果写到 `work/<id>/experiments/`:
 

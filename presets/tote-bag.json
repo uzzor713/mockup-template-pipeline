@@ -1,0 +1,21 @@
+{
+  "category": "tote-bag",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "bag",
+      "key": "main",
+      "name": "Tote bag",
+      "text": "tote bag",
+      "parts": [
+        {
+          "text": "bag handle"
+        }
+      ]
+    }
+  ]
+}

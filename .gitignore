@@ -11,3 +11,6 @@ preview/
 
 # 本地密钥
 .env.local
+
+# 批量运行的配置、日志和汇总,按清单重新生成
+batches/
