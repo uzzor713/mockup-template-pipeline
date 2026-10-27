@@ -23,16 +23,32 @@ def folder(spec, kind):
     return path
 
 
-def secret(name):
-    """先看环境变量,没有就读仓库根目录 .env.local(不进仓库)里的同名一行"""
+def setting(name, default=None):
+    """先看环境变量,再看仓库根目录 .env.local(不进仓库,放密钥和本机的改动),最后看 .env(进仓库,共用的默认值)"""
     if os.environ.get(name):
         return os.environ[name]
-    path = ROOT / '.env.local'
-    lines = path.read_text().splitlines() if path.exists() else []
-    values = [line.split('=', 1)[1].strip().strip('"\'') for line in lines if line.startswith(f'{name}=')]
-    if not values or not values[-1]:
-        raise SystemExit(f'缺少 {name}:设环境变量,或写进 {path}')
-    return values[-1]
+    for file in ('.env.local', '.env'):
+        path = ROOT / file
+        lines = path.read_text().splitlines() if path.exists() else []
+        values = [line.split('=', 1)[1].strip().strip('"\'') for line in lines if line.startswith(f'{name}=')]
+        if values and values[-1]:
+            return values[-1]
+    return default
+
+
+def secret(name):
+    value = setting(name)
+    if not value:
+        raise SystemExit(f'缺少 {name}:设环境变量,或写进 {ROOT / ".env.local"}')
+    return value
+
+
+def backend():
+    """本征分解、法线、几何和抠图在哪跑:local(本机)或 replicate"""
+    value = setting('MODEL_BACKEND', 'local')
+    if value not in ('local', 'replicate'):
+        raise SystemExit(f'MODEL_BACKEND 只能是 local 或 replicate,现在是 {value}')
+    return value
 
 
 def photo(spec):

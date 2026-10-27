@@ -1,7 +1,7 @@
 """
 按模板配置跑 segment.py,结果存到 work/<模板 id>/:每件商品 <商品 id>-alpha.png(16 位透明度)、<商品 id>-parts.png
 (不可印部件),遮挡物 occluders.png(16 位透明度),以及人工检查用的叠图 segment-check.png。
-用到文字提示时要 Replicate 的 token:环境变量或仓库根目录 .env.local 里的 REPLICATE_API_TOKEN。
+用到文字提示或 MODEL_BACKEND=replicate(抠图也走 Replicate)时要 Replicate 的 token:环境变量或仓库根目录 .env.local 里的 REPLICATE_API_TOKEN。
 用法:.venv/bin/python -I run_segment.py specs/<模板>.json
 """
 import sys, time
@@ -19,10 +19,12 @@ photo, _ = config.photo(spec)
 photo = np.round(photo * 255).astype(np.uint8)
 
 t0 = time.time()
-models = Models(sam3=Sam3Replicate(config.secret('REPLICATE_API_TOKEN')) if uses_text(spec) else None)
+on_replicate = config.backend() == 'replicate'
+client = Sam3Replicate(config.secret('REPLICATE_API_TOKEN')) if uses_text(spec) or on_replicate else None
+models = Models(sam3=client if uses_text(spec) else None, remote=client if on_replicate else None)
 t1 = time.time()
 occluders, products = segment(photo, spec, models)
-print(f'model load {t1 - t0:.1f}s, segment {time.time() - t1:.1f}s, device {models.device}')
+print(f'model load {t1 - t0:.1f}s, segment {time.time() - t1:.1f}s, device {models.device or "replicate"}')
 
 for item, result in zip(spec['products'], products):
     Image.fromarray(np.round(result['alpha'] * 65535).astype(np.uint16)).save(WORK / f"{item['id']}-alpha.png")

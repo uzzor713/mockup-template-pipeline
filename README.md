@@ -10,8 +10,9 @@
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements-models.txt   # run_segment.py、intrinsic.py、normals.py、geometry.py 要用;其余脚本只需 requirements.txt
-.venv/bin/pip install --no-deps -r requirements-moge.txt   # geometry.py 要用
+.venv/bin/pip install -r requirements-models.txt   # MODEL_BACKEND=local 时 run_segment.py、intrinsic.py、normals.py、geometry.py 要用
+.venv/bin/pip install --no-deps -r requirements-moge.txt   # MODEL_BACKEND=local 时 geometry.py 要用
+# MODEL_BACKEND=replicate 时只装 requirements.txt
 
 SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I fetch_sources.py $SPEC   # 下载配置里 fetch 列出的素材
@@ -25,9 +26,11 @@ SPEC=specs/sample-tee-jeans.json
 
 配置里用到文字提示时,`run_segment.py` 调 Replicate 上的 SAM 3,会把源图上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。
 
+抠图、本征分解、法线、几何四个模型在哪跑由 `MODEL_BACKEND` 决定,默认值写在 `.env`(进仓库):`local` 本机跑,要装上面的模型依赖、有 Apple 芯片或 GPU;`replicate` 调 Replicate 上的社区封装(版本固定在 `remote.py`),本机只要 `requirements.txt` 和 token,源图会上传过去。本机要改就在 `.env.local` 写一行 `MODEL_BACKEND=replicate`,或设同名环境变量;优先级是环境变量 > `.env.local` > `.env`。两种结果的差别:MoGe-2 逐位相同、抠图几乎一样;Marigold 两个封装不能固定随机种子和处理分辨率、只出 8 位图,换算回来和本机的相关系数本征分解 0.94–0.995(残差那层最低)、法线 0.96–0.98,每次运行结果也会略有不同。
+
 每个模板的中间结果在 `work/<id>/`,模板文件在 `output/<id>/`,预览图在 `preview/<id>/`,`<id>` 是配置里的 `id`。
 
-四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(大半是 Replicate 限流的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,随机种子固定,重复运行结果一致。
+`MODEL_BACKEND=local` 时四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(大半是 Replicate 限流的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,本机跑时随机种子固定,重复运行结果一致。`replicate` 时每个模型的推理只要几秒,但这些封装用的人少,闲置后再调要冷启动,每个模型一到五分钟,一个模板一个个接着跑要十一二分钟;按推理时长计费,一个模板约 1–2 美分。
 
 `sources/`、`work/`、`output/`、`preview/` 都不进仓库,按上面的步骤在本地生成。样本用的竞品素材只作内部示例,不能用于产品。
 
@@ -62,9 +65,10 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 
 | 文件 | 做什么 |
 | --- | --- |
-| `config.py` | 读模板配置、源图和密钥(环境变量或 `.env.local`),给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
+| `config.py` | 读模板配置、源图、设置和密钥(环境变量、`.env.local`、`.env`),给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
+| `remote.py` | Replicate 的调用(上传、预测、取结果),以及 `MODEL_BACKEND=replicate` 时四个模型的封装版本和输出换算 |
 | `fetch_sources.py` | 按配置的 `fetch` 下载素材,并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;ViTMatte 在商品和背景的交界求商品的透明度,在商品和遮挡物的交界求遮挡物的透明度。不读写本地文件 |
+| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;ViTMatte 在商品和背景的交界求商品的透明度,在商品和遮挡物的交界求遮挡物的透明度(`MODEL_BACKEND=replicate` 时走 Replicate)。不读写本地文件 |
 | `run_segment.py` | 按配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物透明度,以及人工检查用的叠图 `segment-check.png` |
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
@@ -147,6 +151,8 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 - T 恤的边缘在封面原图里就是台阶,改色后的边缘是平滑的,不改色时显示的封面仍是原样。
 
 ## 模型和许可
+
+`MODEL_BACKEND=replicate` 时 ViTMatte、两个 Marigold 和 MoGe-2 改调 Replicate 上的社区封装:`superhighfives/vitmatte-trimap`、`jasonod888/marigold-intrinsics`、`jasonod888/marigold-normalsv2`、`jasonod888/moge2`,权重和下表相同,封装本身没写许可。
 
 | 模型 | 用在 | 许可 |
 | --- | --- | --- |

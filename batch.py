@@ -13,7 +13,7 @@ pipeline.py 和 preview.py,最后汇总结果。
 
 结果都在 batches/<清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
 review.html 是抽查页(没通过的排前面)。改了清单重跑同一条命令,只重算受影响的模板和步骤:
-改遮挡物只重跑分割和之后两步,三个模型脚本只看源图(按文件内容)和裁切。--force 全部重跑。
+改遮挡物只重跑分割和之后两步,三个模型脚本只看源图(按文件内容)和裁切;改 MODEL_BACKEND 全部重跑。--force 全部重跑。
 """
 import argparse
 import csv
@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录
 import config
 
 ROOT = config.ROOT
-# 每一步和它用到的配置字段(另加源图的内容):都没变、前一次成功过就跳过;None 表示用到整份配置
+# 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND):都没变、前一次成功过就跳过;None 表示用到整份配置
 STEPS = [
     ('run_segment.py', ['photo', 'crop', 'occluders', 'products']),
     ('intrinsic.py', ['photo', 'crop']),
@@ -105,7 +105,7 @@ def make_spec(row):
 
 def digest(spec, fields, photo_sha):
     part = spec if fields is None else {k: spec.get(k) for k in fields}
-    return hashlib.sha1(json.dumps([part, photo_sha], sort_keys=True).encode()).hexdigest()
+    return hashlib.sha1(json.dumps([part, photo_sha, config.backend()], sort_keys=True).encode()).hexdigest()
 
 
 def run(spec_path, log_path, force):

@@ -2,7 +2,7 @@
 分割:SAM 3 按文字提示(或 SAM 2.1 按外接框和提示点)分出遮挡物、商品和商品的不可印部件,
 ViTMatte 在商品和背景、遮挡物的交界求透明度。
 不读写本地文件,也不含具体模板的内容;源图、提示和密钥由调用方给,见 run_segment.py。
-SAM 3 现在走 Replicate,会把源图上传过去。
+SAM 3 走 Replicate,会把源图上传过去;给了 remote 时抠图也走 Replicate(见 remote.py)。
 
 提示的格式(spec):
 - 一个提示是 {text: 名词短语}(SAM 3,图里所有符合的实例合在一起),
@@ -10,16 +10,15 @@ SAM 3 现在走 Replicate,会把源图上传过去。
 - occluders:遮挡物的提示列表,合在一起求透明度;头发这类边上有细丝的,提示里加 matteBand(和商品交界的待求带半宽 / 宽度);
 - products:商品列表,由上层到下层,每项本身是一个提示,加可选的 parts(不可印部件的提示列表,如袖子、领口)。
 """
-import hashlib, io, json, time, zipfile, urllib.error, urllib.request
+import io, zipfile
 import numpy as np, cv2
 from PIL import Image
 from scipy import ndimage
+import remote
+from remote import Replicate
 
 SAM_MODEL = 'facebook/sam2.1-hiera-base-plus'
-SAM3_VERSION = 'd73db077226443ba4fafd34e233b3626b552eac2a433f90c7c32a9ac89bd9e72'  # Replicate 上的 mattsays/sam3-image
-REPLICATE_API = 'https://api.replicate.com/v1'
-RATE_LIMIT_WAIT = 11  # Replicate 余额低的账号每分钟限 6 次
-RETRIES = 4  # 网络偶发 TLS 握手失败、连接中断
+SAM3 = 'mattsays/sam3-image:d73db077226443ba4fafd34e233b3626b552eac2a433f90c7c32a9ac89bd9e72'
 MATTE_MODEL = 'hustvl/vitmatte-small-composition-1k'
 BAND_RATIO = 0.004  # 待求带向外的半宽 / 宽度,要盖住 SAM 的边界误差;向内收 1/3
 MATTE_FLOOR = 0.1  # 遮挡物待求带宽时,抠图在纯色衣服上也会给出这么多以内的透明度:低于它算 0、高于 1 − 它算 1,中间线性拉开
@@ -47,86 +46,45 @@ def drop_specks(binary, ratio=SPECK_RATIO):
     return np.isin(labels, 1 + np.nonzero(sizes >= ratio * binary.sum())[0])
 
 
-class Sam3Replicate:
-    """SAM 3 按文字提示分割,走 Replicate;同一张源图只上传一次"""
-
-    def __init__(self, token):
-        self.token = token
-        self.uploaded = {}
-        self.next_start = 0.0
-
-    def fetch(self, request):
-        """取回响应内容;连接失败和限流(429)重试,其他 HTTP 错误照常抛出"""
-        for attempt in range(RETRIES):
-            try:
-                with urllib.request.urlopen(request, timeout=300) as response:
-                    return response.read()
-            except urllib.error.HTTPError as error:
-                if error.code != 429 or attempt == RETRIES - 1:
-                    raise
-                time.sleep(float(error.headers.get('Retry-After') or RATE_LIMIT_WAIT))
-            except (urllib.error.URLError, ConnectionError, TimeoutError):
-                if attempt == RETRIES - 1:
-                    raise
-                time.sleep(3 * (attempt + 1))
-
-    def call(self, method, url, body=None, headers=None):
-        request = urllib.request.Request(url, data=body, method=method,
-                                         headers={'Authorization': f'Bearer {self.token}', **(headers or {})})
-        return json.loads(self.fetch(request))
-
-    def upload(self, photo):
-        key = hashlib.sha1(photo.tobytes()).hexdigest()
-        if key not in self.uploaded:
-            buffer = io.BytesIO()
-            Image.fromarray(photo).save(buffer, 'PNG')
-            boundary = 'segment-upload-boundary'
-            body = (f'--{boundary}\r\nContent-Disposition: form-data; name="content"; filename="photo.png"\r\n'
-                    'Content-Type: image/png\r\n\r\n').encode() + buffer.getvalue() + f'\r\n--{boundary}--\r\n'.encode()
-            self.uploaded[key] = self.call('POST', f'{REPLICATE_API}/files', body,
-                                           {'Content-Type': f'multipart/form-data; boundary={boundary}'})['urls']['get']
-        return self.uploaded[key]
+class Sam3Replicate(Replicate):
+    """SAM 3 按文字提示分割,走 Replicate"""
 
     def instances(self, photo, text):
         """文字提示 → 各实例的蒙版"""
-        image = self.upload(photo)
-        time.sleep(max(0.0, self.next_start - time.monotonic()))
-        self.next_start = time.monotonic() + RATE_LIMIT_WAIT
-        body = json.dumps({'version': SAM3_VERSION, 'input': {
-            'image': image, 'prompt': text, 'mask_only': True, 'return_zip': True, 'threshold': 0.5}}).encode()
-        prediction = self.call('POST', f'{REPLICATE_API}/predictions', body,
-                               {'Content-Type': 'application/json', 'Prefer': 'wait=60'})
-        while prediction['status'] not in ('succeeded', 'failed', 'canceled'):
-            time.sleep(2)
-            prediction = self.call('GET', prediction['urls']['get'])
-        if prediction['status'] != 'succeeded':
-            raise RuntimeError(f"SAM 3「{text}」: {prediction['status']} {prediction.get('error')}")
-        output = prediction['output']
+        output = self.predict(SAM3, {'image': self.upload(photo), 'prompt': text, 'mask_only': True, 'return_zip': True,
+                                     'threshold': 0.5})
         if not output:
             return []
-        data = self.fetch(output if isinstance(output, str) else output[0])  # 结果在 replicate.delivery,不带 token
-        with zipfile.ZipFile(io.BytesIO(data)) as package:
+        with zipfile.ZipFile(io.BytesIO(self.fetch(output if isinstance(output, str) else output[0]))) as package:
             return [np.asarray(Image.open(package.open(name)).convert('L')) > 127
                     for name in sorted(package.namelist()) if name.lower().endswith('.png')]
 
 
 class Models:
-    """ViTMatte 加载一次反复用;SAM 2.1 用到手点提示时才加载;给了 sam3 才能用文字提示"""
+    """ViTMatte 加载一次反复用,给了 remote(Replicate)就走 Replicate;SAM 2.1 用到手点提示时才加载;给了 sam3 才能用文字提示"""
 
-    def __init__(self, device=None, sam3=None):
-        import torch
-        from transformers import VitMatteForImageMatting, VitMatteImageProcessor
-        self.torch = torch
-        self.device = device or ('mps' if torch.backends.mps.is_available() else 'cpu')
+    def __init__(self, device=None, sam3=None, remote=None):
+        self.device = device
         self.sam3 = sam3
+        self.remote = remote
         self.sam2 = None
-        self.matte_processor = VitMatteImageProcessor.from_pretrained(MATTE_MODEL)
-        self.matte_model = VitMatteForImageMatting.from_pretrained(MATTE_MODEL).to(self.device).eval()
+        if remote is None:
+            from transformers import VitMatteForImageMatting, VitMatteImageProcessor
+            self.load_torch()
+            self.matte_processor = VitMatteImageProcessor.from_pretrained(MATTE_MODEL)
+            self.matte_model = VitMatteForImageMatting.from_pretrained(MATTE_MODEL).to(self.device).eval()
+
+    def load_torch(self):
+        """本机推理才 import torch,并定下设备"""
+        import torch
+        self.torch = torch
+        self.device = self.device or ('mps' if torch.backends.mps.is_available() else 'cpu')
 
     def sam(self, photo, box, points):
         """SAM 2.1:外接框 + 提示点 → 每像素的前景概率"""
         if self.sam2 is None:
             from transformers import Sam2Model, Sam2Processor
+            self.load_torch()
             self.sam2 = Sam2Processor.from_pretrained(SAM_MODEL), Sam2Model.from_pretrained(SAM_MODEL).to(self.device).eval()
         processor, model = self.sam2
         inputs = processor(images=Image.fromarray(photo), input_boxes=[[box]],
@@ -149,6 +107,8 @@ class Models:
         H, W = fg.shape
         unknown = ~fg & ~bg
         trimap = np.where(fg, 255, np.where(bg, 0, 128)).astype(np.uint8)
+        if self.remote is not None:
+            return np.where(unknown, np.clip(remote.matte(self.remote, photo, trimap), 0, 1), fg).astype(np.float32)
         total, weight = np.zeros((H, W), np.float32), np.zeros((H, W), np.float32)
         ramp = lambda k: np.minimum(np.arange(k) + 1, k - np.arange(k)).astype(np.float32)
         for ty in range(0, H, TILE - OVERLAP):
