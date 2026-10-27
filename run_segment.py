@@ -20,7 +20,7 @@ photo = np.round(photo * 255).astype(np.uint8)
 
 t0 = time.time()
 on_replicate = config.backend() == 'replicate'
-client = Sam3Replicate(config.secret('REPLICATE_API_TOKEN')) if uses_text(spec) or on_replicate else None
+client = Sam3Replicate(**config.replicate()) if uses_text(spec) or on_replicate else None
 models = Models(sam3=client if uses_text(spec) else None, remote=client if on_replicate else None)
 t1 = time.time()
 occluders, products = segment(photo, spec, models)

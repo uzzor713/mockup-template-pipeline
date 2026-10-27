@@ -1,12 +1,21 @@
 """
 批量出模板:每张源图按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
 pipeline.py 和 preview.py,最后汇总结果。
-用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv] [--dry-run] [--jobs N] [--force]
+用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--force]
+      .venv/bin/python -I batch.py <按品类分好的文件夹> --pack 例外.csv   # 把这几张打包给调参数的人
 
 按品类分好的文件夹:每个子文件夹是一个品类,文件夹名是预设名或预设里 folders 列的别名,里面(含更深的子文件夹)
-的 png / jpg / webp 都算。对不上预设的文件夹会列出来并停下。id 默认是品类文件夹名(不是纯英文时换成预设名)加文件名(规则同下),
+的 png / jpg / webp 都算,以 _ 开头的文件夹不算。对不上预设的文件夹会列出来并停下。id 默认是品类文件夹名(不是纯英文时换成预设名)加文件名(规则同下),
 文件名本来就以文件夹名开头的不重复加(t-shirt/001.png → t-shirt-001,boxy-tee/mockup-boxy-tee-020-blank.webp → boxy-tee-020)。
-个别源图要改设置时用 --overrides 给一份例外清单,按 id 对上,列同下面的 preset、occluders、crop。
+个别源图要改设置时用 --overrides 给例外清单,按 id 对上,空着的列不改:
+- product、parts:这张的商品提示词、不可印部件提示词(; 隔开,- 表示没有),只能用在一件商品的预设上;
+- occluders、crop、preset:同下面清单的列;
+- skip:填 1 跳过这张,不跑也不进抽查页;
+- issue、note:抽查页导出的问题类型和备注,只给人看。
+--overrides 可以写多次,也可以给文件夹(里面的 csv 按文件名顺序),后面的覆盖前面的。每次运行都按清单重新生成配置,
+改过的源图没带上它的例外清单就会回到预设的设置,所以例外清单要一直留着、每次都带上。
+--pack 按例外清单把这几张的源图(放在和原来一样的品类文件夹下)、分割叠图和蒙版示意(_review/)连同清单打成 zip,
+存到 batches/<名称>/;对方解压后对它跑 batch.py,id 和原来一样,试好提示词把清单填好发回来。
 生成的清单存一份在 batches/<名称>/list.csv,可以从里面抄 id。
 
 清单(CSV,第一行是列名):
@@ -18,19 +27,20 @@ pipeline.py 和 preview.py,最后汇总结果。
 - crop:可选,x0 y0 x1 y1(源图像素),写了就不按预设的比例规则裁。
 
 结果都在 batches/<文件夹名或清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
-review.html 是抽查页(没通过的排前面)。--dry-run 只生成配置、列出各品类的张数,不跑。改了清单重跑同一条命令,只重算受影响的模板和步骤:
+review.html 是抽查页(按品类分页,见 review.py)。--dry-run 只生成配置、列出各品类的张数,不跑。改了清单重跑同一条命令,只重算受影响的模板和步骤:
 改遮挡物只重跑分割和之后两步,三个模型脚本只看源图(按文件内容)和裁切;改 MODEL_BACKEND 全部重跑。--force 全部重跑。
 """
 import argparse
 import csv
 import hashlib
-import html
 import json
 import re
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
+import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -38,15 +48,18 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
+import review
 
 ROOT = config.ROOT
+REVIEW_EVERY = 60  # 抽查页最多隔这么多秒更新一次,跑完再写一次
 IMAGE_SUFFIXES = {'.png', '.jpg', '.jpeg', '.webp'}
-# 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND):都没变、前一次成功过就跳过;None 表示用到整份配置
+# 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND;源图路径不算,挪了文件夹不重跑):都没变、前一次成功过就跳过;
+# None 表示用到整份配置
 STEPS = [
-    ('run_segment.py', ['photo', 'crop', 'occluders', 'products']),
-    ('intrinsic.py', ['photo', 'crop']),
-    ('normals.py', ['photo', 'crop']),
-    ('geometry.py', ['photo', 'crop']),
+    ('run_segment.py', ['crop', 'occluders', 'products']),
+    ('intrinsic.py', ['crop']),
+    ('normals.py', ['crop']),
+    ('geometry.py', ['crop']),
     ('pipeline.py', None),
     ('preview.py', None),
 ]
@@ -67,10 +80,10 @@ def scan(root):
         for alias in [path.stem, *json.loads(path.read_text()).get('folders', [])]:
             names[alias] = path.stem
     rows, unknown = [], []
-    loose = [p.name for p in root.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES]
+    loose = [p.name for p in root.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES and not p.name.startswith('.')]
     if loose:
         unknown.append(f'(不在品类文件夹里)({len(loose)} 张)')
-    for sub in sorted(p for p in root.iterdir() if p.is_dir()):
+    for sub in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith(('_', '.'))):
         images = sorted(p for p in sub.rglob('*') if p.suffix.lower() in IMAGE_SUFFIXES and not p.name.startswith('.'))
         if not images:
             continue
@@ -82,11 +95,33 @@ def scan(root):
             relative = image.relative_to(sub)
             own = slug('-'.join([*relative.parent.parts, template_id(relative.name)]))
             spec_id = own if own == prefix or own.startswith(prefix + '-') else f'{prefix}-{own}'
-            rows.append({'source': str(image), 'preset': names[sub.name], 'id': spec_id})
+            rows.append({'source': str(image), 'preset': names[sub.name], 'id': spec_id, 'relative': image.relative_to(root).as_posix()})
     if unknown:
         raise SystemExit('这些文件夹对不上预设,在 presets/ 里加预设或在预设的 folders 里加上文件夹名:\n  '
                          + '\n  '.join(unknown) + f'\n现有预设:{", ".join(sorted(set(names.values())))}')
     return rows
+
+
+def pack(root, rows, issues):
+    """例外清单里这几张的源图、分割叠图和蒙版示意连同清单打成 zip,源图放在和原来一样的品类文件夹下"""
+    by_id = {row['id']: row for row in rows}
+    marked = [m for m in read_csv(issues) if m.get('id', '').strip()]
+    missing = [m['id'] for m in marked if m['id'].strip() not in by_id]
+    if missing:
+        raise SystemExit(f'例外清单里的 id 对不上:{", ".join(missing)}')
+    name = f"{root.name}-issues-{time.strftime('%Y%m%d-%H%M')}"
+    path = ROOT / 'batches' / root.name / f'{name}.zip'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as package:
+        package.write(issues, f'{name}/{issues.name}')
+        for m in marked:
+            row = by_id[m['id'].strip()]
+            package.write(row['source'], f"{name}/{row['relative']}")
+            for kind, folder_name, file in (('segment', 'work', 'segment-check.png'), ('masks', 'preview', 'masks.png')):
+                image = ROOT / folder_name / row['id'] / file
+                if image.exists():
+                    package.write(image, f"{name}/_review/{row['id']}-{kind}.png")
+    print(f'{len(marked)} 张,打包到 {path}')
 
 
 def read_csv(path):
@@ -117,6 +152,11 @@ def download(url, path):
         path.write_bytes(data)
 
 
+def words(value):
+    """; 隔开的提示词;- 表示一个都没有"""
+    return [w.strip() for w in value.split(';') if w.strip() and w.strip() != '-']
+
+
 def make_spec(row):
     """清单的一行 → 模板配置"""
     source, name = row['source'].strip(), row['preset'].strip()
@@ -134,21 +174,32 @@ def make_spec(row):
     crop = [int(v) for v in row['crop'].split()] if row.get('crop', '').strip() else crop_box(width, height, preset)
     occluders = preset['occluders']
     if row.get('occluders', '').strip():
-        words = [w.strip() for w in row['occluders'].split(';') if w.strip() and w.strip() != '-']
         # 换成清单里的词时,预设里同名提示的其他设置(如头发的 matteBand)保留
         known = {o['text']: o for o in preset['occluders'] if 'text' in o}
-        occluders = [known.get(w, {'text': w}) for w in words]
+        occluders = [known.get(w, {'text': w}) for w in words(row['occluders'])]
+    products = preset['products']
+    if row.get('product', '').strip() or row.get('parts', '').strip():
+        if len(products) != 1:
+            raise SystemExit(f"{row.get('id') or source}:预设 {name} 有 {len(products)} 件商品,不能按单张改 product、parts")
+        item = dict(products[0])
+        if row.get('product', '').strip():
+            item['text'] = row['product'].strip()
+        if row.get('parts', '').strip():
+            item['parts'] = [{'text': w} for w in words(row['parts'])]
+            if not item['parts']:
+                del item['parts']
+        products = [item]
     spec = {'id': row.get('id', '').strip() or template_id(source), 'category': preset['category'], 'photo': photo}
     if crop != [0, 0, width, height]:
         spec['crop'] = crop
     if remote:
         spec['fetch'] = {photo: {'url': source, 'sha256': sha256(ROOT / photo)}}
-    spec |= {'occluders': occluders, 'products': preset['products']}
+    spec |= {'occluders': occluders, 'products': products}
     return spec
 
 
 def digest(spec, fields, photo_sha):
-    part = spec if fields is None else {k: spec.get(k) for k in fields}
+    part = {k: v for k, v in spec.items() if k not in ('photo', 'fetch')} if fields is None else {k: spec.get(k) for k in fields}
     return hashlib.sha1(json.dumps([part, photo_sha, config.backend()], sort_keys=True).encode()).hexdigest()
 
 
@@ -182,39 +233,10 @@ def run(spec_path, log_path, force):
     return ('fail' if failed else 'pass'), '; '.join(failed), time.time() - t0
 
 
-def write_review(folder, results):
-    """抽查页:没通过的排前面,每个模板一张分割叠图和一张蒙版示意"""
-    order = {'error': 0, 'fail': 1, 'pass': 2}
-    cards = []
-    for r in sorted(results, key=lambda r: (order[r['status']], r['id'])):
-        images = ''.join(f'<a href="{src}"><img src="{src}" loading="lazy" alt="{alt}"></a>' for src, alt in (
-            (f"../../work/{r['id']}/segment-check.png", '分割叠图'), (f"../../preview/{r['id']}/masks.png", '蒙版示意')))
-        note = f'<p class="note">{html.escape(r["note"])}</p>' if r['note'] else ''
-        cards.append(f'<li class="card {r["status"]}"><p class="name">{html.escape(r["id"])} · {r["status"]}</p>{note}'
-                     f'<div class="images">{images}</div></li>')
-    counts = ' · '.join(f'{s} {sum(r["status"] == s for r in results)}' for s in order)
-    (folder / 'review.html').write_text(f'''<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(folder.name)} 抽查</title>
-<style>
-body {{ margin: 0; padding: 16px; font: 14px/1.5 system-ui, sans-serif; background: #f4f4f4; color: #222; }}
-ul {{ list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }}
-.card {{ background: #fff; border-radius: 8px; padding: 10px; border-top: 4px solid #3a3; }}
-.card.fail {{ border-color: #e90; }} .card.error {{ border-color: #d33; }}
-.name {{ margin: 0; font-weight: 600; }} .note {{ margin: 4px 0 0; color: #a40; font-size: 12px; }}
-.images {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }}
-img {{ width: 100%; display: block; background: #ddd; }}
-</style></head><body>
-<h1>{html.escape(folder.name)} 抽查</h1>
-<p>{counts}。左:分割(绿 = 商品,蓝 = 不可印部件,红 = 遮挡物);右:蒙版示意(黄线 = 可印区域,红框 = 默认 Logo)。点图看原图。</p>
-<ul>{''.join(cards)}</ul>
-</body></html>
-''')
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument('input', help='按品类分好的文件夹,或清单 CSV')
-parser.add_argument('--overrides', help='例外清单 CSV,按 id 改 preset、occluders、crop')
+parser.add_argument('--overrides', action='append', default=[], help='例外清单 CSV 或放例外清单的文件夹,可写多次')
+parser.add_argument('--pack', help='把这份例外清单里的源图、分割叠图和蒙版示意打成 zip,不跑')
 parser.add_argument('--dry-run', action='store_true', help='只生成配置、列出各品类的张数,不跑')
 parser.add_argument('--jobs', type=int, default=1, help='同时跑几个模板;MODEL_BACKEND=local 时每个峰值约 6–7GB 内存')
 parser.add_argument('--force', action='store_true', help='忽略上次的结果,全部重跑')
@@ -225,12 +247,24 @@ if source.is_dir():
     rows = scan(source.resolve())
 else:
     rows = [row for row in read_csv(source) if row.get('source', '').strip()]
-if args.overrides:
-    by_id = {row['id']: row for row in rows if row.get('id')}
-    for change in read_csv(args.overrides):
-        if change.get('id', '').strip() not in by_id:
-            raise SystemExit(f"例外清单里的 id 对不上:{change.get('id')}")
+if args.pack:
+    if not source.is_dir():
+        raise SystemExit('--pack 要给按品类分好的文件夹')
+    pack(source.resolve(), rows, Path(args.pack).expanduser())
+    raise SystemExit
+by_id = {row['id']: row for row in rows if row.get('id')}
+for item in args.overrides:
+    item = Path(item).expanduser()
+    for change in [c for f in (sorted(item.glob('*.csv')) if item.is_dir() else [item]) for c in read_csv(f)]:
+        if not change.get('id', '').strip():
+            continue
+        if change['id'].strip() not in by_id:
+            raise SystemExit(f"例外清单里的 id 对不上:{change['id']}")
         by_id[change['id'].strip()].update({k: v for k, v in change.items() if k != 'id' and v and v.strip()})
+skipped = [row for row in rows if row.get('skip', '').strip() not in ('', '0')]
+rows = [row for row in rows if row not in skipped]
+if skipped:
+    print(f"例外清单里跳过 {len(skipped)} 张:{', '.join(row.get('id') or row['source'] for row in skipped)}")
 folder = ROOT / 'batches' / (source.name if source.is_dir() else source.stem)
 (folder / 'specs').mkdir(parents=True, exist_ok=True)
 (folder / 'logs').mkdir(exist_ok=True)
@@ -260,22 +294,32 @@ if args.dry_run:
     raise SystemExit
 
 results = []
+lock = threading.Lock()  # 几个模板同时跑完时,结果和抽查页一个个写
+last_review = 0.0
 
 
 def one(path):
-    spec_id = path.stem
-    status, note, seconds = run(path, folder / 'logs' / f'{spec_id}.log', args.force)
-    results.append({'id': spec_id, 'status': status, 'note': note, 'seconds': round(seconds)})
-    print(f'[{len(results)}/{len(paths)}] {status:5} {seconds:6.0f}s  {spec_id}' + (f'  {note}' if note else ''), flush=True)
-    write_review(folder, results)
+    global last_review
+    spec = config.load(path)
+    status, note, seconds = run(path, folder / 'logs' / f"{spec['id']}.log", args.force)
+    review.thumbnails(folder, spec['id'])
+    with lock:
+        results.append({'id': spec['id'], 'category': spec['category'], 'source': Path(spec['photo']).name,
+                        'status': status, 'note': note, 'seconds': round(seconds)})
+        print(f"[{len(results)}/{len(paths)}] {status:5} {seconds:6.0f}s  {spec['id']}" + (f'  {note}' if note else ''), flush=True)
+        if time.time() - last_review > REVIEW_EVERY:
+            review.write(folder, results)
+            last_review = time.time()
 
 
 with ThreadPoolExecutor(args.jobs) as pool:
     list(pool.map(one, paths))
+review.write(folder, results)
 
 with open(folder / 'report.csv', 'w', newline='', encoding='utf-8-sig') as f:
-    writer = csv.DictWriter(f, fieldnames=['id', 'status', 'note', 'seconds'])
+    writer = csv.DictWriter(f, fieldnames=['id', 'category', 'status', 'note', 'seconds'], extrasaction='ignore')
     writer.writeheader()
-    writer.writerows(sorted(results, key=lambda r: r['id']))
-print(' · '.join(f'{s} {sum(r["status"] == s for r in results)}' for s in ('pass', 'fail', 'error')))
+    writer.writerows(sorted(results + [{'id': row.get('id') or template_id(row['source']), 'category': row['preset'], 'status': 'skip',
+                                        'note': row.get('note', '')} for row in skipped], key=lambda r: r['id']))
+print(' · '.join(f'{s} {sum(r["status"] == s for r in results)}' for s in ('pass', 'fail', 'error')) + (f' · skip {len(skipped)}' if skipped else ''))
 print(f'汇总 {(folder / "report.csv").relative_to(ROOT)},抽查页 {(folder / "review.html").relative_to(ROOT)}')

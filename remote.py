@@ -10,6 +10,7 @@ SAM 3(segment.py)也用这里的 Replicate。不读写本地文件;token 由调�
 - ViTMatte:三分图照常给,长边超过 2048 时在缩小的图上抠,再放大回原图。
 """
 import hashlib
+import http.client
 import io
 import json
 import os
@@ -22,8 +23,8 @@ import numpy as np
 from PIL import Image
 
 API = 'https://api.replicate.com/v1'
-RATE_LIMIT_WAIT = 11  # Replicate 余额低的账号每分钟限 6 次
-RETRIES = 4  # 网络偶发 TLS 握手失败、连接中断
+RETRY_WAIT = 11  # 限流(429)又没给 Retry-After 时等这么久
+RETRIES = 6  # 网络偶发 TLS 握手失败、连接中断:隔 3、6、12、24、48 秒再试,一共等一分半
 USER_AGENT = 'curl/8.7.1'  # Python 默认的 User-Agent 会被 Cloudflare 拦下(错误码 1010)
 INTRINSICS = 'jasonod888/marigold-intrinsics:0d39a1c5b555598f1797ec783d79e3d2b5d3e5b594625625ab59351c5be50467'
 NORMALS = 'jasonod888/marigold-normalsv2:3129bd0f2d415e73d6cb6bccca11eba9c6dc9105129f0f3637b5dec5baa6cb4d'
@@ -33,10 +34,11 @@ MATTE_MAX = 2048  # 抠图封装能处理的最大长边
 
 
 class Replicate:
-    """同一张图只上传一次;各次预测之间至少隔 RATE_LIMIT_WAIT 秒"""
+    """同一张图只上传一次;各次预测之间至少隔 min_interval 秒(本进程内,余额低、每分钟限 6 次的账号设 11)"""
 
-    def __init__(self, token):
+    def __init__(self, token, min_interval=0.0):
         self.token = token
+        self.min_interval = min_interval
         self.uploaded = {}
         self.next_start = 0.0
 
@@ -51,11 +53,11 @@ class Replicate:
             except urllib.error.HTTPError as error:
                 if error.code != 429 or attempt == RETRIES - 1:
                     raise
-                time.sleep(float(error.headers.get('Retry-After') or RATE_LIMIT_WAIT))
-            except (urllib.error.URLError, ConnectionError, TimeoutError):
+                time.sleep(float(error.headers.get('Retry-After') or RETRY_WAIT))
+            except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError):
                 if attempt == RETRIES - 1:
                     raise
-                time.sleep(3 * (attempt + 1))
+                time.sleep(3 * 2 ** attempt)
 
     def call(self, method, url, body=None, headers=None):
         return json.loads(self.fetch(url, body, method, headers, auth=True))
@@ -76,7 +78,7 @@ class Replicate:
     def predict(self, model, inputs):
         """model 写成 所有者/名称:版本;返回预测的 output"""
         time.sleep(max(0.0, self.next_start - time.monotonic()))
-        self.next_start = time.monotonic() + RATE_LIMIT_WAIT
+        self.next_start = time.monotonic() + self.min_interval
         body = json.dumps({'version': model.split(':')[1], 'input': inputs}).encode()
         prediction = self.call('POST', f'{API}/predictions', body, {'Content-Type': 'application/json', 'Prefer': 'wait=60'})
         while prediction['status'] not in ('succeeded', 'failed', 'canceled'):

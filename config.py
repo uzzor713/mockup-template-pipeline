@@ -43,6 +43,11 @@ def secret(name):
     return value
 
 
+def replicate():
+    """建 Replicate 客户端的参数:token 和每个进程两次预测之间的最短间隔(秒)"""
+    return {'token': secret('REPLICATE_API_TOKEN'), 'min_interval': float(setting('REPLICATE_MIN_INTERVAL', '0'))}
+
+
 def backend():
     """本征分解、法线、几何和抠图在哪跑:local(本机)或 replicate"""
     value = setting('MODEL_BACKEND', 'local')

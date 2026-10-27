@@ -26,7 +26,7 @@ if config.backend() == 'replicate':
     import remote
     device = 'replicate'
     t1 = time.time()
-    normals = remote.normals(remote.Replicate(config.secret('REPLICATE_API_TOKEN')), photo, RESOLUTION)
+    normals = remote.normals(remote.Replicate(**config.replicate()), photo, RESOLUTION)
 else:
     import torch
     from diffusers import MarigoldNormalsPipeline

@@ -26,7 +26,7 @@ if config.backend() == 'replicate':
     import remote
     device = 'replicate'
     t1 = time.time()
-    layers = remote.intrinsics(remote.Replicate(config.secret('REPLICATE_API_TOKEN')), photo, RESOLUTION)
+    layers = remote.intrinsics(remote.Replicate(**config.replicate()), photo, RESOLUTION)
 else:
     import torch
     from diffusers import MarigoldIntrinsicsPipeline

@@ -24,7 +24,7 @@ if config.backend() == 'replicate':
     import remote
     device = 'replicate'
     t1 = time.time()
-    client = remote.Replicate(config.secret('REPLICATE_API_TOKEN'))
+    client = remote.Replicate(**config.replicate())
     points, intrinsics = remote.geometry(client, np.round(photo * 255).astype(np.uint8))
 else:
     import torch

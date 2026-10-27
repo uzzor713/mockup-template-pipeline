@@ -24,13 +24,13 @@ SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I preview.py $SPEC         # 合成预览图
 ```
 
-配置里用到文字提示时,`run_segment.py` 调 Replicate 上的 SAM 3,会把源图上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。
+配置里用到文字提示时,`run_segment.py` 调 Replicate 上的 SAM 3,会把源图上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是每个进程两次预测之间至少隔的秒数:账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试。
 
 抠图、本征分解、法线、几何四个模型在哪跑由 `MODEL_BACKEND` 决定,默认值写在 `.env`(进仓库):`local` 本机跑,要装上面的模型依赖、有 Apple 芯片或 GPU;`replicate` 调 Replicate 上的社区封装(版本固定在 `remote.py`),本机只要 `requirements.txt` 和 token,源图会上传过去。本机要改就在 `.env.local` 写一行 `MODEL_BACKEND=replicate`,或设同名环境变量;优先级是环境变量 > `.env.local` > `.env`。两种结果的差别:MoGe-2 逐位相同、抠图几乎一样;Marigold 两个封装不能固定随机种子和处理分辨率、只出 8 位图,换算回来和本机的相关系数本征分解 0.94–0.995(残差那层最低)、法线 0.96–0.98,每次运行结果也会略有不同。
 
 每个模板的中间结果在 `work/<id>/`,模板文件在 `output/<id>/`,预览图在 `preview/<id>/`,`<id>` 是配置里的 `id`。
 
-`MODEL_BACKEND=local` 时四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(大半是 Replicate 限流的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,本机跑时随机种子固定,重复运行结果一致。`replicate` 时每个模型的推理只要几秒,但这些封装用的人少,闲置后再调要冷启动,每个模型一到五分钟,一个模板一个个接着跑要十一二分钟;按推理时长计费,一个模板约 1–2 美分。
+`MODEL_BACKEND=local` 时四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(`REPLICATE_MIN_INTERVAL=11` 时,大半是调 SAM 3 之间的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,本机跑时随机种子固定,重复运行结果一致。`replicate` 时每个模型的推理只要几秒,但这些封装用的人少,闲置后再调要冷启动,每个模型一到五分钟,一个模板一个个接着跑要十一二分钟;按推理时长计费,一个模板约 1–2 美分。
 
 `sources/`、`work/`、`output/`、`preview/` 都不进仓库,按上面的步骤在本地生成。样本用的竞品素材只作内部示例,不能用于产品。
 
@@ -43,15 +43,28 @@ SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I batch.py 源图文件夹             # --jobs N 同时跑几个模板,--force 全部重跑
 ```
 
-- 每个子文件夹是一个品类,文件夹名是预设名(vorla 的小品类 slug,如 `t-shirt`、`coffee-bag`),或写在预设的 `folders` 里(如 `"folders": ["T恤", "boxy-tee"]`);里面(含更深的子文件夹)的 png / jpg / webp 都算。对不上预设的文件夹、不在品类文件夹里的图会列出来并停下,不会悄悄跳过。
+`--jobs`:`MODEL_BACKEND=local` 时每个模板峰值约 6–7GB 内存,16GB 的机器开 1 个;`replicate` 时本机只等网络,可以多开,各模型一直有请求就不会闲置下来、反复冷启动。
+
+- 每个子文件夹是一个品类,文件夹名是预设名(vorla 的小品类 slug,如 `t-shirt`、`coffee-bag`),或写在预设的 `folders` 里(如 `"folders": ["T恤", "boxy-tee"]`);里面(含更深的子文件夹)的 png / jpg / webp 都算,以 `_` 开头的文件夹不算。对不上预设的文件夹、不在品类文件夹里的图会列出来并停下,不会悄悄跳过。
 - id 是品类文件夹名(不是纯英文时换成预设名)加文件名:文件名去掉 `mockup-` 前缀和 `-blank` 后缀,转小写,字母数字以外的连成 `-`;文件名本来就以文件夹名开头的不重复加。`t-shirt/001.png` → `t-shirt-001`,`boxy-tee/mockup-boxy-tee-020-blank.webp` → `boxy-tee-020`。生成的清单存在 `batches/<文件夹名>/list.csv`。
-- 个别源图要改设置时加 `--overrides 例外.csv`,只写这几张:`id` 对上 `list.csv` 里的,其余列同下表的 `preset`、`occluders`、`crop`,空着的不改。
+- 个别源图要改设置时加 `--overrides`,给例外清单 CSV 或放例外清单的文件夹(里面的 csv 按文件名顺序),可以写多次,后面的覆盖前面的。每行一张,`id` 对上 `list.csv` 里的,空着的列不改:
+
+| 列 | 内容 |
+| --- | --- |
+| `product` | 这张的商品提示词,只能用在一件商品的预设上 |
+| `parts` | 这张的不可印部件提示词,`;` 隔开,写 `-` 表示没有;同上只能用在一件商品的预设上 |
+| `occluders`、`crop`、`preset` | 同下面清单的列 |
+| `skip` | 填 `1` 跳过这张,不跑也不进抽查页,`report.csv` 里记为 `skip` |
+| `issue`、`note` | 抽查页导出的问题类型和备注,只给人看 |
 
 ```csv
-id,occluders,crop
-t-shirt-001,hair;hand;arm,
-poster-017,,0 96 1152 1536
+id,issue,note,product,parts,occluders,crop,preset,skip
+coffee-bag-07,部件不对,顶上封口条也印上了,,top of the bag,,,,
+t-shirt-001,遮挡物不对,,,,hair;hand;arm,,,
+poster-017,其他,画框也被改色,,,,,,1
 ```
+
+  每次运行都按源图和预设重新生成配置,改过的源图没带上它的例外清单就会回到预设的设置、重算一遍,所以例外清单要一直留着、每次都带上;放进一个文件夹、每次 `--overrides 那个文件夹` 最省事。
 
 源图没按文件夹分时,也可以给一份清单 CSV,每行一张:
 
@@ -72,7 +85,20 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 
 预设按 vorla mockups 页面主树的 63 个小品类各一份,文件名和 `category` 都是小品类的 slug;Seasonal、Channel 两条横轴是标签,模板仍归在某个小品类下,不单独设预设。一件商品一个区域,`tracksuit` 是上衣、裤子两个区域;`bottle`、`candle` 可编辑的是标签。`t-shirt`、`sweatshirt`、`tote-bag`、`cap`、`pillow`、`bottle`、`coffee-bag`、`notebook`、`poster`、`paper-bag` 各拿一张图跑通过,其余的提示词没拿图试过,全量跑之前每类先抽几张跑一遍,看抽查页;提示词分不出来的用 `experiments/sam3_replicate.py` 试别的说法。
 
-结果在 `batches/<文件夹名或清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出),`review.html` 是抽查页,没通过的排前面,每个模板一张分割叠图和一张蒙版示意。看完补例外清单(或改清单里那几行),重跑同一条命令:各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过;改遮挡物只重跑分割和之后两步,三个模型脚本只看源图和裁切。
+结果在 `batches/<文件夹名或清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出 / `skip`),`review.html` 是抽查页。重跑同一条命令时,各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过;改遮挡物、商品或部件提示词只重跑分割和之后两步,三个模型脚本只看源图内容和裁切,源图挪了文件夹也不重跑。
+
+#### 抽查和调整
+
+`review.html` 是总览,列出各品类的出错、没通过、通过张数,点进品类页(`review/<品类>.html`);品类页里出错、没通过的全列,通过的按 id 打散后先列 48 张当抽样,其余点开再看。每张卡片是分割叠图(绿 = 商品,蓝 = 不可印部件,红 = 遮挡物)和蒙版示意(黄线 = 可印区域,红框 = 默认 Logo)的缩略图,点开看原图。跑的过程中抽查页每分钟更新一次。
+
+跑批量的人和调参数的人不是同一个时:
+
+1. 跑的人在品类页点「有问题」,选问题类型、可以写备注(标记存在这台电脑的浏览器里),看完在页面底部「导出例外清单」;
+2. 跑的人 `.venv/bin/python -I batch.py 源图文件夹 --pack 例外清单.csv`,把这几张的源图(放在和原来一样的品类文件夹下)、分割叠图和蒙版示意(`_review/`)连同清单打成 zip,存到 `batches/<文件夹名>/`,发给调参数的人;
+3. 调参数的人解压,`batch.py 解压出的文件夹 --dry-run` 得到同样的 id,用 `experiments/sam3_replicate.py batches/<zip 名>/specs/<id>.json "说法一" "说法二"` 试提示词(每个说法分出来的样子画在 `work/<id>/experiments/sam3/sheet.png`),填好例外清单;可以带上清单对解压出的文件夹真跑一遍,看抽查页确认;实在分不好的填 `skip`;
+4. 清单发回去,跑的人放进例外清单文件夹,`batch.py 源图文件夹 --overrides 例外清单文件夹`,只重算这几张。
+
+提示词改了、对整个品类都更好的,改预设而不是一张张写例外清单。
 
 ## 脚本
 
@@ -88,7 +114,8 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出流向图里的大曲面和透视 |
 | `pipeline.py` | 改色范围、可印区域、底图(含模板墙用的 `base-css`)、流向图、`template.json`、自动校验 |
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
-| `batch.py` | 按品类文件夹(或清单)和品类预设批量生成配置、跑完各步,出汇总表和抽查页 |
+| `batch.py` | 按品类文件夹(或清单)和品类预设批量生成配置、跑完各步,出汇总表和抽查页;按例外清单打包问题源图 |
+| `review.py` | 批量的抽查页:按品类分页、缩略图、标记问题并导出例外清单 |
 
 `experiments/` 里是试验脚本,不在上面的流程里,结果写到 `work/<id>/experiments/`:
 

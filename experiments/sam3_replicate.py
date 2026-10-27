@@ -21,7 +21,7 @@ OUT = config.folder(spec, 'work') / 'experiments' / 'sam3'
 OUT.mkdir(parents=True, exist_ok=True)
 photo, _ = config.photo(spec)
 photo = np.round(photo * 255).astype(np.uint8)
-sam3 = Sam3Replicate(config.secret('REPLICATE_API_TOKEN'))
+sam3 = Sam3Replicate(**config.replicate())
 
 panels = []
 for prompt in PROMPTS:
