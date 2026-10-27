@@ -10,9 +10,10 @@
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements-models.txt   # MODEL_BACKEND=local 时 run_segment.py、intrinsic.py、normals.py、geometry.py 要用
-.venv/bin/pip install --no-deps -r requirements-moge.txt   # MODEL_BACKEND=local 时 geometry.py 要用
-# MODEL_BACKEND=replicate 时只装 requirements.txt
+.venv/bin/pip install -r requirements.txt
+# MODEL_BACKEND=local 时另装:
+# .venv/bin/pip install -r requirements-models.txt
+# .venv/bin/pip install --no-deps -r requirements-moge.txt
 
 SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I fetch_sources.py $SPEC   # 下载配置里 fetch 列出的素材
@@ -24,13 +25,17 @@ SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I preview.py $SPEC         # 合成预览图
 ```
 
-配置里用到文字提示时,`run_segment.py` 调 Replicate 上的 SAM 3,会把源图上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是每个进程两次预测之间至少隔的秒数:账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试。
+模型都在 Replicate 上跑,源图会上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是每个进程两次预测之间至少隔的秒数:账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试。
 
-抠图、本征分解、法线、几何四个模型在哪跑由 `MODEL_BACKEND` 决定,默认值写在 `.env`(进仓库):`local` 本机跑,要装上面的模型依赖、有 Apple 芯片或 GPU;`replicate` 调 Replicate 上的社区封装(版本固定在 `remote.py`),本机只要 `requirements.txt` 和 token,源图会上传过去。本机要改就在 `.env.local` 写一行 `MODEL_BACKEND=replicate`,或设同名环境变量;优先级是环境变量 > `.env.local` > `.env`。两种结果的差别:MoGe-2 逐位相同、抠图几乎一样;Marigold 两个封装不能固定随机种子和处理分辨率、只出 8 位图,换算回来和本机的相关系数本征分解 0.94–0.995(残差那层最低)、法线 0.96–0.98,每次运行结果也会略有不同。
+分割用的 SAM 3 始终走 Replicate;抠图、本征分解、法线、几何四个模型在哪跑由 `MODEL_BACKEND` 决定,默认值写在 `.env`(进仓库),是 `replicate`:调 Replicate 上的社区封装(版本固定在 `remote.py`),本机只要 `requirements.txt` 和 token。`local` 在本机跑,要装上面的模型依赖、有 Apple 芯片,一个模板 1.5–2.5 分钟,留作对照和开发,批量不用。本机要改就在 `.env.local` 写一行 `MODEL_BACKEND=local`,或设同名环境变量;优先级是环境变量 > `.env.local` > `.env`。两种结果的差别:MoGe-2 逐位相同、抠图几乎一样;Marigold 两个封装不能固定随机种子和处理分辨率、只出 8 位图,换算回来和本机的相关系数本征分解 0.94–0.995(残差那层最低)、法线 0.96–0.98,每次运行结果也会略有不同。
 
 每个模板的中间结果在 `work/<id>/`,模板文件在 `output/<id>/`,预览图在 `preview/<id>/`,`<id>` 是配置里的 `id`。
 
-`MODEL_BACKEND=local` 时四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(`REPLICATE_MIN_INTERVAL=11` 时,大半是调 SAM 3 之间的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,本机跑时随机种子固定,重复运行结果一致。`replicate` 时每个模型的推理只要几秒,但这些封装用的人少,闲置后再调要冷启动,每个模型一到五分钟,一个模板一个个接着跑要十一二分钟;按推理时长计费,一个模板约 1–2 美分。
+`MODEL_BACKEND=local` 时四个模型脚本首次运行会从 Hugging Face 下载模型,`run_segment.py` 约 0.1GB(用到手点提示时另加 SAM 2.1 约 0.3GB),`intrinsic.py`、`normals.py` 各约 2.6GB,`geometry.py` 约 1.3GB。模型下载好后,在 16GB 内存的 M1 上 `run_segment.py` 约 75 秒(`REPLICATE_MIN_INTERVAL=11` 时,大半是调 SAM 3 之间的间隔)、`intrinsic.py` 约 22 秒、`normals.py` 约 20 秒、`geometry.py` 约 10 秒,内存峰值约 6–7GB。Marigold 是扩散模型,本机跑时随机种子固定,重复运行结果一致。`replicate` 时每个模型的推理只要几秒,但这些封装用的人少,闲置后再调要冷启动,每个模型一到五分钟,一个模板一个个接着跑要十一二分钟,所以批量要开 `--jobs` 让各模型一直有请求;按推理时长计费,一个模板约 1–2 美分。
+
+ViTMatte、两个 Marigold 和 MoGe-2 在 Replicate 上用的是个人上传的社区封装,`remote.py` 锁了版本号,作者改不了已锁定的版本,但可以整个删掉;删了就切回 `local`,或者把同样的权重部署到自己的账号。SAM 3 的封装只收文字提示,不收框和点:文字分不开的东西(如画框和画心)分不出来。
+
+源图要用空白底(商品上没有印花和文字):本征分解会把花纹从底图里去掉,但印花边缘的明暗起伏留在纹理里,换色后看得出图案的轮廓。
 
 `sources/`、`work/`、`output/`、`preview/` 都不进仓库,按上面的步骤在本地生成。样本用的竞品素材只作内部示例,不能用于产品。
 
@@ -161,6 +166,8 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `folds-1.png` / `folds-2.png` | T 恤 / 牛仔裤的褶皱层流向图,格式同上,值是 Warping 100% 时的位移,通道值对应 ∓`foldsRangePx`,使用时乘 Warping |
 | `template.json` | 文件名(含 `baseCss`)、部件名、默认 Logo 框、合成方式 `blend: "linear"` 和明暗倍数 `shadeGain`、两层流向图的 `displacement.surfaceRangePx`、`foldsRangePx`、生成参数 |
 | `checks.json` | 自动校验结果(14 项) |
+
+把模板放进 vorla 的 lab 页或编辑页看效果时,选 `output/<id>/` 里的全部文件:lab 按文件名认 `base.*`、`product-n.*`、`print-n.*`、`surface-n.*`、`folds-n.*`,位移幅度只在 `template.json` 里,要一起选。`work/<id>/` 里是中间结果,lab 认不出。
 
 `preview/<id>/` 里是示意图:
 
