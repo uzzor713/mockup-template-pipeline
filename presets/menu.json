@@ -1,0 +1,16 @@
+{
+  "category": "menu",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "menu",
+      "key": "main",
+      "name": "Menu",
+      "text": "menu"
+    }
+  ]
+}

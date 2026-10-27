@@ -1,0 +1,24 @@
+{
+  "category": "keychain",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "keychain",
+      "key": "main",
+      "name": "Keychain",
+      "text": "keychain",
+      "parts": [
+        {
+          "text": "key ring"
+        },
+        {
+          "text": "key"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "category": "tracksuit",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "jacket",
+      "key": "top",
+      "name": "Jacket",
+      "text": "tracksuit jacket",
+      "parts": [
+        {
+          "text": "sleeve"
+        },
+        {
+          "text": "collar"
+        },
+        {
+          "text": "zipper"
+        }
+      ]
+    },
+    {
+      "id": "pants",
+      "key": "bottom",
+      "name": "Pants",
+      "text": "tracksuit pants",
+      "parts": [
+        {
+          "text": "waistband"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "category": "sticker",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "sticker",
+      "key": "main",
+      "name": "Sticker",
+      "text": "sticker"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "category": "polo-shirt",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "polo",
+      "key": "top",
+      "name": "Polo shirt",
+      "text": "polo shirt",
+      "parts": [
+        {
+          "text": "short sleeve"
+        },
+        {
+          "text": "collar"
+        },
+        {
+          "text": "buttons"
+        }
+      ],
+      "print": {
+        "inset": {
+          "bottom": 0.012
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "category": "sweatpants",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "pants",
+      "key": "bottom",
+      "name": "Sweatpants",
+      "text": "sweatpants",
+      "parts": [
+        {
+          "text": "waistband"
+        },
+        {
+          "text": "drawstring"
+        },
+        {
+          "text": "ankle cuff"
+        }
+      ]
+    }
+  ]
+}

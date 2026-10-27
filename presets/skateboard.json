@@ -1,0 +1,24 @@
+{
+  "category": "skateboard",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "deck",
+      "key": "main",
+      "name": "Deck",
+      "text": "skateboard deck",
+      "parts": [
+        {
+          "text": "skateboard wheel"
+        },
+        {
+          "text": "skateboard truck"
+        }
+      ]
+    }
+  ]
+}

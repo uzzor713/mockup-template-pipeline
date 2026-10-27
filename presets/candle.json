@@ -1,12 +1,12 @@
 {
-  "category": "pump-bottle",
+  "category": "candle",
   "occluders": [],
   "products": [
     {
       "id": "label",
       "key": "main",
       "name": "Label",
-      "text": "bottle label"
+      "text": "candle label"
     }
   ]
 }

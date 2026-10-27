@@ -1,0 +1,21 @@
+{
+  "category": "book",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "cover",
+      "key": "main",
+      "name": "Cover",
+      "text": "book cover",
+      "parts": [
+        {
+          "text": "book pages"
+        }
+      ]
+    }
+  ]
+}

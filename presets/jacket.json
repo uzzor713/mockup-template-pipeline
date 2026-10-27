@@ -1,0 +1,31 @@
+{
+  "category": "jacket",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "jacket",
+      "key": "top",
+      "name": "Jacket",
+      "text": "jacket",
+      "parts": [
+        {
+          "text": "sleeve"
+        },
+        {
+          "text": "collar"
+        },
+        {
+          "text": "zipper"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "category": "banner",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "banner",
+      "key": "main",
+      "name": "Banner",
+      "text": "banner",
+      "parts": [
+        {
+          "text": "banner pole"
+        }
+      ]
+    }
+  ]
+}

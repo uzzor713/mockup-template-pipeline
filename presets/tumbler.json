@@ -1,0 +1,24 @@
+{
+  "category": "tumbler",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tumbler",
+      "key": "main",
+      "name": "Tumbler",
+      "text": "tumbler",
+      "parts": [
+        {
+          "text": "lid"
+        },
+        {
+          "text": "straw"
+        }
+      ]
+    }
+  ]
+}

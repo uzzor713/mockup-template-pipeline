@@ -1,0 +1,20 @@
+{
+  "category": "bandana",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "bandana",
+      "key": "main",
+      "name": "Bandana",
+      "text": "bandana"
+    }
+  ]
+}

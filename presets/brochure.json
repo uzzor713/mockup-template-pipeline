@@ -1,0 +1,16 @@
+{
+  "category": "brochure",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "brochure",
+      "key": "main",
+      "name": "Brochure",
+      "text": "brochure"
+    }
+  ]
+}

@@ -36,30 +36,43 @@ SPEC=specs/sample-tee-jeans.json
 
 ### 批量
 
-同一品类的商品、部件、可印规则和遮挡物写成预设 `presets/<预设>.json`,每张源图只在清单里写一行,`batch.py` 生成配置并跑完上面除 `fetch_sources.py` 以外的六步:
+同一品类的商品、部件、可印规则和遮挡物写成预设 `presets/<预设>.json`,`batch.py` 按预设给每张源图生成配置,跑完上面除 `fetch_sources.py` 以外的六步。源图按品类分好文件夹时直接给文件夹:
 
 ```bash
-.venv/bin/python -I batch.py 清单.csv            # --jobs N 同时跑几个模板(每个峰值约 6–7GB 内存),--force 全部重跑
+.venv/bin/python -I batch.py 源图文件夹 --dry-run   # 先只生成配置、列出各品类张数,确认文件夹都对上了预设
+.venv/bin/python -I batch.py 源图文件夹             # --jobs N 同时跑几个模板,--force 全部重跑
 ```
 
-清单是 CSV,第一行列名:
+- 每个子文件夹是一个品类,文件夹名是预设名(vorla 的小品类 slug,如 `t-shirt`、`coffee-bag`),或写在预设的 `folders` 里(如 `"folders": ["T恤", "boxy-tee"]`);里面(含更深的子文件夹)的 png / jpg / webp 都算。对不上预设的文件夹、不在品类文件夹里的图会列出来并停下,不会悄悄跳过。
+- id 是品类文件夹名(不是纯英文时换成预设名)加文件名:文件名去掉 `mockup-` 前缀和 `-blank` 后缀,转小写,字母数字以外的连成 `-`;文件名本来就以文件夹名开头的不重复加。`t-shirt/001.png` → `t-shirt-001`,`boxy-tee/mockup-boxy-tee-020-blank.webp` → `boxy-tee-020`。生成的清单存在 `batches/<文件夹名>/list.csv`。
+- 个别源图要改设置时加 `--overrides 例外.csv`,只写这几张:`id` 对上 `list.csv` 里的,其余列同下表的 `preset`、`occluders`、`crop`,空着的不改。
+
+```csv
+id,occluders,crop
+t-shirt-001,hair;hand;arm,
+poster-017,,0 96 1152 1536
+```
+
+源图没按文件夹分时,也可以给一份清单 CSV,每行一张:
 
 ```csv
 source,preset,id,occluders,crop
-https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp,tee,,,
+https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp,t-shirt,,,
 /Users/me/mockups/02 Studio club sweatshirt.png,sweatshirt,,hair;hand;arm,
 ```
 
 | 列 | 内容 |
 | --- | --- |
 | `source`、`preset` | 源图的地址或本地路径、预设名,必填;地址的源图下载到 `sources/<预设>/`,本地的直接引用 |
-| `id` | 可选,不写由文件名得出:去掉 `mockup-` 前缀和 `-blank` 后缀,转小写,字母数字以外的连成 `-`(`01 Slow days tee.png` → `01-slow-days-tee`) |
+| `id` | 可选,不写由文件名得出,规则同上(不加文件夹名) |
 | `occluders` | 可选,遮挡物提示词,`;` 隔开,替换预设里的(同名的沿用预设里的 `matteBand`);写 `-` 表示没有遮挡物 |
 | `crop` | 可选,`x0 y0 x1 y1`(源图像素),不写按预设的比例规则裁 |
 
-预设里除了配置的 `category`、`occluders`、`products`,还有裁切规则:竖图裁成 4:5、横图 5:4,正方形按 `square`(默认 `[4, 5]`);多出的宽度两边平分,多出的高度按 `trim`(`bottom` / `top` / `center`,默认 `center`)从哪边裁。现有预设:`tee`、`sweatshirt`、`tote-bag`、`cap`、`cushion`、`pump-bottle`(可编辑的是瓶身标签)、`coffee-pouch`、`notebook`、`poster`、`paper-bag`。
+预设里除了配置的 `category`、`occluders`、`products` 和文件夹别名 `folders`,还有裁切规则:竖图裁成 4:5、横图 5:4,正方形按 `square`(默认 `[4, 5]`);多出的宽度两边平分,多出的高度按 `trim`(`bottom` / `top` / `center`,默认 `center`)从哪边裁。
 
-结果在 `batches/<清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出),`review.html` 是抽查页,没通过的排前面,每个模板一张分割叠图和一张蒙版示意。看完改清单里那几行,重跑同一条命令:各步记下上次用到的配置字段和源图内容(`work/<id>/steps.json`),没变的跳过;改遮挡物只重跑分割和之后两步,三个模型脚本只看源图和裁切。
+预设按 vorla mockups 页面主树的 63 个小品类各一份,文件名和 `category` 都是小品类的 slug;Seasonal、Channel 两条横轴是标签,模板仍归在某个小品类下,不单独设预设。一件商品一个区域,`tracksuit` 是上衣、裤子两个区域;`bottle`、`candle` 可编辑的是标签。`t-shirt`、`sweatshirt`、`tote-bag`、`cap`、`pillow`、`bottle`、`coffee-bag`、`notebook`、`poster`、`paper-bag` 各拿一张图跑通过,其余的提示词没拿图试过,全量跑之前每类先抽几张跑一遍,看抽查页;提示词分不出来的用 `experiments/sam3_replicate.py` 试别的说法。
+
+结果在 `batches/<文件夹名或清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出),`review.html` 是抽查页,没通过的排前面,每个模板一张分割叠图和一张蒙版示意。看完补例外清单(或改清单里那几行),重跑同一条命令:各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过;改遮挡物只重跑分割和之后两步,三个模型脚本只看源图和裁切。
 
 ## 脚本
 
@@ -75,7 +88,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出流向图里的大曲面和透视 |
 | `pipeline.py` | 改色范围、可印区域、底图(含模板墙用的 `base-css`)、流向图、`template.json`、自动校验 |
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
-| `batch.py` | 按清单和品类预设批量生成配置、跑完各步,出汇总表和抽查页 |
+| `batch.py` | 按品类文件夹(或清单)和品类预设批量生成配置、跑完各步,出汇总表和抽查页 |
 
 `experiments/` 里是试验脚本,不在上面的流程里,结果写到 `work/<id>/experiments/`:
 

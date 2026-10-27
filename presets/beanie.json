@@ -1,0 +1,17 @@
+{
+  "category": "beanie",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    }
+  ],
+  "products": [
+    {
+      "id": "beanie",
+      "key": "main",
+      "name": "Beanie",
+      "text": "beanie"
+    }
+  ]
+}

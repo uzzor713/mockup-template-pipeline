@@ -1,0 +1,16 @@
+{
+  "category": "vinyl",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "record",
+      "key": "main",
+      "name": "Record",
+      "text": "vinyl record"
+    }
+  ]
+}

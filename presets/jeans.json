@@ -1,0 +1,24 @@
+{
+  "category": "jeans",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "jeans",
+      "key": "bottom",
+      "name": "Jeans",
+      "text": "jeans",
+      "parts": [
+        {
+          "text": "waistband"
+        },
+        {
+          "text": "belt loop"
+        }
+      ]
+    }
+  ]
+}

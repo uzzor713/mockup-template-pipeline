@@ -1,0 +1,21 @@
+{
+  "category": "phone-case",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "case",
+      "key": "main",
+      "name": "Case",
+      "text": "phone case",
+      "parts": [
+        {
+          "text": "camera lens"
+        }
+      ]
+    }
+  ]
+}

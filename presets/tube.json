@@ -1,0 +1,21 @@
+{
+  "category": "tube",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tube",
+      "key": "main",
+      "name": "Tube",
+      "text": "tube",
+      "parts": [
+        {
+          "text": "tube cap"
+        }
+      ]
+    }
+  ]
+}

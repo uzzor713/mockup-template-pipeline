@@ -1,0 +1,12 @@
+{
+  "category": "enamel-pin",
+  "occluders": [],
+  "products": [
+    {
+      "id": "pin",
+      "key": "main",
+      "name": "Pin",
+      "text": "enamel pin"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "category": "t-shirt",
+  "square": [
+    4,
+    5
+  ],
+  "trim": "bottom",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tee",
+      "key": "top",
+      "name": "T-shirt",
+      "text": "t-shirt",
+      "parts": [
+        {
+          "text": "short sleeve"
+        },
+        {
+          "text": "neckline"
+        }
+      ],
+      "print": {
+        "inset": {
+          "bottom": 0.012
+        }
+      }
+    }
+  ]
+}

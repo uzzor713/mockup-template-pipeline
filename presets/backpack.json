@@ -1,0 +1,28 @@
+{
+  "category": "backpack",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "backpack",
+      "key": "main",
+      "name": "Backpack",
+      "text": "backpack",
+      "parts": [
+        {
+          "text": "backpack strap"
+        },
+        {
+          "text": "zipper"
+        }
+      ]
+    }
+  ]
+}

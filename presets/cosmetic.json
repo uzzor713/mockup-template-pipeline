@@ -1,0 +1,21 @@
+{
+  "category": "cosmetic",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "container",
+      "key": "main",
+      "name": "Container",
+      "text": "cosmetic container",
+      "parts": [
+        {
+          "text": "cap"
+        }
+      ]
+    }
+  ]
+}

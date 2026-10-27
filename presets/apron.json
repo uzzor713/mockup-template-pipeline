@@ -1,0 +1,25 @@
+{
+  "category": "apron",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "apron",
+      "key": "main",
+      "name": "Apron",
+      "text": "apron",
+      "parts": [
+        {
+          "text": "apron strap"
+        }
+      ]
+    }
+  ]
+}

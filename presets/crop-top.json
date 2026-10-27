@@ -1,0 +1,28 @@
+{
+  "category": "crop-top",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "top",
+      "key": "top",
+      "name": "Crop top",
+      "text": "crop top",
+      "parts": [
+        {
+          "text": "short sleeve"
+        },
+        {
+          "text": "neckline"
+        }
+      ]
+    }
+  ]
+}

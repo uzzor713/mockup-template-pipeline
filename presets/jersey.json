@@ -1,0 +1,33 @@
+{
+  "category": "jersey",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "jersey",
+      "key": "top",
+      "name": "Jersey",
+      "text": "jersey",
+      "parts": [
+        {
+          "text": "sleeve"
+        },
+        {
+          "text": "collar"
+        }
+      ],
+      "print": {
+        "inset": {
+          "bottom": 0.012
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,10 @@
 {
-  "category": "coffee-pouch",
-  "occluders": [],
+  "category": "pouch",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
   "products": [
     {
       "id": "pouch",

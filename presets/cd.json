@@ -1,0 +1,16 @@
+{
+  "category": "cd",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "disc",
+      "key": "main",
+      "name": "Disc",
+      "text": "compact disc"
+    }
+  ]
+}

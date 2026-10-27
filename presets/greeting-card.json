@@ -1,0 +1,16 @@
+{
+  "category": "greeting-card",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "card",
+      "key": "main",
+      "name": "Card",
+      "text": "greeting card"
+    }
+  ]
+}

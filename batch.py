@@ -1,7 +1,13 @@
 """
-按清单批量出模板:每行一张源图,按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
+批量出模板:每张源图按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
 pipeline.py 和 preview.py,最后汇总结果。
-用法:.venv/bin/python -I batch.py <清单.csv> [--jobs N] [--force]
+用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv] [--dry-run] [--jobs N] [--force]
+
+按品类分好的文件夹:每个子文件夹是一个品类,文件夹名是预设名或预设里 folders 列的别名,里面(含更深的子文件夹)
+的 png / jpg / webp 都算。对不上预设的文件夹会列出来并停下。id 默认是品类文件夹名(不是纯英文时换成预设名)加文件名(规则同下),
+文件名本来就以文件夹名开头的不重复加(t-shirt/001.png → t-shirt-001,boxy-tee/mockup-boxy-tee-020-blank.webp → boxy-tee-020)。
+个别源图要改设置时用 --overrides 给一份例外清单,按 id 对上,列同下面的 preset、occluders、crop。
+生成的清单存一份在 batches/<名称>/list.csv,可以从里面抄 id。
 
 清单(CSV,第一行是列名):
 - source:源图的地址或本地路径,必填;
@@ -11,8 +17,8 @@ pipeline.py 和 preview.py,最后汇总结果。
 - occluders:可选,遮挡物提示词,多个用 ; 隔开,写了就替换预设里的(写 - 表示没有遮挡物);
 - crop:可选,x0 y0 x1 y1(源图像素),写了就不按预设的比例规则裁。
 
-结果都在 batches/<清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
-review.html 是抽查页(没通过的排前面)。改了清单重跑同一条命令,只重算受影响的模板和步骤:
+结果都在 batches/<文件夹名或清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
+review.html 是抽查页(没通过的排前面)。--dry-run 只生成配置、列出各品类的张数,不跑。改了清单重跑同一条命令,只重算受影响的模板和步骤:
 改遮挡物只重跑分割和之后两步,三个模型脚本只看源图(按文件内容)和裁切;改 MODEL_BACKEND 全部重跑。--force 全部重跑。
 """
 import argparse
@@ -34,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录
 import config
 
 ROOT = config.ROOT
+IMAGE_SUFFIXES = {'.png', '.jpg', '.jpeg', '.webp'}
 # 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND):都没变、前一次成功过就跳过;None 表示用到整份配置
 STEPS = [
     ('run_segment.py', ['photo', 'crop', 'occluders', 'products']),
@@ -45,9 +52,46 @@ STEPS = [
 ]
 
 
+def slug(text):
+    return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+
+
 def template_id(source):
-    stem = Path(source.split('?')[0]).stem.removeprefix('mockup-').removesuffix('-blank')
-    return re.sub(r'[^a-z0-9]+', '-', stem.lower()).strip('-')
+    return slug(Path(source.split('?')[0]).stem.removeprefix('mockup-').removesuffix('-blank'))
+
+
+def scan(root):
+    """按品类分好的文件夹 → 清单的各行"""
+    names = {}  # 文件夹名 → 预设名
+    for path in sorted((ROOT / 'presets').glob('*.json')):
+        for alias in [path.stem, *json.loads(path.read_text()).get('folders', [])]:
+            names[alias] = path.stem
+    rows, unknown = [], []
+    loose = [p.name for p in root.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES]
+    if loose:
+        unknown.append(f'(不在品类文件夹里)({len(loose)} 张)')
+    for sub in sorted(p for p in root.iterdir() if p.is_dir()):
+        images = sorted(p for p in sub.rglob('*') if p.suffix.lower() in IMAGE_SUFFIXES and not p.name.startswith('.'))
+        if not images:
+            continue
+        if sub.name not in names:
+            unknown.append(f'{sub.name}({len(images)} 张)')
+            continue
+        prefix = slug(sub.name) if sub.name.isascii() else names[sub.name]  # 中文文件夹名转不出 id,用预设名
+        for image in images:
+            relative = image.relative_to(sub)
+            own = slug('-'.join([*relative.parent.parts, template_id(relative.name)]))
+            spec_id = own if own == prefix or own.startswith(prefix + '-') else f'{prefix}-{own}'
+            rows.append({'source': str(image), 'preset': names[sub.name], 'id': spec_id})
+    if unknown:
+        raise SystemExit('这些文件夹对不上预设,在 presets/ 里加预设或在预设的 folders 里加上文件夹名:\n  '
+                         + '\n  '.join(unknown) + f'\n现有预设:{", ".join(sorted(set(names.values())))}')
+    return rows
+
+
+def read_csv(path):
+    with open(path, newline='', encoding='utf-8-sig') as f:
+        return list(csv.DictReader(f))
 
 
 def crop_box(width, height, preset):
@@ -169,16 +213,32 @@ img {{ width: 100%; display: block; background: #ddd; }}
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('list')
-parser.add_argument('--jobs', type=int, default=1, help='同时跑几个模板;每个峰值约 6–7GB 内存')
+parser.add_argument('input', help='按品类分好的文件夹,或清单 CSV')
+parser.add_argument('--overrides', help='例外清单 CSV,按 id 改 preset、occluders、crop')
+parser.add_argument('--dry-run', action='store_true', help='只生成配置、列出各品类的张数,不跑')
+parser.add_argument('--jobs', type=int, default=1, help='同时跑几个模板;MODEL_BACKEND=local 时每个峰值约 6–7GB 内存')
 parser.add_argument('--force', action='store_true', help='忽略上次的结果,全部重跑')
 args = parser.parse_args()
 
-folder = ROOT / 'batches' / Path(args.list).stem
+source = Path(args.input).expanduser()
+if source.is_dir():
+    rows = scan(source.resolve())
+else:
+    rows = [row for row in read_csv(source) if row.get('source', '').strip()]
+if args.overrides:
+    by_id = {row['id']: row for row in rows if row.get('id')}
+    for change in read_csv(args.overrides):
+        if change.get('id', '').strip() not in by_id:
+            raise SystemExit(f"例外清单里的 id 对不上:{change.get('id')}")
+        by_id[change['id'].strip()].update({k: v for k, v in change.items() if k != 'id' and v and v.strip()})
+folder = ROOT / 'batches' / (source.name if source.is_dir() else source.stem)
 (folder / 'specs').mkdir(parents=True, exist_ok=True)
 (folder / 'logs').mkdir(exist_ok=True)
-with open(args.list, newline='', encoding='utf-8-sig') as f:
-    rows = [row for row in csv.DictReader(f) if row.get('source', '').strip()]
+if source.is_dir():
+    with open(folder / 'list.csv', 'w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.DictWriter(f, fieldnames=['source', 'preset', 'id', 'occluders', 'crop'], extrasaction='ignore')
+        writer.writeheader()
+        writer.writerows(rows)
 
 with ThreadPoolExecutor(8) as pool:
     specs = list(pool.map(make_spec, rows))
@@ -194,6 +254,10 @@ for spec in specs:
         path.write_text(text)
     paths.append(path)
 print(f'{len(paths)} 个模板,配置在 {folder.relative_to(ROOT)}/specs/')
+if args.dry_run:
+    for name in sorted({r['preset'] for r in rows}):
+        print(f"  {name}: {sum(r['preset'] == name for r in rows)} 张")
+    raise SystemExit
 
 results = []
 

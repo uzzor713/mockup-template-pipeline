@@ -1,0 +1,22 @@
+{
+  "category": "coaster",
+  "occluders": [
+    {
+      "text": "mug"
+    },
+    {
+      "text": "glass"
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "coaster",
+      "key": "main",
+      "name": "Coaster",
+      "text": "coaster"
+    }
+  ]
+}

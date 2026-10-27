@@ -1,0 +1,12 @@
+{
+  "category": "patch",
+  "occluders": [],
+  "products": [
+    {
+      "id": "patch",
+      "key": "main",
+      "name": "Patch",
+      "text": "patch"
+    }
+  ]
+}

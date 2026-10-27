@@ -1,0 +1,16 @@
+{
+  "category": "business-card",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "card",
+      "key": "main",
+      "name": "Card",
+      "text": "business card"
+    }
+  ]
+}

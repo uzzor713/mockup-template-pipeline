@@ -1,0 +1,30 @@
+{
+  "category": "tank-top",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tank",
+      "key": "top",
+      "name": "Tank top",
+      "text": "tank top",
+      "parts": [
+        {
+          "text": "neckline"
+        }
+      ],
+      "print": {
+        "inset": {
+          "bottom": 0.012
+        }
+      }
+    }
+  ]
+}

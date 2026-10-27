@@ -1,0 +1,22 @@
+{
+  "category": "bucket-hat",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    }
+  ],
+  "products": [
+    {
+      "id": "hat",
+      "key": "main",
+      "name": "Hat",
+      "text": "bucket hat",
+      "parts": [
+        {
+          "text": "hat brim"
+        }
+      ]
+    }
+  ]
+}

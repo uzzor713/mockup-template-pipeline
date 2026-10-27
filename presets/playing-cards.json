@@ -1,0 +1,16 @@
+{
+  "category": "playing-cards",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "cards",
+      "key": "main",
+      "name": "Cards",
+      "text": "playing card"
+    }
+  ]
+}

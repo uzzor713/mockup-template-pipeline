@@ -1,0 +1,12 @@
+{
+  "category": "socks",
+  "occluders": [],
+  "products": [
+    {
+      "id": "socks",
+      "key": "main",
+      "name": "Socks",
+      "text": "sock"
+    }
+  ]
+}

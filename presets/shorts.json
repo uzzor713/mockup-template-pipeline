@@ -1,0 +1,21 @@
+{
+  "category": "shorts",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "shorts",
+      "key": "bottom",
+      "name": "Shorts",
+      "text": "shorts",
+      "parts": [
+        {
+          "text": "waistband"
+        }
+      ]
+    }
+  ]
+}

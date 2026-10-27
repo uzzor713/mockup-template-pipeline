@@ -1,0 +1,21 @@
+{
+  "category": "calendar",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "calendar",
+      "key": "main",
+      "name": "Calendar",
+      "text": "calendar",
+      "parts": [
+        {
+          "text": "spiral binding"
+        }
+      ]
+    }
+  ]
+}

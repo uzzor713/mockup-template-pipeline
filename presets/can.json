@@ -1,0 +1,21 @@
+{
+  "category": "can",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "can",
+      "key": "main",
+      "name": "Can",
+      "text": "can",
+      "parts": [
+        {
+          "text": "can lid"
+        }
+      ]
+    }
+  ]
+}

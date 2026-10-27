@@ -1,0 +1,25 @@
+{
+  "category": "lanyard",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "lanyard",
+      "key": "main",
+      "name": "Lanyard",
+      "text": "lanyard",
+      "parts": [
+        {
+          "text": "metal clip"
+        }
+      ]
+    }
+  ]
+}

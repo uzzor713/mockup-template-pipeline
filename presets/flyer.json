@@ -1,0 +1,16 @@
+{
+  "category": "flyer",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "flyer",
+      "key": "main",
+      "name": "Flyer",
+      "text": "flyer"
+    }
+  ]
+}

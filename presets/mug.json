@@ -1,0 +1,21 @@
+{
+  "category": "mug",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "mug",
+      "key": "main",
+      "name": "Mug",
+      "text": "mug",
+      "parts": [
+        {
+          "text": "mug handle"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "category": "perfume",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "bottle",
+      "key": "main",
+      "name": "Bottle",
+      "text": "perfume bottle",
+      "parts": [
+        {
+          "text": "bottle cap"
+        },
+        {
+          "text": "spray nozzle"
+        }
+      ]
+    }
+  ]
+}

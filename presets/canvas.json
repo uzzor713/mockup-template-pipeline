@@ -1,0 +1,12 @@
+{
+  "category": "canvas",
+  "occluders": [],
+  "products": [
+    {
+      "id": "canvas",
+      "key": "main",
+      "name": "Canvas",
+      "text": "canvas print"
+    }
+  ]
+}

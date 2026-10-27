@@ -1,0 +1,16 @@
+{
+  "category": "album-cover",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "cover",
+      "key": "main",
+      "name": "Cover",
+      "text": "album cover"
+    }
+  ]
+}

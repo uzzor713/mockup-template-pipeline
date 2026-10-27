@@ -1,0 +1,16 @@
+{
+  "category": "magazine",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "cover",
+      "key": "main",
+      "name": "Cover",
+      "text": "magazine"
+    }
+  ]
+}

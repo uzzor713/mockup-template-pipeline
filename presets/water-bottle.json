@@ -1,0 +1,21 @@
+{
+  "category": "water-bottle",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "bottle",
+      "key": "main",
+      "name": "Bottle",
+      "text": "water bottle",
+      "parts": [
+        {
+          "text": "bottle cap"
+        }
+      ]
+    }
+  ]
+}

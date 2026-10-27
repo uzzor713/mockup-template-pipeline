@@ -1,0 +1,16 @@
+{
+  "category": "label",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "label",
+      "key": "main",
+      "name": "Label",
+      "text": "label"
+    }
+  ]
+}
