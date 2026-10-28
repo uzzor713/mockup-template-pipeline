@@ -10,9 +10,10 @@
       "id": "sleeve",
       "key": "main",
       "name": "Sleeve",
-      "text": "cd sleeve",
+      "text": "square",
       "alternatives": [
-        "square",
+        "envelope",
+        "paper",
         "panel"
       ]
     }

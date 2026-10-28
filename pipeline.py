@@ -253,6 +253,15 @@ def main_face(printable, normals):
     return quantize(np.minimum(printable, soft(face))) if face.sum() >= FACE_MIN * inside.sum() else printable
 
 
+def carrier(product, printable):
+    """流向图铺在哪:商品分成几块(罐子和盖子、敞开夹克的两片前襟)而可印区只在其中一块时,只留可印区所在的那几块。
+    设计稿只画在可印区里,别的块也铺位移的话,设计稿中心拖过块之间的空隙时位移会来回跳"""
+    solid = product > 0.5
+    labels, _ = ndimage.label(solid)
+    other = solid & ~np.isin(labels, np.unique(labels[solid & (printable > 0.5)]))
+    return np.where(grow(other, 2), 0, product) if other.any() and (printable > 0.5).any() else product
+
+
 def save_mask(coverage, name):
     """白色 + alpha = 覆盖度"""
     alpha = np.round(coverage * 255).astype(np.uint8)
@@ -357,11 +366,12 @@ sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
 low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
-surfaces = [surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) for product in products]
+carriers = [carrier(product, printable) for product, printable in zip(products, prints)]
+surfaces = [surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) for product in carriers]
 # 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分
 slack = 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
 folds, guards, gains = [], [], []
-for index, (product, printable) in enumerate(zip(products, prints)):
+for index, (product, printable) in enumerate(zip(carriers, prints)):
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
     blurred = cv2.GaussianBlur(facing * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
@@ -464,10 +474,10 @@ def offsets(surface, fold, warp):
     return surface + warp * fold
 
 
-def drag_never_back(surface, fold, product):
-    """设计稿中心从商品中心沿各方向一路拖出画面,画上去的位置(中心 + 中心处位移)不往回走;
+def drag_never_back(surface, fold, printable):
+    """设计稿中心从可印区中心沿各方向一路拖出画面,画上去的位置(中心 + 中心处位移)不往回走;
     8 位量化本身有零点几像素的抖动,回退超过 1px 才算"""
-    ys, xs = np.nonzero(product > 0.5)
+    ys, xs = np.nonzero(printable > 0.5)
     cx, cy = xs.mean(), ys.mean()
     for warp in np.linspace(0, 1, 5):
         offset = offsets(surface, fold, warp)
@@ -504,6 +514,15 @@ def within_stretch(surface, fold, printable):
     return True
 
 
+def joined_share(printable):
+    """可印区最大一块占的比例。遮挡物(如交握的手)横穿可印区时,设计稿在它下面照样铺着,隔开的两边算一块"""
+    visible = printable > 0.5
+    labels, count = ndimage.label(visible | occluders)
+    if not count:
+        return 0.0
+    return float(ndimage.sum(visible, labels, range(1, count + 1)).max() / visible.sum())
+
+
 checks = {
     'sizes equal': all(x.shape[:2] == (H, W) for x in [base_out, *p, *q]),
     'flow maps 1/4 size, B unused': all(x.shape == (H // DISP_SCALE, W // DISP_SCALE, 3)
@@ -516,10 +535,10 @@ checks = {
     # 防换算写错;webp 有损压缩(质量 85)和边缘本身就会差几个色阶,明暗倍数大的商品平均差到 1 以上,公式错了会差几十
     'base-css matches on white / black (mean ≤ 2, 99% ≤ 12 of 255)': all(mean <= 2 and p99 <= 12 for mean, p99 in css_ends(css_out)),
     'base-css sizes equal': css_out.shape == base_out.shape,
-    'design centre dragged outward never runs back': all(drag_never_back(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
+    'design centre dragged outward never runs back': all(drag_never_back(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
-    'print largest component ≥ 80%': all(largest(qq > 0.5).sum() / (qq > 0.5).sum() >= 0.8 for qq in q),
+    'print largest component ≥ 80%': all(joined_share(qq) >= 0.8 for qq in q),
     'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),
 }
 (OUT / 'checks.json').write_text(json.dumps(checks, indent=2))
