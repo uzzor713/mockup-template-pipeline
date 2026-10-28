@@ -1,0 +1,34 @@
+{
+  "category": "mug",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "mug-left",
+      "key": "left",
+      "name": "Left Mug",
+      "text": "mug",
+      "parts": [
+        {
+          "text": "mug handle"
+        }
+      ],
+      "instance": 0
+    },
+    {
+      "id": "mug-right",
+      "key": "right",
+      "name": "Right Mug",
+      "text": "mug",
+      "parts": [
+        {
+          "text": "mug handle"
+        }
+      ],
+      "instance": 1
+    }
+  ]
+}

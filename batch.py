@@ -24,7 +24,8 @@ pipeline.py 和 preview.py,最后汇总结果。
 - id:可选,不写由文件名得出:去掉 mockup- 前缀和 -blank 后缀,转小写,字母数字以外的连成 -
   (mockup-boxy-tee-020-blank.webp → boxy-tee-020,01 Slow days tee.png → 01-slow-days-tee);
 - occluders:可选,遮挡物提示词,多个用 ; 隔开,写了就替换预设里的(写 - 表示没有遮挡物);
-- crop:可选,x0 y0 x1 y1(源图像素),写了就不按预设的比例规则裁。
+- crop:可选,x0 y0 x1 y1(源图像素),写了就不按预设的比例规则裁;
+- tags:可选,标签,多个用 ; 隔开,写进 template.json(如 Channel、Seasonal 页面的 channel/amazon、seasonal/christmas)。
 
 结果都在 batches/<文件夹名或清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
 review.html 是抽查页(按品类分页,见 review.py)。--dry-run 只生成配置、列出各品类的张数,不跑。改了清单重跑同一条命令,只重算受影响的模板和步骤:
@@ -190,6 +191,8 @@ def make_spec(row):
                 del item['parts']
         products = [item]
     spec = {'id': row.get('id', '').strip() or template_id(source), 'category': preset['category'], 'photo': photo}
+    if words(row.get('tags', '')):
+        spec['tags'] = words(row['tags'])
     if crop != [0, 0, width, height]:
         spec['crop'] = crop
     if remote:

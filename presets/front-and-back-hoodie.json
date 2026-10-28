@@ -1,0 +1,56 @@
+{
+  "category": "hoodie",
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "hoodie-front",
+      "key": "front",
+      "name": "Front Hoodie",
+      "text": "hoodie",
+      "parts": [
+        {
+          "text": "sleeve"
+        },
+        {
+          "text": "hood"
+        },
+        {
+          "text": "drawstring"
+        },
+        {
+          "text": "ribbed waistband"
+        }
+      ],
+      "instance": 0
+    },
+    {
+      "id": "hoodie-back",
+      "key": "back",
+      "name": "Back Hoodie",
+      "text": "hoodie",
+      "parts": [
+        {
+          "text": "sleeve"
+        },
+        {
+          "text": "hood"
+        },
+        {
+          "text": "drawstring"
+        },
+        {
+          "text": "ribbed waistband"
+        }
+      ],
+      "instance": 1
+    }
+  ]
+}

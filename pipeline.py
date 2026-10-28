@@ -36,6 +36,7 @@ SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
 DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹理噪点;使用时双线性放大
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
 STRETCH_RANGE = (0.5, 2.5)  # Warping 0–100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
+STRETCH_OUTLIER = 0.001  # 校验时商品区里至多这么多面积可以超出上面的范围:人穿着的衣服侧面、袖口这些陡边上,大曲面层自己就会超出一点
 CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
 CAP_AREA = 0.2  # 每件商品的坡度系数按它定:Warping 100% 时可印区域里这么多面积刚好顶到上限
 SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / 宽度)的坡度)的上限:几乎没褶的商品不把噪点放大成假褶皱
@@ -231,6 +232,9 @@ def print_area(product, parts, cover, rule):
     # 部件蒙版没贴到轮廓、遮挡物的地方会夹出零碎的小块
     visible = region & solid
     region &= drop_specks(visible) | ~visible
+    if rule.get('largest'):
+        # 部件把可印区切成几块时(如围裙的腰带)只留最大的一块
+        region = largest(region)
     return np.minimum(soft(region), product)
 
 
@@ -400,6 +404,7 @@ template = {
     'version': 1,
     'size': {'width': W, 'height': H},
     'category': spec['category'],
+    'tags': spec.get('tags', []),
     'files': {'cover': 'cover.webp', 'base': 'base.webp', 'baseCss': 'base-css.webp'},
     'blend': 'linear',
     'shadeGain': shade_gain,
@@ -470,12 +475,12 @@ def css_ends(css):
 
 
 def within_stretch(surface, fold, product):
-    """Warping 0–100% 时商品区内各方向每像素前进量都在范围内"""
+    """Warping 0–100% 时商品区内各方向每像素前进量超出范围的面积不到 STRETCH_OUTLIER"""
     inside = product > 0.5
     for warp in np.linspace(0, 1, 5):
         offset = offsets(surface, fold, warp)
         smin, smax = stretch_range(*jacobian(offset[..., 0], offset[..., 1], 1))
-        if smin[inside].min() < STRETCH_RANGE[0] or smax[inside].max() > STRETCH_RANGE[1]:
+        if ((smin[inside] < STRETCH_RANGE[0]) | (smax[inside] > STRETCH_RANGE[1])).mean() > STRETCH_OUTLIER:
             return False
     return True
 
@@ -493,7 +498,7 @@ checks = {
     'base-css matches on white / black (mean ≤ 1, 99% ≤ 6 of 255)': all(mean <= 1 and p99 <= 6 for mean, p99 in css_ends(css_out)),
     'base-css sizes equal': css_out.shape == base_out.shape,
     'design centre dragged outward never runs back': all(drag_never_back(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
-    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100%': all(within_stretch(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
+    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(largest(qq > 0.5).sum() / (qq > 0.5).sum() >= 0.8 for qq in q),
     'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),

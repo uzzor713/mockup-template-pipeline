@@ -1,0 +1,16 @@
+{
+  "category": "book",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "pages",
+      "key": "main",
+      "name": "Pages",
+      "text": "open book"
+    }
+  ]
+}

@@ -10,7 +10,7 @@
       "id": "banner",
       "key": "main",
       "name": "Banner",
-      "text": "banner",
+      "text": "panel",
       "parts": [
         {
           "text": "banner pole"

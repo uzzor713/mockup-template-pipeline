@@ -19,7 +19,10 @@
         {
           "text": "apron strap"
         }
-      ]
+      ],
+      "print": {
+        "largest": true
+      }
     }
   ]
 }
