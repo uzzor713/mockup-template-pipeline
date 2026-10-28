@@ -23,6 +23,7 @@ MATTE_MODEL = 'hustvl/vitmatte-small-composition-1k'
 BAND_RATIO = 0.004  # 待求带向外的半宽 / 宽度,要盖住 SAM 的边界误差;向内收 1/3
 MATTE_FLOOR = 0.1  # 遮挡物待求带宽时,抠图在纯色衣服上也会给出这么多以内的透明度:低于它算 0、高于 1 − 它算 1,中间线性拉开
 SPECK_RATIO = 0.01  # 面积不到整件这么多的碎块去掉
+HOLE_RATIO = 0.002  # 商品蒙版里面积不到整件这么多的洞补上;更大的是包带、提手围出来的背景,留着
 SPUR_RATIO = 0.005  # 部件边上伸进相邻部件的细长毛刺,按这个半径 / 宽度做开运算去掉
 TILE, OVERLAP = 768, 128  # 整图一次推理要十几 GB 内存,按块推理
 
@@ -44,6 +45,28 @@ def drop_specks(binary, ratio=SPECK_RATIO):
     labels, n = ndimage.label(binary)
     sizes = ndimage.sum(binary, labels, range(1, n + 1))
     return np.isin(labels, 1 + np.nonzero(sizes >= ratio * binary.sum())[0])
+
+
+def fill_small_holes(binary, ratio=HOLE_RATIO):
+    """补上面积不到整体 ratio 的洞"""
+    holes = ndimage.binary_fill_holes(binary) & ~binary
+    labels, n = ndimage.label(holes)
+    sizes = ndimage.sum(holes, labels, range(1, n + 1))
+    return binary | np.isin(labels, 1 + np.nonzero(sizes < ratio * binary.sum())[0])
+
+
+def touching(binary, mask):
+    """binary 里碰到 mask 的连通块"""
+    labels, _ = ndimage.label(binary)
+    return np.isin(labels, np.unique(labels[mask & binary])) & binary
+
+
+def despur(parts, r):
+    """开运算去掉毛刺;开运算后剩不到一半的块本身就细(如绳子提手),原样留着"""
+    opened = cv2.morphologyEx(parts.astype(np.uint8), cv2.MORPH_OPEN, disk(r)) > 0
+    labels, n = ndimage.label(parts)
+    kept = ndimage.sum(opened, labels, range(1, n + 1)) / ndimage.sum(parts, labels, range(1, n + 1))
+    return opened | np.isin(labels, 1 + np.nonzero(kept < 0.5)[0])
 
 
 class Sam3Replicate(Replicate):
@@ -154,7 +177,13 @@ def segment(photo, spec, models):
     prompts = spec.get('occluders', [])
     masks = [prompted(models, photo, [prompt]) for prompt in prompts]
     occluders = np.logical_or.reduce(masks) if masks else np.zeros(photo.shape[:2], bool)
-    raws = [ndimage.binary_fill_holes(prompted(models, photo, [item])) for item in spec['products']]
+    # 部件(如提手)可能伸出商品的蒙版,碰到商品的部件块并进商品。只补小洞:包带、提手和包身围出来的是背景
+    raws, part_raws = [], []
+    for item in spec['products']:
+        raw = prompted(models, photo, [item])
+        parts = ndimage.binary_fill_holes(prompted(models, photo, item.get('parts', [])))
+        raws.append(fill_small_holes(raw | touching(parts, grow(raw, band))))
+        part_raws.append(parts)
     # 遮挡物和商品的交界两边都待求,遮挡物当前景抠(抠图模型最擅长头发这类前景),商品在这里的覆盖度 = 1 − 遮挡物透明度。
     # 发丝伸出去多远按各自的 matteBand 给;离商品远的边不影响模板,不求
     near = np.logical_or.reduce(raws)
@@ -168,12 +197,11 @@ def segment(photo, spec, models):
     _, (iy, ix) = ndimage.distance_transform_edt(covered, return_indices=True)  # 被盖住的像素离它最近的未遮挡像素
     above = np.zeros(photo.shape[:2], bool)  # 已经分好的上层商品
     products = []
-    for item, raw in zip(spec['products'], raws):
+    for raw, parts in zip(raws, part_raws):
         # 遮挡物和上层商品分完再减,不在提示里排除:手点时在包带这类窄的遮挡物上放负点,会把旁边的商品一起切掉。
         # 遮挡物可能把商品切成几块,只去碎块,不取最大连通块
         mask = drop_specks(raw & ~covered & ~above)
-        parts = ndimage.binary_fill_holes(prompted(models, photo, item.get('parts', [])))
-        parts = (cv2.morphologyEx(parts.astype(np.uint8), cv2.MORPH_OPEN, disk(round(SPUR_RATIO * W))) > 0) & mask
+        parts = despur(parts, round(SPUR_RATIO * W)) & mask
         # 遮挡物下面按最近的未遮挡像素归属,商品在下面接着铺;商品和背景的交界照常抠,再乘上没被遮挡的那份。
         # 和上层商品的交界不算边缘,下层商品在上层下面接着铺
         spread = mask | (covered & mask[iy, ix])
