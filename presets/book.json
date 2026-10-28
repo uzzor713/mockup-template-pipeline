@@ -15,7 +15,10 @@
         {
           "text": "book pages"
         }
-      ]
+      ],
+      "print": {
+        "face": true
+      }
     }
   ]
 }

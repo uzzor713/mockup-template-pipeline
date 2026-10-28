@@ -36,7 +36,9 @@ SIGMA_RATIO = 0.006  # 起伏图模糊半径 / 宽度
 DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹理噪点;使用时双线性放大
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
 STRETCH_RANGE = (0.5, 2.5)  # Warping 0–100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
-STRETCH_OUTLIER = 0.001  # 校验时商品区里至多这么多面积可以超出上面的范围:人穿着的衣服侧面、袖口这些陡边上,大曲面层自己就会超出一点
+STRETCH_OUTLIER = 0.005  # 校验时可印区里至多这么多面积可以超出上面的范围:人穿着的衣服侧面、袖口这些陡边上,大曲面层自己就会超出一点
+FACE_ANGLE = 35  # print.face:法线和主朝向夹角在这么多度以内的算同一面;盒子相邻两面差 90°
+FACE_MIN = 0.3  # print.face:正对的那一面至少要占原来可印区这么多才收窄;更小的不收,由校验标出来
 CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
 CAP_AREA = 0.2  # 每件商品的坡度系数按它定:Warping 100% 时可印区域里这么多面积刚好顶到上限
 SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / 宽度)的坡度)的上限:几乎没褶的商品不把噪点放大成假褶皱
@@ -232,10 +234,23 @@ def print_area(product, parts, cover, rule):
     # 部件蒙版没贴到轮廓、遮挡物的地方会夹出零碎的小块
     visible = region & solid
     region &= drop_specks(visible) | ~visible
+    coverage = np.minimum(soft(region), product)
     if rule.get('largest'):
-        # 部件把可印区切成几块时(如围裙的腰带)只留最大的一块
-        region = largest(region)
-    return np.minimum(soft(region), product)
+        # 部件把可印区切成几块时(如围裙的腰带)只留最大的一块。部件边上常留着一两像素的细缝连着各块,
+        # 柔化后才断开,所以按柔化后的结果挑,再往外留出软边
+        coverage = np.where(grow(largest(coverage > 0.5), round(SMOOTH) + 2), coverage, 0)
+    return coverage
+
+
+def main_face(printable, normals):
+    """可印区里只留正对的那一面:法线和主朝向(可印区里法线的中位数)夹角在 FACE_ANGLE 以内、连成一片的最大一块。
+    盒子、精装书、纸袋这类硬的多面商品,可印区跨过棱角时,侧面、书脊上的设计稿会挤成一条"""
+    inside = printable > 0.5
+    n = normals / np.maximum(np.linalg.norm(normals, axis=2, keepdims=True), 1e-6)
+    main = np.median(n[inside], axis=0)
+    main /= max(float(np.linalg.norm(main)), 1e-6)
+    face = largest(inside & (n @ main > np.cos(np.radians(FACE_ANGLE))))
+    return quantize(np.minimum(printable, soft(face))) if face.sum() >= FACE_MIN * inside.sum() else printable
 
 
 def save_mask(coverage, name):
@@ -256,6 +271,8 @@ restored = source_alpha < 1
 read_alpha = lambda name: np.asarray(Image.open(WORK / name)).astype(np.float32) / 65535
 read_mask = lambda name: np.asarray(Image.open(WORK / name)) > 127
 occluders = read_alpha('occluders.png') > 0.5
+# 法线(normals.py)只给 print.face 挑正对的那一面用,先模糊去掉纹理的起伏
+normals = cv2.GaussianBlur(cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR) * 2 - 1, (0, 0), SIGMA_RATIO * W)
 products, prints = [], []
 above, above_bin = np.zeros((H, W), np.float32), np.zeros((H, W), bool)  # 上层商品的覆盖度之和、二值范围
 for item in spec['products']:
@@ -267,6 +284,8 @@ for item in spec['products']:
     product = quantize(np.minimum(alpha[iy, ix], 1 - above))
     products.append(product)
     prints.append(quantize(print_area(product, read_mask(f"{item['id']}-parts.png"), occluders | above_bin, item.get('print', {}))))
+    if item.get('print', {}).get('face') and (prints[-1] > 0.5).any():
+        prints[-1] = main_face(prints[-1], normals)
     above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
 coverage = np.minimum(sum(products), 1)
 
@@ -474,9 +493,9 @@ def css_ends(css):
     return [(float(d.mean()), float(np.percentile(d, 99))) for d in diffs]
 
 
-def within_stretch(surface, fold, product):
-    """Warping 0–100% 时商品区内各方向每像素前进量超出范围的面积不到 STRETCH_OUTLIER"""
-    inside = product > 0.5
+def within_stretch(surface, fold, printable):
+    """Warping 0–100% 时可印区内(设计稿只画在这里)各方向每像素前进量超出范围的面积不到 STRETCH_OUTLIER"""
+    inside = printable > 0.5
     for warp in np.linspace(0, 1, 5):
         offset = offsets(surface, fold, warp)
         smin, smax = stretch_range(*jacobian(offset[..., 0], offset[..., 1], 1))
@@ -498,7 +517,7 @@ checks = {
     'base-css matches on white / black (mean ≤ 1, 99% ≤ 6 of 255)': all(mean <= 1 and p99 <= 6 for mean, p99 in css_ends(css_out)),
     'base-css sizes equal': css_out.shape == base_out.shape,
     'design centre dragged outward never runs back': all(drag_never_back(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
-    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, pp) for ss, ff, pp in zip(s, f, p)),
+    f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(largest(qq > 0.5).sum() / (qq > 0.5).sum() >= 0.8 for qq in q),
     'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),

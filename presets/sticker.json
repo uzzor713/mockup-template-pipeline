@@ -10,7 +10,10 @@
       "id": "sticker",
       "key": "main",
       "name": "Sticker",
-      "text": "sticker"
+      "text": "decal",
+      "alternatives": [
+        "paper"
+      ]
     }
   ]
 }

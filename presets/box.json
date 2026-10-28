@@ -10,7 +10,10 @@
       "id": "box",
       "key": "main",
       "name": "Box",
-      "text": "box"
+      "text": "box",
+      "print": {
+        "face": true
+      }
     }
   ]
 }

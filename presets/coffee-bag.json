@@ -6,7 +6,13 @@
       "id": "pouch",
       "key": "main",
       "name": "Pouch",
-      "text": "pouch"
+      "text": "pouch",
+      "alternatives": [
+        "bag"
+      ],
+      "print": {
+        "face": true
+      }
     }
   ]
 }

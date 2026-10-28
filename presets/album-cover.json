@@ -10,7 +10,11 @@
       "id": "cover",
       "key": "main",
       "name": "Cover",
-      "text": "album cover"
+      "text": "album cover",
+      "alternatives": [
+        "folded paper",
+        "panel"
+      ]
     }
   ]
 }

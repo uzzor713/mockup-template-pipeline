@@ -6,7 +6,10 @@
       "id": "patch",
       "key": "main",
       "name": "Patch",
-      "text": "patch"
+      "text": "patch",
+      "alternatives": [
+        "rectangle"
+      ]
     }
   ]
 }

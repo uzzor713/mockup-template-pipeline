@@ -1,0 +1,20 @@
+{
+  "category": "cd",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "sleeve",
+      "key": "main",
+      "name": "Sleeve",
+      "text": "cd sleeve",
+      "alternatives": [
+        "square",
+        "panel"
+      ]
+    }
+  ]
+}

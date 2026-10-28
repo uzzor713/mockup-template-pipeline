@@ -6,7 +6,15 @@
       "id": "label",
       "key": "main",
       "name": "Label",
-      "text": "bottle label"
+      "text": "bottle label",
+      "alternatives": [
+        "bottle"
+      ],
+      "parts": [
+        {
+          "text": "bottle cap"
+        }
+      ]
     }
   ]
 }

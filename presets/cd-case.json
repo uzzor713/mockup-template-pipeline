@@ -1,0 +1,23 @@
+{
+  "category": "cd",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "case",
+      "key": "main",
+      "name": "Case",
+      "text": "cd case",
+      "alternatives": [
+        "cover",
+        "square"
+      ],
+      "print": {
+        "face": true
+      }
+    }
+  ]
+}

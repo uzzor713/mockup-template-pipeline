@@ -1,0 +1,34 @@
+{
+  "category": "can",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "can-left",
+      "key": "left",
+      "name": "Left Can",
+      "text": "can",
+      "parts": [
+        {
+          "text": "can lid"
+        }
+      ],
+      "instance": 0
+    },
+    {
+      "id": "can-right",
+      "key": "right",
+      "name": "Right Can",
+      "text": "can",
+      "parts": [
+        {
+          "text": "can lid"
+        }
+      ],
+      "instance": 1
+    }
+  ]
+}

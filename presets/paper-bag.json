@@ -11,7 +11,13 @@
         {
           "text": "bag handle"
         }
-      ]
+      ],
+      "alternatives": [
+        "bag"
+      ],
+      "print": {
+        "face": true
+      }
     }
   ]
 }

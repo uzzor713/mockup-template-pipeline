@@ -6,7 +6,11 @@
       "id": "cushion",
       "key": "main",
       "name": "Cushion",
-      "text": "throw pillow"
+      "text": "throw pillow",
+      "alternatives": [
+        "pillow",
+        "cushion"
+      ]
     }
   ]
 }

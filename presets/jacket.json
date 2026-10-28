@@ -25,7 +25,10 @@
         {
           "text": "zipper"
         }
-      ]
+      ],
+      "print": {
+        "largest": true
+      }
     }
   ]
 }

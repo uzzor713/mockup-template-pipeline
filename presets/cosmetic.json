@@ -15,7 +15,10 @@
         {
           "text": "cap"
         }
-      ]
+      ],
+      "print": {
+        "largest": true
+      }
     }
   ]
 }

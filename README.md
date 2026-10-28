@@ -89,7 +89,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 
 预设里除了配置的 `category`、`occluders`、`products` 和文件夹别名 `folders`,还有裁切规则:竖图裁成 4:5、横图 5:4,正方形按 `square`(默认 `[4, 5]`);多出的宽度两边平分,多出的高度按 `trim`(`bottom` / `top` / `center`,默认 `center`)从哪边裁。
 
-预设按 vorla mockups 页面主树的 63 个小品类各一份,文件名和 `category` 都是小品类的 slug;Seasonal、Channel 两条横轴是标签,模板仍归在某个小品类下(按画面里实际的商品选预设),不单独设预设,清单的 `tags` 列写上 `seasonal/<页面>` 或 `channel/<页面>`。一件商品一个区域,`tracksuit` 是上衣、裤子两个区域;画面里是两件同类商品的页面另设预设,文件名用页面 slug,`category` 仍是小品类:`front-and-back-hoodie`、`front-and-back-t-shirt`(正面、背面两个区域)、`mug-pair`(左右两只杯子),翻开的书用 `open-book`(内页可印);`bottle`、`candle` 可编辑的是标签。`t-shirt`、`sweatshirt`、`tote-bag`、`cap`、`pillow`、`bottle`、`coffee-bag`、`notebook`、`poster`、`paper-bag` 各拿一张图跑通过,其余的提示词没拿图试过,全量跑之前每类先抽几张跑一遍,看抽查页;提示词分不出来的用 `experiments/sam3_replicate.py` 试别的说法。
+预设按 vorla mockups 页面主树的 63 个小品类各一份,文件名和 `category` 都是小品类的 slug;Seasonal、Channel 两条横轴是标签,模板仍归在某个小品类下(按画面里实际的商品选预设),不单独设预设,清单的 `tags` 列写上 `seasonal/<页面>` 或 `channel/<页面>`。一件商品一个区域,`tracksuit` 是上衣、裤子两个区域;画面里是两件同类商品的页面另设预设,文件名用页面 slug,`category` 仍是小品类:`front-and-back-hoodie`、`front-and-back-t-shirt`(正面、背面两个区域)、`mug-pair`(左右两只杯子),翻开的书用 `open-book`(内页可印),`cd-case`(CD 盒和封面卡,cd-case、cd-cover 页面用)、`cd-sleeve`(纸套)的 `category` 是 `cd`,`can-pair` 是两罐并排;`bottle`、`candle` 可编辑的是标签。`t-shirt`、`sweatshirt`、`tote-bag`、`cap`、`pillow`、`bottle`、`coffee-bag`、`notebook`、`poster`、`paper-bag` 各拿一张图跑通过,其余的提示词没拿图试过,全量跑之前每类先抽几张跑一遍,看抽查页;提示词分不出来的用 `experiments/sam3_replicate.py` 试别的说法。
 
 结果在 `batches/<文件夹名或清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出 / `skip`),`review.html` 是抽查页。重跑同一条命令时,各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过;改遮挡物、商品或部件提示词只重跑分割和之后两步,三个模型脚本只看源图内容和裁切,源图挪了文件夹也不重跑。
 
@@ -145,8 +145,8 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `crop` | 可选,源图先按 `[x0, y0, x1, y1]`(像素)裁出这一块再用,比例不对时用;各脚本和封面都用裁好的图 |
 | `fetch` | 可选,要下载的素材:`{路径: {url, sha256}}` |
 | `occluders` | 遮挡物的提示列表。一个提示是 `{text: 名词短语}`(SAM 3,图里所有符合的实例合在一起,如 `"bag strap"`),或 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`(SAM 2.1,文字分不准时手点兜底);`note` 只作说明;`matteBand` 可选,和商品交界的待求带半宽 / 宽度,头发这类边上有细丝的放宽(如 `0.015`),不写为 0.004 |
-| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference`;可选的 `instance`:文字提示挑剩的实例里只取从左往右第几个(从 0 数),同一张图里两件同类商品时各写一件 |
-| `products[].print` | 可印区域规则:商品区减去 `parts`,`inset: {top, bottom, left, right}` 按宽度的比例从商品和背景的交界往里收,只写需要的那几侧(部件、遮挡物和上层商品的边上不收),`rows: [从, 到]` 只留这段高度(占商品高度的比例),`largest: true` 只留最大的一块(部件把可印区切开时,如围裙的腰带) |
+| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference`;可选的 `alternatives`:备选的说法列表,`text` 一个实例都分不出时按顺序换着试(空白商品上同一品类不同页面能认的说法不同);可选的 `instance`:文字提示挑剩的实例里只取从左往右第几个(从 0 数),同一张图里两件同类商品时各写一件 |
+| `products[].print` | 可印区域规则:商品区减去 `parts`,`inset: {top, bottom, left, right}` 按宽度的比例从商品和背景的交界往里收,只写需要的那几侧(部件、遮挡物和上层商品的边上不收),`rows: [从, 到]` 只留这段高度(占商品高度的比例),`largest: true` 只留最大的一块(部件把可印区切开时,如围裙的腰带),`face: true` 只留正对的那一面(法线和可印区法线中位数的夹角在 35° 以内、连成一片的最大一块;盒子、书、本子、纸袋这类硬的多面商品,侧面、书脊不印,剩下的不到原来 30% 时不收窄) |
 | `products[].binaryEdge` | 源图里这件商品的轮廓是台阶(如从竞品底图还原的),抠图救不回来:按二值来源处理,平滑轮廓后重出软边 |
 | `products[].reference` | 可选,对比用的参考蒙版 `{product, print}`,每项 `{file, transparent}`;`transparent` 取图里半透明的部分,否则取白色 × 透明度。`pipeline.py` 最后打印重合度,不算校验 |
 | `preview` | 预览的裁切范围 `crop`(占宽高的比例)和边缘放大的取样位置 `spots`(`[名称, x, y]`,模板像素) |
@@ -186,7 +186,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 - 流向图分两层,分开存:
   - 大曲面:MoGe-2 给出每个像素的 3D 坐标,由此算出屏幕上每像素在曲面上实际对应多长(以商品中位深度处正对镜头时为 1),在商品区内平滑约 32px(宽度的 2%):身体、裤腿转向侧面的地方压缩,轮廓内一二十像素压得最多,至多 2 倍;离镜头近的地方略放大,透视也在里面。再用最小二乘积分成位移。这层按形状算出来就是实际的样子,固定叠上,不随 Warping 变。
   - 褶皱:起伏取 Marigold 法线的 z 分量,也就是表面正对镜头的程度。位移沿它的坡度,褶皱横着就上下压缩、竖着就左右压缩、斜着就按对应角度压缩。只看表面朝向,和照片的光线方向、花纹都无关。坡度系数每件商品各自定:Warping 100% 时可印区域里 20% 的面积刚好顶到下面的上限;系数有上限,几乎没褶的商品不会把噪点放大成假褶皱。
-  - Warping 只缩放褶皱层。Warping 0–100% 之间两层合起来,各方向每像素前进量都限制在 0.5–2.5(拉伸至多 2 倍、压缩至多 2.5 倍),超出的地方局部减弱褶皱那层,深褶处设计稿不会被拉成一片或翻折;大曲面层的位移幅度大、8 位量化误差也大,减弱时多留出这部分余量。大曲面层本身不减弱,人穿着的衣服侧面、袖口这些陡边上会超出一点,自动校验允许商品区里至多 0.1% 的面积超出。
+  - Warping 只缩放褶皱层。Warping 0–100% 之间两层合起来,各方向每像素前进量都限制在 0.5–2.5(拉伸至多 2 倍、压缩至多 2.5 倍),超出的地方局部减弱褶皱那层,深褶处设计稿不会被拉成一片或翻折;大曲面层的位移幅度大、8 位量化误差也大,减弱时多留出这部分余量。大曲面层本身不减弱,人穿着的衣服侧面、袖口这些陡边上会超出一点;设计稿只画在可印区里,自动校验只查可印区,允许其中至多 0.5% 的面积超出。
   - 位移会沿曲面一路累积,渲染时减去设计稿中心处的位移(两层各自减),中心不动、两边按曲面压扁。
   - 设计稿中心可以拖出商品。商品外不让位移归零,而是铺成边上的值、远一点再抹平:要整体减掉的「中心处位移」在商品外不再猛变,拖出去时设计稿跟着手走,不会反着往商品里跑。自动校验从商品中心沿各方向逐像素往外拖,确认不往回走。
 - 模型只用在分割、边缘透明度、本征分解、法线和 3D 坐标,其余步骤都是固定代码。

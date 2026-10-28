@@ -10,6 +10,7 @@ SAM 3 走 Replicate,会把源图上传过去;给了 remote 时抠图也走 Repli
 - occluders:遮挡物的提示列表,合在一起求透明度;头发这类边上有细丝的,提示里加 matteBand(和商品交界的待求带半宽 / 宽度);
 - products:商品列表,由上层到下层,每项本身是一个提示,加可选的 parts(不可印部件的提示列表,如袖子、领口)。
   文字提示分出几个实例时(如书架上的书、背景里路人的包),交给 Gemini 看编号叠图挑出要展示的那几个;
+  可选的 alternatives 是备选说法,text 一个实例都分不出时按顺序换着试;
   可选的 instance 只取挑剩的实例里从左往右第几个(从 0 数),同一张图里的两件同类商品(正反两面、两只杯子)各成一件。
 """
 import io, json, re, zipfile
@@ -208,14 +209,20 @@ def prompted(models, photo, prompts):
 
 
 def product_mask(models, photo, item, what, found):
-    """一件商品的蒙版。文字提示分出几个实例时由 Gemini 挑出要展示的那几个,写了 instance 的只取挑剩的里从左往右第几个;
+    """一件商品的蒙版。text 一个实例都分不出时按顺序换 alternatives 里的说法,用第一个分得出的;
+    分出几个实例时由 Gemini 挑出要展示的那几个,写了 instance 的只取挑剩的里从左往右第几个;
     found 存每个提示词挑好的实例,同一张图里两件同类商品只分、只挑一次"""
     if 'text' not in item:
         return prompted(models, photo, [item])
     if models.sam3 is None:
         raise ValueError(f"文字提示「{item['text']}」要用 SAM 3")
     if item['text'] not in found:
-        masks = [m for m in models.sam3.instances(photo, item['text']) if m.any()]
+        for text in [item['text'], *item.get('alternatives', [])]:
+            masks = [m for m in models.sam3.instances(photo, text) if m.any()]
+            if masks:
+                if text != item['text']:
+                    print(f"「{item['text']}」分不出,换成「{text}」")
+                break
         if len(masks) > 1:
             masks = [masks[i] for i in models.sam3.pick(photo, masks, what)]
         found[item['text']] = sorted(masks, key=lambda m: np.nonzero(m)[1].mean())

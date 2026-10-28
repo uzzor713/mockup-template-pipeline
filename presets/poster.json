@@ -14,7 +14,10 @@
           "left": 0.02,
           "right": 0.02
         }
-      }
+      },
+      "alternatives": [
+        "sheet of paper"
+      ]
     }
   ]
 }

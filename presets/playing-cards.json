@@ -10,7 +10,10 @@
       "id": "cards",
       "key": "main",
       "name": "Cards",
-      "text": "playing card"
+      "text": "playing card",
+      "alternatives": [
+        "card"
+      ]
     }
   ]
 }

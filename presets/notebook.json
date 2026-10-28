@@ -10,7 +10,10 @@
       "id": "cover",
       "key": "main",
       "name": "Notebook",
-      "text": "notebook"
+      "text": "notebook",
+      "print": {
+        "face": true
+      }
     }
   ]
 }

@@ -10,7 +10,10 @@
       "id": "card",
       "key": "main",
       "name": "Card",
-      "text": "id card"
+      "text": "id card",
+      "alternatives": [
+        "card"
+      ]
     }
   ]
 }
