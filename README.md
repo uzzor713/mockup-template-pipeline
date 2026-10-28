@@ -25,7 +25,7 @@ SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I preview.py $SPEC         # 合成预览图
 ```
 
-模型都在 Replicate 上跑,源图会上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是每个进程两次预测之间至少隔的秒数:账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试。
+模型都在 Replicate 上跑,源图会上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是本机所有进程合起来两次预测之间至少隔的秒数(`--jobs` 并发时也按这个节拍排队):账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试。
 
 分割用的 SAM 3 始终走 Replicate;抠图、本征分解、法线、几何四个模型在哪跑由 `MODEL_BACKEND` 决定,默认值写在 `.env`(进仓库),是 `replicate`:调 Replicate 上的社区封装(版本固定在 `remote.py`),本机只要 `requirements.txt` 和 token。`local` 在本机跑,要装上面的模型依赖、有 Apple 芯片,一个模板 1.5–2.5 分钟,留作对照和开发,批量不用。本机要改就在 `.env.local` 写一行 `MODEL_BACKEND=local`,或设同名环境变量;优先级是环境变量 > `.env.local` > `.env`。两种结果的差别:MoGe-2 逐位相同、抠图几乎一样;Marigold 两个封装不能固定随机种子和处理分辨率、只出 8 位图,换算回来和本机的相关系数本征分解 0.94–0.995(残差那层最低)、法线 0.96–0.98,每次运行结果也会略有不同。
 
@@ -113,7 +113,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `config.py` | 读模板配置、源图、设置和密钥(环境变量、`.env.local`、`.env`),给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
 | `remote.py` | Replicate 的调用(上传、预测、取结果),以及 `MODEL_BACKEND=replicate` 时四个模型的封装版本和输出换算 |
 | `fetch_sources.py` | 按配置的 `fetch` 下载素材,并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;商品的提示词分出几个实例时(如书架上的书、背景里路人的包),把各实例编号画在图上,和原图一起交给 Gemini(`google/gemini-3-flash`,走 Replicate,一次约 0.1 美分)挑出要展示的那几个,回答看不懂时全留,挑的结果写在日志里;ViTMatte 在商品和背景的交界求商品的透明度,在商品和遮挡物的交界求遮挡物的透明度(`MODEL_BACKEND=replicate` 时走 Replicate)。不读写本地文件 |
+| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;商品的提示词分出几个实例时(如书架上的书、背景里路人的包),把各实例编号画在图上,和原图一起交给 Gemini(`google/gemini-3-flash`,走 Replicate,一次约 0.1 美分)挑出要展示的那几个,回答看不懂时全留,说一个都不是时换备选说法(`alternatives`),挑的结果写在日志里;ViTMatte 在商品和背景的交界求商品的透明度,在商品和遮挡物的交界求遮挡物的透明度(`MODEL_BACKEND=replicate` 时走 Replicate)。不读写本地文件 |
 | `run_segment.py` | 按配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物透明度,以及人工检查用的叠图 `segment-check.png` |
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
@@ -145,7 +145,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `crop` | 可选,源图先按 `[x0, y0, x1, y1]`(像素)裁出这一块再用,比例不对时用;各脚本和封面都用裁好的图 |
 | `fetch` | 可选,要下载的素材:`{路径: {url, sha256}}` |
 | `occluders` | 遮挡物的提示列表。一个提示是 `{text: 名词短语}`(SAM 3,图里所有符合的实例合在一起,如 `"bag strap"`),或 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`(SAM 2.1,文字分不准时手点兜底);`note` 只作说明;`matteBand` 可选,和商品交界的待求带半宽 / 宽度,头发这类边上有细丝的放宽(如 `0.015`),不写为 0.004 |
-| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference`;可选的 `alternatives`:备选的说法列表,`text` 一个实例都分不出时按顺序换着试(空白商品上同一品类不同页面能认的说法不同);可选的 `instance`:文字提示挑剩的实例里只取从左往右第几个(从 0 数),同一张图里两件同类商品时各写一件 |
+| `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference`;可选的 `alternatives`:备选的说法列表,`text` 一个实例都分不出、或 Gemini 说分出的都不是商品时按顺序换着试(空白商品上同一品类不同页面能认的说法不同);可选的 `instance`:文字提示挑剩的实例里只取从左往右第几个(从 0 数),同一张图里两件同类商品时各写一件 |
 | `products[].print` | 可印区域规则:商品区减去 `parts`,`inset: {top, bottom, left, right}` 按宽度的比例从商品和背景的交界往里收,只写需要的那几侧(部件、遮挡物和上层商品的边上不收),`rows: [从, 到]` 只留这段高度(占商品高度的比例),`largest: true` 只留最大的一块(部件把可印区切开时,如围裙的腰带),`face: true` 只留正对的那一面(法线和可印区法线中位数的夹角在 35° 以内、连成一片的最大一块;盒子、书、本子、纸袋这类硬的多面商品,侧面、书脊不印,剩下的不到原来 30% 时不收窄) |
 | `products[].binaryEdge` | 源图里这件商品的轮廓是台阶(如从竞品底图还原的),抠图救不回来:按二值来源处理,平滑轮廓后重出软边 |
 | `products[].reference` | 可选,对比用的参考蒙版 `{product, print}`,每项 `{file, transparent}`;`transparent` 取图里半透明的部分,否则取白色 × 透明度。`pipeline.py` 最后打印重合度,不算校验 |
@@ -166,7 +166,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `surface-1.png` / `surface-2.png` | T 恤 / 牛仔裤的大曲面层流向图,固定叠上,不随 Warping 变:R / G = x / y 方向的位移,中灰 = 不位移,通道值 0 / 255 对应 ∓`surfaceRangePx`;B 未用;1/4 尺寸(400×500),使用时双线性放大 |
 | `folds-1.png` / `folds-2.png` | T 恤 / 牛仔裤的褶皱层流向图,格式同上,值是 Warping 100% 时的位移,通道值对应 ∓`foldsRangePx`,使用时乘 Warping |
 | `template.json` | 品类 `category` 和标签 `tags`、文件名(含 `baseCss`)、部件名、默认 Logo 框、合成方式 `blend: "linear"` 和明暗倍数 `shadeGain`、两层流向图的 `displacement.surfaceRangePx`、`foldsRangePx`、生成参数 |
-| `checks.json` | 自动校验结果(14 项) |
+| `checks.json` | 自动校验结果(15 项) |
 
 把模板放进 vorla 的 lab 页或编辑页看效果时,选 `output/<id>/` 里的全部文件:lab 按文件名认 `base.*`、`product-n.*`、`print-n.*`、`surface-n.*`、`folds-n.*`,位移幅度只在 `template.json` 里,要一起选。`work/<id>/` 里是中间结果,lab 认不出。
 

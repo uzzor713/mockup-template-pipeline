@@ -9,11 +9,13 @@ SAM 3(segment.py)也用这里的 Replicate。不读写本地文件;token 由调�
   换算后和本机的相关系数:albedo、shading 0.995 以上,法线 0.96–0.98,residual 约 0.94(数值小,8 位损失大);
 - ViTMatte:三分图照常给,长边超过 2048 时在缩小的图上抠,再放大回原图。
 """
+import fcntl
 import hashlib
 import http.client
 import io
 import json
 import os
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -31,16 +33,16 @@ NORMALS = 'jasonod888/marigold-normalsv2:3129bd0f2d415e73d6cb6bccca11eba9c6dc910
 GEOMETRY = 'jasonod888/moge2:daa7a9329b3d6bb513f3a20def9451b6e3cf234afe2bb60ba38f96ecd33c81f7'
 MATTE = 'superhighfives/vitmatte-trimap:193b4b013b262e9b64e57755d38ff82e497dd2f14537e2e274bc553a28c03237'
 MATTE_MAX = 2048  # 抠图封装能处理的最大长边
+PACE = os.path.join(tempfile.gettempdir(), 'replicate-pace')  # 本机各进程共用的下一次预测最早开始时间
 
 
 class Replicate:
-    """同一张图只上传一次;各次预测之间至少隔 min_interval 秒(本进程内,余额低、每分钟限 6 次的账号设 11)"""
+    """同一张图只上传一次;本机所有进程合起来,各次预测之间至少隔 min_interval 秒(余额低、每分钟限 6 次的账号设 11)"""
 
     def __init__(self, token, min_interval=0.0):
         self.token = token
         self.min_interval = min_interval
         self.uploaded = {}
-        self.next_start = 0.0
 
     def fetch(self, url, data=None, method=None, headers=None, auth=False):
         """取回响应内容;连接失败和限流(429)重试,其他 HTTP 错误照常抛出。结果在 replicate.delivery,不带 token"""
@@ -77,8 +79,15 @@ class Replicate:
 
     def predict(self, model, inputs):
         """model 写成 所有者/名称:版本;返回预测的 output"""
-        time.sleep(max(0.0, self.next_start - time.monotonic()))
-        self.next_start = time.monotonic() + self.min_interval
+        if self.min_interval:
+            with open(PACE, 'a+') as pace:
+                fcntl.flock(pace, fcntl.LOCK_EX)
+                pace.seek(0)
+                start = max(time.time(), float(pace.read() or 0))
+                pace.seek(0)
+                pace.truncate()
+                pace.write(str(start + self.min_interval))
+            time.sleep(max(0.0, start - time.time()))
         body = json.dumps({'version': model.split(':')[1], 'input': inputs}).encode()
         prediction = self.call('POST', f'{API}/predictions', body, {'Content-Type': 'application/json', 'Prefer': 'wait=60'})
         while prediction['status'] not in ('succeeded', 'failed', 'canceled'):

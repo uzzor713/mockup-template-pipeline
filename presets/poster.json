@@ -16,7 +16,9 @@
         }
       },
       "alternatives": [
-        "sheet of paper"
+        "sheet of paper",
+        "board",
+        "panel"
       ]
     }
   ]

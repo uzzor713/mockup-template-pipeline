@@ -26,7 +26,7 @@ def read(name):
 
 template = json.loads((OUT / 'template.json').read_text())
 W, H = template['size']['width'], template['size']['height']
-base = read('base.webp')
+base = np.asarray(Image.open(OUT / 'base.webp').convert('RGBA')).astype(np.float32) / 255  # 整张不透明时 webp 不存透明度通道
 cover = read('cover.webp')
 # 流向图双线性放大回模板尺寸,与编辑页的贴图采样一致;通道值 0 / 1 对应 ∓rangePx
 ranges = template['displacement']

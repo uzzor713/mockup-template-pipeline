@@ -12,8 +12,13 @@
       "name": "Sticker",
       "text": "decal",
       "alternatives": [
-        "paper"
-      ]
+        "paper",
+        "white label",
+        "white rectangle"
+      ],
+      "print": {
+        "largest": true
+      }
     }
   ]
 }

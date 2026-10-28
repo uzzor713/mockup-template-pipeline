@@ -97,7 +97,7 @@ class Sam3Replicate(Replicate):
 
     def pick(self, photo, masks, what):
         """SAM 3 分出几个实例时,把它们编号画在图上,和原图一起交给 Gemini,返回要展示的商品是哪几个(下标);
-        回答看不懂或一个都没挑时全留"""
+        Gemini 说一个都不是时返回空列表,回答看不懂时全留"""
         h, w = photo.shape[:2]
         k = min(1, PICK_SIZE / max(h, w))
         size = (round(w * k), round(h * k))
@@ -124,9 +124,10 @@ class Sam3Replicate(Replicate):
         try:
             keep = sorted({int(n) - 1 for n in json.loads(re.search(r'\{.*\}', answer, re.S).group())['keep']} & set(range(len(masks))))
         except (AttributeError, ValueError, KeyError, TypeError):
-            keep = []
-        print(f'{what}:SAM 3 分出 {len(masks)} 个实例,Gemini 留下 {[i + 1 for i in keep] or "看不懂回答,全留"}({answer.strip()})')
-        return keep or list(range(len(masks)))
+            keep = None
+        print(f'{what}:SAM 3 分出 {len(masks)} 个实例,Gemini 留下 {"看不懂回答,全留" if keep is None else [i + 1 for i in keep] or "一个都不是"}'
+              f'({answer.strip()})')
+        return list(range(len(masks))) if keep is None else keep
 
 
 class Models:
@@ -209,8 +210,8 @@ def prompted(models, photo, prompts):
 
 
 def product_mask(models, photo, item, what, found):
-    """一件商品的蒙版。text 一个实例都分不出时按顺序换 alternatives 里的说法,用第一个分得出的;
-    分出几个实例时由 Gemini 挑出要展示的那几个,写了 instance 的只取挑剩的里从左往右第几个;
+    """一件商品的蒙版。text 分出几个实例时由 Gemini 挑出要展示的那几个;一个实例都分不出、或 Gemini 说一个都不是时,
+    按顺序换 alternatives 里的说法,用第一个挑得出的;写了 instance 的只取挑剩的里从左往右第几个;
     found 存每个提示词挑好的实例,同一张图里两件同类商品只分、只挑一次"""
     if 'text' not in item:
         return prompted(models, photo, [item])
@@ -219,12 +220,12 @@ def product_mask(models, photo, item, what, found):
     if item['text'] not in found:
         for text in [item['text'], *item.get('alternatives', [])]:
             masks = [m for m in models.sam3.instances(photo, text) if m.any()]
+            if len(masks) > 1:
+                masks = [masks[i] for i in models.sam3.pick(photo, masks, what)]
             if masks:
                 if text != item['text']:
                     print(f"「{item['text']}」分不出,换成「{text}」")
                 break
-        if len(masks) > 1:
-            masks = [masks[i] for i in models.sam3.pick(photo, masks, what)]
         found[item['text']] = sorted(masks, key=lambda m: np.nonzero(m)[1].mean())
     masks = found[item['text']]
     if 'instance' in item:

@@ -37,6 +37,7 @@ DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
 STRETCH_RANGE = (0.5, 2.5)  # Warping 0–100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
 STRETCH_OUTLIER = 0.005  # 校验时可印区里至多这么多面积可以超出上面的范围:人穿着的衣服侧面、袖口这些陡边上,大曲面层自己就会超出一点
+PRODUCT_MIN = 0.005  # 每件商品至少占画面这么多;源图里商品被去印花一起抹掉、只分出一点碎块时由校验标出来(胸牌约 1%)
 FACE_ANGLE = 35  # print.face:法线和主朝向夹角在这么多度以内的算同一面;盒子相邻两面差 90°
 FACE_MIN = 0.3  # print.face:正对的那一面至少要占原来可印区这么多才收窄;更小的不收,由校验标出来
 CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
@@ -296,6 +297,9 @@ for item in spec['products']:
     if item.get('print', {}).get('face') and (prints[-1] > 0.5).any():
         prints[-1] = main_face(prints[-1], normals)
     above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
+empty = [item['id'] for item, product in zip(spec['products'], products) if not (product > 0.5).any()]
+if empty:
+    raise SystemExit(f"分割没分出商品:{', '.join(empty)}(提示词分不出,或源图里没有这件商品)")
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
@@ -345,7 +349,8 @@ base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
 
 # 模板墙的 CSS 叠图用的底图:浏览器只能按 sRGB 值普通叠加,由落盘的 base 换算,选白色、纯黑时和线性光结果一致,中间颜色按 sRGB 插值
-shipped = np.asarray(Image.open(OUT / 'base.webp')).astype(np.float32) / 255
+# 整张不透明时 webp 不存透明度通道,读回来要补上
+shipped = np.asarray(Image.open(OUT / 'base.webp').convert('RGBA')).astype(np.float32) / 255
 on_white = to_srgb(shade_gain * (1 - shipped[..., 3:]) + to_linear(shipped[..., :3]) * shipped[..., 3:])
 on_black = to_srgb(to_linear(shipped[..., :3]) * shipped[..., 3:])
 css_alpha = np.clip(1 - (on_white - on_black).mean(axis=2, keepdims=True), 1 / 255, 1)
@@ -448,11 +453,12 @@ template = {
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
 # ---- 6. 自动校验(读回落盘的文件)
-def read(name):
-    return np.asarray(Image.open(OUT / name)).astype(np.float32) / 255
+def read(name, mode=None):
+    image = Image.open(OUT / name)
+    return np.asarray(image.convert(mode) if mode else image).astype(np.float32) / 255
 
-base_out = read('base.webp')
-css_out = read('base-css.webp')
+base_out = read('base.webp', 'RGBA')  # 整张不透明时 webp 不存透明度通道
+css_out = read('base-css.webp', 'RGBA')
 numbers = range(1, len(products) + 1)
 s = [read(f'surface-{i}.png') for i in numbers]
 f = [read(f'folds-{i}.png') for i in numbers]
@@ -537,6 +543,7 @@ checks = {
     'base-css sizes equal': css_out.shape == base_out.shape,
     'design centre dragged outward never runs back': all(drag_never_back(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
+    f'products ≥ {PRODUCT_MIN:.1%} of frame': all((pp > 0.5).mean() >= PRODUCT_MIN for pp in p),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(joined_share(qq) >= 0.8 for qq in q),
     'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),

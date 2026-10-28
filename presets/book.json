@@ -11,6 +11,10 @@
       "key": "main",
       "name": "Cover",
       "text": "book cover",
+      "alternatives": [
+        "book",
+        "notebook"
+      ],
       "parts": [
         {
           "text": "book pages"
