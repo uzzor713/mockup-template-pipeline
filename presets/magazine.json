@@ -10,7 +10,11 @@
       "id": "cover",
       "key": "main",
       "name": "Cover",
-      "text": "magazine"
+      "text": "magazine",
+      "alternatives": [
+        "cover",
+        "open book"
+      ]
     }
   ]
 }

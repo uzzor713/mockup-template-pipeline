@@ -10,7 +10,11 @@
       "id": "menu",
       "key": "main",
       "name": "Menu",
-      "text": "menu"
+      "text": "card",
+      "alternatives": [
+        "sheet of paper",
+        "menu"
+      ]
     }
   ]
 }
