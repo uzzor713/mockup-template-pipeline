@@ -45,7 +45,7 @@ class Replicate:
         self.uploaded = {}
 
     def fetch(self, url, data=None, method=None, headers=None, auth=False):
-        """取回响应内容;连接失败和限流(429)重试,其他 HTTP 错误照常抛出。结果在 replicate.delivery,不带 token"""
+        """取回响应内容;连接失败、限流(429)和服务器偶发错误(5xx)重试,其他 HTTP 错误照常抛出。结果在 replicate.delivery,不带 token"""
         headers = {'User-Agent': USER_AGENT, **({'Authorization': f'Bearer {self.token}'} if auth else {}), **(headers or {})}
         for attempt in range(RETRIES):
             try:
@@ -53,9 +53,12 @@ class Replicate:
                 with urllib.request.urlopen(request, timeout=300) as response:
                     return response.read()
             except urllib.error.HTTPError as error:
-                if error.code != 429 or attempt == RETRIES - 1:
+                if (error.code != 429 and error.code < 500) or attempt == RETRIES - 1:
                     raise
-                time.sleep(float(error.headers.get('Retry-After') or RETRY_WAIT))
+                if error.code == 429:
+                    time.sleep(float(error.headers.get('Retry-After') or RETRY_WAIT))
+                else:
+                    time.sleep(min(3 * 2 ** attempt, 60))
             except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError):
                 if attempt == RETRIES - 1:
                     raise

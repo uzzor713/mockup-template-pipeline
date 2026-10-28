@@ -25,7 +25,7 @@ SPEC=specs/sample-tee-jeans.json
 .venv/bin/python -I preview.py $SPEC         # 合成预览图
 ```
 
-模型都在 Replicate 上跑,源图会上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是本机所有进程合起来两次预测之间至少隔的秒数(`--jobs` 并发时也按这个节拍排队):账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试。
+模型都在 Replicate 上跑,源图会上传过去。token 写进仓库根目录的 `.env.local`(不进仓库),一行 `REPLICATE_API_TOKEN=...`,或者设同名的环境变量。`.env` 里的 `REPLICATE_MIN_INTERVAL` 是本机所有进程合起来两次预测之间至少隔的秒数(`--jobs` 并发时也按这个节拍排队):账号余额低时 Replicate 每分钟只让建 6 次预测,要设 11;充值后每分钟 600 次(响应头 `ratelimit-remaining`),设 0。超了会返回 429,`remote.py` 等一会儿重试;Replicate 偶发的服务器错误(5xx)和断连也重试。
 
 分割用的 SAM 3 始终走 Replicate;抠图、本征分解、法线、几何四个模型在哪跑由 `MODEL_BACKEND` 决定,默认值写在 `.env`(进仓库),是 `replicate`:调 Replicate 上的社区封装(版本固定在 `remote.py`),本机只要 `requirements.txt` 和 token。`local` 在本机跑,要装上面的模型依赖、有 Apple 芯片,一个模板 1.5–2.5 分钟,留作对照和开发,批量不用。本机要改就在 `.env.local` 写一行 `MODEL_BACKEND=local`,或设同名环境变量;优先级是环境变量 > `.env.local` > `.env`。两种结果的差别:MoGe-2 逐位相同、抠图几乎一样;Marigold 两个封装不能固定随机种子和处理分辨率、只出 8 位图,换算回来和本机的相关系数本征分解 0.94–0.995(残差那层最低)、法线 0.96–0.98,每次运行结果也会略有不同。
 
