@@ -4,6 +4,7 @@
 """
 import json
 import os
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -66,3 +67,22 @@ def photo(spec):
         image = image.resize(tuple(spec['size']), Image.LANCZOS)
     rgba = np.asarray(image).astype(np.float32) / 255
     return rgba[..., :3] * rgba[..., 3:] + (1 - rgba[..., 3:]), rgba[..., 3]
+
+
+def save_points(work, points):
+    """3D 坐标(H×W×3 float32)无损压缩存 work/points.z:x、y、z 分开,每个数的四个字节按位置归到一起再 zlib,
+    约为原来的一半(work/ 里最占地方的就是它)。第一行是 JSON 写的形状"""
+    planes = np.ascontiguousarray(points.astype(np.float32).transpose(2, 0, 1)).view(np.uint8).reshape(-1, 4).T
+    header = json.dumps({'shape': list(points.shape)}).encode() + b'\n'
+    (Path(work) / 'points.z').write_bytes(header + zlib.compress(planes.tobytes(), 9))
+
+
+def load_points(work):
+    """save_points 存的 3D 坐标;更早存成 points.npy 的照样读"""
+    path = Path(work) / 'points.z'
+    if not path.exists():
+        return np.load(Path(work) / 'points.npy')
+    header, body = path.read_bytes().split(b'\n', 1)
+    height, width, channels = json.loads(header)['shape']
+    planes = np.frombuffer(zlib.decompress(body), np.uint8).reshape(4, -1).T.copy().view(np.float32)
+    return np.ascontiguousarray(planes.reshape(channels, height, width).transpose(1, 2, 0))

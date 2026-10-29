@@ -5,7 +5,7 @@
 - 分割(第 2 步):SAM 3(文字提示)或 SAM 2.1(手点)分出的商品、不可印部件和遮挡物,ViTMatte 求的边缘透明度(run_segment.py);
   可印区域按配置里的规则从商品区里取。
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 albedo.png、shading.png、residual.png)。
-- 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 points.npy、geometry.json),
+- 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 points.z、geometry.json),
   褶皱取 Marigold 法线(normals.py 产出 normals.png)。
 其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py specs/<模板>.json
 """
@@ -368,7 +368,7 @@ Image.fromarray(np.round(css_base * 255).astype(np.uint8), 'RGBA').save(OUT / 'b
 # 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动;设计稿中心可以拖出商品,商品外按 extend_outside 铺平。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
-points = np.load(WORK / 'points.npy')
+points = config.load_points(WORK)
 focal = json.loads((WORK / 'geometry.json').read_text())['intrinsics'][0][0] * W
 sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
