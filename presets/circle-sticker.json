@@ -1,0 +1,25 @@
+{
+  "category": "sticker",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "sticker",
+      "key": "main",
+      "name": "Sticker",
+      "text": "decal",
+      "alternatives": [
+        "circle",
+        "round label",
+        "paper",
+        "white label"
+      ],
+      "print": {
+        "largest": true
+      }
+    }
+  ]
+}

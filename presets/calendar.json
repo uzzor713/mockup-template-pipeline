@@ -11,6 +11,10 @@
       "key": "main",
       "name": "Calendar",
       "text": "sheet of paper",
+      "alternatives": [
+        "rectangle",
+        "panel"
+      ],
       "parts": [
         {
           "text": "spiral binding"
