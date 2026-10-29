@@ -300,6 +300,9 @@ for item in spec['products']:
 empty = [item['id'] for item, product in zip(spec['products'], products) if not (product > 0.5).any()]
 if empty:
     raise SystemExit(f"分割没分出商品:{', '.join(empty)}(提示词分不出,或源图里没有这件商品)")
+blank = [item['id'] for item, printable in zip(spec['products'], prints) if not (printable > 0.5).any()]
+if blank:
+    raise SystemExit(f"可印区是空的:{', '.join(blank)}(分出的商品太小,或被部件、内缩扣光了)")
 coverage = np.minimum(sum(products), 1)
 
 # ---- 3. 底图
