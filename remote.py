@@ -1,6 +1,6 @@
 """
 Replicate 的调用:上传图片、按固定版本跑预测、取回结果,以及 MODEL_BACKEND=replicate 时四个模型的封装和输出换算。
-SAM 3(segment.py)也用这里的 Replicate。不读写本地文件;token 由调用方给。
+SAM 3(segment.py)也用这里的 Replicate。不读写项目里的文件,本机各进程共用的预测节拍和上传记录放在系统临时目录;token 由调用方给。
 
 四个封装都是社区上传的,版本固定写死。输出和本机版对过(T 恤、咖啡袋两张):
 - MoGe-2:关掉 fp16 后 3D 坐标、内参和本机逐位相同;
@@ -9,6 +9,7 @@ SAM 3(segment.py)也用这里的 Replicate。不读写本地文件;token 由调�
   换算后和本机的相关系数:albedo、shading 0.995 以上,法线 0.96–0.98,residual 约 0.94(数值小,8 位损失大);
 - ViTMatte:三分图照常给,长边超过 2048 时在缩小的图上抠,再放大回原图。
 """
+import datetime
 import fcntl
 import hashlib
 import http.client
@@ -34,10 +35,13 @@ GEOMETRY = 'jasonod888/moge2:daa7a9329b3d6bb513f3a20def9451b6e3cf234afe2bb60ba38
 MATTE = 'superhighfives/vitmatte-trimap:193b4b013b262e9b64e57755d38ff82e497dd2f14537e2e274bc553a28c03237'
 MATTE_MAX = 2048  # 抠图封装能处理的最大长边
 PACE = os.path.join(tempfile.gettempdir(), 'replicate-pace')  # 本机各进程共用的下一次预测最早开始时间
+UPLOADS = os.path.join(tempfile.gettempdir(), 'replicate-uploads')  # 本机各进程共用的上传记录:图片内容的哈希 → 文件地址和过期时间
+UPLOAD_MARGIN = 3600  # 上传的文件离过期(Replicate 存 24 小时)不到这么多秒就不再用,重新上传
 
 
 class Replicate:
-    """同一张图只上传一次;本机所有进程合起来,各次预测之间至少隔 min_interval 秒(余额低、每分钟限 6 次的账号设 11)"""
+    """同一张图只上传一次(本机各进程共用,分割、本征分解、法线、几何几步不再各传一遍);
+    本机所有进程合起来,各次预测之间至少隔 min_interval 秒(余额低、每分钟限 6 次的账号设 11)"""
 
     def __init__(self, token, min_interval=0.0):
         self.token = token
@@ -70,14 +74,28 @@ class Replicate:
     def upload(self, image):
         """uint8 的 H×W×3 或 H×W → 文件地址"""
         key = hashlib.sha1(image.tobytes() + str(image.shape).encode()).hexdigest()
+        record = os.path.join(UPLOADS, f'{key}.json')
+        if key not in self.uploaded and os.path.exists(record):
+            try:
+                saved = json.loads(open(record).read())
+                expires = datetime.datetime.fromisoformat(saved['expires_at'].replace('Z', '+00:00')).timestamp()
+                if expires - time.time() > UPLOAD_MARGIN:
+                    self.uploaded[key] = saved['url']
+            except (OSError, ValueError, KeyError):
+                pass
         if key not in self.uploaded:
             buffer = io.BytesIO()
             Image.fromarray(image).save(buffer, 'PNG')
             boundary = 'replicate-upload-boundary'
             body = (f'--{boundary}\r\nContent-Disposition: form-data; name="content"; filename="image.png"\r\n'
                     'Content-Type: image/png\r\n\r\n').encode() + buffer.getvalue() + f'\r\n--{boundary}--\r\n'.encode()
-            self.uploaded[key] = self.call('POST', f'{API}/files', body,
-                                           {'Content-Type': f'multipart/form-data; boundary={boundary}'})['urls']['get']
+            file = self.call('POST', f'{API}/files', body, {'Content-Type': f'multipart/form-data; boundary={boundary}'})
+            self.uploaded[key] = file['urls']['get']
+            if file.get('expires_at'):
+                os.makedirs(UPLOADS, exist_ok=True)
+                with open(f'{record}.{os.getpid()}', 'w') as out:
+                    json.dump({'url': file['urls']['get'], 'expires_at': file['expires_at']}, out)
+                os.replace(f'{record}.{os.getpid()}', record)
         return self.uploaded[key]
 
     def predict(self, model, inputs):
