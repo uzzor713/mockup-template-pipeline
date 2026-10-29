@@ -10,7 +10,11 @@
       "id": "label",
       "key": "main",
       "name": "Label",
-      "text": "label"
+      "text": "label",
+      "alternatives": [
+        "tag",
+        "white label"
+      ]
     }
   ]
 }
