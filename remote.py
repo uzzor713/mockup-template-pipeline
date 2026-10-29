@@ -36,6 +36,9 @@ MATTE = 'superhighfives/vitmatte-trimap:193b4b013b262e9b64e57755d38ff82e497dd2f1
 MATTE_MAX = 2048  # 抠图封装能处理的最大长边
 PACE = os.path.join(tempfile.gettempdir(), 'replicate-pace')  # 本机各进程共用的下一次预测最早开始时间
 UPLOADS = os.path.join(tempfile.gettempdir(), 'replicate-uploads')  # 本机各进程共用的上传记录:图片内容的哈希 → 文件地址和过期时间
+PREDICT_RETRIES = 3  # 模型那边临时不可用、超时而失败的预测,最多一共提交这么多次,每次隔 PREDICT_WAIT 秒
+PREDICT_WAIT = 30
+TRANSIENT = ('temporarily unavailable', 'timed out', '(e004)')  # 预测失败信息里出现这些(不分大小写)算临时故障
 UPLOAD_MARGIN = 3600  # 上传的文件离过期(Replicate 存 24 小时)不到这么多秒就不再用,重新上传
 
 
@@ -99,24 +102,28 @@ class Replicate:
         return self.uploaded[key]
 
     def predict(self, model, inputs):
-        """model 写成 所有者/名称:版本;返回预测的 output"""
-        if self.min_interval:
-            with open(PACE, 'a+') as pace:
-                fcntl.flock(pace, fcntl.LOCK_EX)
-                pace.seek(0)
-                start = max(time.time(), float(pace.read() or 0))
-                pace.seek(0)
-                pace.truncate()
-                pace.write(str(start + self.min_interval))
-            time.sleep(max(0.0, start - time.time()))
-        body = json.dumps({'version': model.split(':')[1], 'input': inputs}).encode()
-        prediction = self.call('POST', f'{API}/predictions', body, {'Content-Type': 'application/json', 'Prefer': 'wait=60'})
-        while prediction['status'] not in ('succeeded', 'failed', 'canceled'):
-            time.sleep(2)
-            prediction = self.call('GET', prediction['urls']['get'])
-        if prediction['status'] != 'succeeded':
-            raise RuntimeError(f"{model.split(':')[0]}: {prediction['status']} {prediction.get('error')}")
-        return prediction['output']
+        """model 写成 所有者/名称:版本;返回预测的 output。模型那边临时不可用、超时而失败的,隔一会儿重新提交"""
+        for attempt in range(PREDICT_RETRIES):
+            if self.min_interval:
+                with open(PACE, 'a+') as pace:
+                    fcntl.flock(pace, fcntl.LOCK_EX)
+                    pace.seek(0)
+                    start = max(time.time(), float(pace.read() or 0))
+                    pace.seek(0)
+                    pace.truncate()
+                    pace.write(str(start + self.min_interval))
+                time.sleep(max(0.0, start - time.time()))
+            body = json.dumps({'version': model.split(':')[1], 'input': inputs}).encode()
+            prediction = self.call('POST', f'{API}/predictions', body, {'Content-Type': 'application/json', 'Prefer': 'wait=60'})
+            while prediction['status'] not in ('succeeded', 'failed', 'canceled'):
+                time.sleep(2)
+                prediction = self.call('GET', prediction['urls']['get'])
+            if prediction['status'] == 'succeeded':
+                return prediction['output']
+            error = str(prediction.get('error'))
+            if attempt == PREDICT_RETRIES - 1 or not any(mark in error.lower() for mark in TRANSIENT):
+                raise RuntimeError(f"{model.split(':')[0]}: {prediction['status']} {error}")
+            time.sleep(PREDICT_WAIT)
 
     def image(self, url):
         return np.asarray(Image.open(io.BytesIO(self.fetch(url))))
