@@ -1,5 +1,5 @@
 """
-按 vorla 的模板上传说明,把一批里自动校验全过的模板整理成上传用的文件夹:每个模板一个目录(目录名是 id),
+按 vorla 的模板上传说明,把一批里通过的模板(report.csv 里 status 为 pass,自动校验全过、不在跳过之列)整理成上传用的文件夹:每个模板一个目录(目录名是 id),
 放模板文件(template.json 里列的,原样复制)、展示图 cover.webp、白模图 white.png,根目录写 manifest.csv。
 整个文件夹原样传到 OSS 的收件目录(如 vorla-assets/mockup-template-inbox/<日期>/),checks.json 不传。
 用法:.venv/bin/python -I inbox.py batches/<批次> <输出目录> [--uploaded 已传过的 manifest.csv ...]
@@ -61,14 +61,17 @@ parser.add_argument('--uploaded', type=Path, action='append', default=[], help='
 args = parser.parse_args()
 
 uploaded = {row['id'] for path in args.uploaded for row in csv.DictReader(open(path, encoding='utf-8-sig'))}
-rows, skipped = [], {'没全过校验': [], '已传过': [], '找不到展示图': []}
+report = args.batch / 'report.csv'
+if not report.exists():
+    raise SystemExit(f'没有 {report}:批次跑完才有汇总表')
+passed = {row['id'] for row in csv.DictReader(open(report, encoding='utf-8-sig')) if row['status'] == 'pass'}
+rows, skipped = [], {'没通过或跳过': [], '已传过': [], '找不到展示图': []}
 args.out.mkdir(parents=True, exist_ok=True)
 for spec_path in sorted((args.batch / 'specs').glob('*.json')):
     spec = config.load(spec_path)
     folder = ROOT / 'output' / spec['id']
-    checks_path = folder / 'checks.json'
-    if not checks_path.exists() or not all(json.loads(checks_path.read_text()).values()):
-        skipped['没全过校验'].append(spec['id'])
+    if spec['id'] not in passed:
+        skipped['没通过或跳过'].append(spec['id'])
         continue
     if spec['id'] in uploaded:
         skipped['已传过'].append(spec['id'])
