@@ -1,6 +1,6 @@
 # 8000 张模板的批量方案
 
-给维护这条流水线的人看:批量出 vorla mockups 模板时怎么跑、花多少、质量怎么把关、还有哪些没定。命令和参数见 README,跑批量的操作步骤见 [operator-guide.md](operator-guide.md),跑完怎么发布见 [publish.md](publish.md)。
+给维护这条流水线的人看:批量出 vorla mockups 模板时怎么跑、花多少、质量怎么把关、还有哪些没定。命令和参数见 README,跑批量的操作步骤见 [operator-guide.md](operator-guide.md),跑完怎么上传见 [publish.md](publish.md)。
 
 ## 目标和分工
 
@@ -75,5 +75,5 @@ AI 判不通过的图,先让它针对问题给几种不同说法,每种都交给
 - **区域的 `key`**:现在服装是 `top` / `bottom`,其余是 `main`,要不要按品类区分要看前端怎么用。
 - **SAM 3 的许可**:SAM License 是 Meta 自定的条款,商用前要确认。
 - **社区封装可能被删**:ViTMatte、两个 Marigold、MoGe-2 是个人上传的,版本已锁定但作者能整个删掉;全量跑之前可以把同样的权重部署到自己的 Replicate 账号。
-- **上传和入库**:文件怎么放 OSS、库里记什么见 [publish.md](publish.md);流水线这边还没有发布脚本,OSS 路径前缀、页面归属等几项待后端和产品定。
+- **上传**:按 vorla 的上传说明整理、传到 OSS 收件目录,见 [publish.md](publish.md);入库和线上路径由后端做。
 - **分不出来的图**:SAM 3 封装只收文字提示,不收框和点;文字说不清的现在只能跳过。数量多的话,考虑能收框选的 SAM 3 部署,或由视觉模型给出框再交给 SAM 分割。

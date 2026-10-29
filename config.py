@@ -58,9 +58,11 @@ def backend():
 
 def photo(spec):
     """源图:0–1 的 RGB,带透明度的叠在白色上;另返回透明度,不到 1 的像素不是原始照片(如从竞品底图还原的商品区)。
-    配置里有 crop 时先裁"""
+    配置里有 crop 时先裁,有 size 时再缩放到这个尺寸"""
     image = Image.open(ROOT / spec['photo']).convert('RGBA')
     if 'crop' in spec:
         image = image.crop(spec['crop'])
+    if 'size' in spec:
+        image = image.resize(tuple(spec['size']), Image.LANCZOS)
     rgba = np.asarray(image).astype(np.float32) / 255
     return rgba[..., :3] * rgba[..., 3:] + (1 - rgba[..., 3:]), rgba[..., 3]

@@ -54,13 +54,15 @@ import review
 ROOT = config.ROOT
 REVIEW_EVERY = 60  # 抽查页最多隔这么多秒更新一次,跑完再写一次
 IMAGE_SUFFIXES = {'.png', '.jpg', '.jpeg', '.webp'}
+SIZE = (2048, 2560)  # 竖版模板的尺寸,横版宽高对调:vorla 后端按这个尺寸收模板,源图裁好后不是这个尺寸的缩放过去
+LATER = {'size'}  # 后加的配置字段,没写时不算进下面的比较,加字段之前做过的模板不用重跑
 # 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND;源图路径不算,挪了文件夹不重跑):都没变、前一次成功过就跳过;
 # None 表示用到整份配置
 STEPS = [
-    ('run_segment.py', ['crop', 'occluders', 'products']),
-    ('intrinsic.py', ['crop']),
-    ('normals.py', ['crop']),
-    ('geometry.py', ['crop']),
+    ('run_segment.py', ['crop', 'size', 'occluders', 'products']),
+    ('intrinsic.py', ['crop', 'size']),
+    ('normals.py', ['crop', 'size']),
+    ('geometry.py', ['crop', 'size']),
     ('pipeline.py', None),
     ('preview.py', None),
 ]
@@ -195,6 +197,10 @@ def make_spec(row):
         spec['tags'] = words(row['tags'])
     if crop != [0, 0, width, height]:
         spec['crop'] = crop
+    w, h = crop[2] - crop[0], crop[3] - crop[1]
+    size = list(SIZE if h > w else SIZE[::-1])
+    if [w, h] != size and w * size[1] == h * size[0]:
+        spec['size'] = size
     if remote:
         spec['fetch'] = {photo: {'url': source, 'sha256': sha256(ROOT / photo)}}
     spec |= {'occluders': occluders, 'products': products}
@@ -202,7 +208,7 @@ def make_spec(row):
 
 
 def digest(spec, fields, photo_sha):
-    part = {k: v for k, v in spec.items() if k not in ('photo', 'fetch')} if fields is None else {k: spec.get(k) for k in fields}
+    part = {k: v for k, v in spec.items() if k not in ('photo', 'fetch')} if fields is None else {k: spec.get(k) for k in fields if k in spec or k not in LATER}
     return hashlib.sha1(json.dumps([part, photo_sha, config.backend()], sort_keys=True).encode()).hexdigest()
 
 

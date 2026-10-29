@@ -14,3 +14,6 @@ preview/
 
 # 批量运行的配置、日志和汇总,按清单重新生成
 batches/
+
+# 整理好、待上传 OSS 的模板(inbox.py 生成)
+inbox/

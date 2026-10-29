@@ -84,7 +84,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `source`、`preset` | 源图的地址或本地路径、预设名,必填;地址的源图下载到 `sources/<预设>/`,本地的直接引用 |
 | `id` | 可选,不写由文件名得出,规则同上(不加文件夹名) |
 | `occluders` | 可选,遮挡物提示词,`;` 隔开,替换预设里的(同名的沿用预设里的 `matteBand`);写 `-` 表示没有遮挡物 |
-| `crop` | 可选,`x0 y0 x1 y1`(源图像素),不写按预设的比例规则裁 |
+| `crop` | 可选,`x0 y0 x1 y1`(源图像素),不写按预设的比例规则裁;裁好后不是 2048 × 2560(横版 2560 × 2048)的,配置里记上 `size`,各步骤先缩放到这个尺寸 |
 | `tags` | 可选,标签,`;` 隔开,写进配置和 `template.json`,如 Channel、Seasonal 页面的 `channel/amazon`、`seasonal/christmas` |
 
 预设里除了配置的 `category`、`occluders`、`products` 和文件夹别名 `folders`,还有裁切规则:竖图裁成 4:5、横图 5:4,正方形按 `square`(默认 `[4, 5]`);多出的宽度两边平分,多出的高度按 `trim`(`bottom` / `top` / `center`,默认 `center`)从哪边裁。
@@ -122,6 +122,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
 | `batch.py` | 按品类文件夹(或清单)和品类预设批量生成配置、跑完各步,出汇总表和抽查页;按例外清单打包问题源图 |
 | `review.py` | 批量的抽查页:按品类分页、缩略图、标记问题并导出例外清单 |
+| `inbox.py` | 把一批里自动校验全过的模板按 vorla 的上传说明整理成上传用的文件夹(模板文件、展示图 `cover.webp`、白模图 `white.png`、`manifest.csv`),见 [docs/publish.md](docs/publish.md) |
 
 `experiments/` 里是试验脚本,不在上面的流程里,结果写到 `work/<id>/experiments/`:
 
@@ -143,6 +144,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `id`、`category`、`tags` | 模板 id(也是 `work/`、`output/`、`preview/` 下的目录名)、品类、可选的标签列表,写进 `template.json` |
 | `photo` | 源图。带透明度的叠在白色上;透明度不到 1 的像素视为不是原始照片(如从竞品底图还原的商品区),这些像素落在商品区外时,底图里换成周围的背景色 |
 | `crop` | 可选,源图先按 `[x0, y0, x1, y1]`(像素)裁出这一块再用,比例不对时用;各脚本和封面都用裁好的图 |
+| `size` | 可选,`[宽, 高]`,裁好后再缩放到这个尺寸;`batch.py` 在裁好的图不是 2048 × 2560 / 2560 × 2048 时写上(vorla 后端按这个尺寸收模板) |
 | `fetch` | 可选,要下载的素材:`{路径: {url, sha256}}` |
 | `occluders` | 遮挡物的提示列表。一个提示是 `{text: 名词短语}`(SAM 3,图里所有符合的实例合在一起,如 `"bag strap"`),或 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`(SAM 2.1,文字分不准时手点兜底);`note` 只作说明;`matteBand` 可选,和商品交界的待求带半宽 / 宽度,头发这类边上有细丝的放宽(如 `0.015`),不写为 0.004 |
 | `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference`;可选的 `alternatives`:备选的说法列表,`text` 一个实例都分不出、或 Gemini 说分出的都不是商品时按顺序换着试(空白商品上同一品类不同页面能认的说法不同);可选的 `instance`:文字提示挑剩的实例里只取从左往右第几个(从 0 数),同一张图里两件同类商品时各写一件 |
