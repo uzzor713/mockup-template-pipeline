@@ -1,7 +1,7 @@
 """
 批量出模板:每张源图按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
 pipeline.py 和 preview.py,最后汇总结果。
-用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--force]
+用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--force] [--no-preview]
       .venv/bin/python -I batch.py <按品类分好的文件夹> --pack 例外.csv   # 把这几张打包给调参数的人
 
 按品类分好的文件夹:每个子文件夹是一个品类,文件夹名是预设名或预设里 folders 列的别名,里面(含更深的子文件夹)
@@ -31,6 +31,7 @@ pipeline.py 和 preview.py,最后汇总结果。
 结果都在 batches/<文件夹名或清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
 review.html 是抽查页(按品类分页,见 review.py)。--dry-run 只生成配置、列出各品类的张数,不跑。改了清单重跑同一条命令,只重算受影响的模板和步骤:
 改遮挡物只重跑分割和之后两步,三个模型脚本只看源图(按文件内容)和裁切;改 MODEL_BACKEND 全部重跑。--force 全部重跑。
+--no-preview 不出预览(只用来抽查,上传用不到),这次没出的下次不带它跑时补上。
 """
 import argparse
 import csv
@@ -222,8 +223,8 @@ def digest(spec, fields, photo_sha, logo=False):
     return hashlib.sha1(json.dumps([part, photo_sha, config.backend()], sort_keys=True).encode()).hexdigest()
 
 
-def run(spec_path, log_path, force):
-    """跑一个模板,返回 (状态, 说明, 秒数)"""
+def run(spec_path, log_path, force, skip=()):
+    """跑一个模板,返回 (状态, 说明, 秒数);skip 里的步骤这次不跑,也不记下"""
     spec = config.load(spec_path)
     state_path = config.folder(spec, 'work') / 'steps.json'
     state = {} if force or not state_path.exists() else json.loads(state_path.read_text())
@@ -232,6 +233,8 @@ def run(spec_path, log_path, force):
     rerun = False  # 前面有一步重跑过,用到整份配置的步骤(读前面各步的结果)也要重跑
     with open(log_path, 'a') as log:
         for script, fields in STEPS:
+            if script in skip:
+                continue
             key = digest(spec, fields, photo_sha, script in USES_LOGO)
             if state.get(script) == key and not (rerun and fields is None):
                 continue
@@ -259,6 +262,7 @@ parser.add_argument('--pack', help='把这份例外清单里的源图、分割�
 parser.add_argument('--dry-run', action='store_true', help='只生成配置、列出各品类的张数,不跑')
 parser.add_argument('--jobs', type=int, default=1, help='同时跑几个模板;MODEL_BACKEND=local 时每个峰值约 6–7GB 内存')
 parser.add_argument('--force', action='store_true', help='忽略上次的结果,全部重跑')
+parser.add_argument('--no-preview', action='store_true', help='不出预览,下次不带它跑时补上')
 args = parser.parse_args()
 
 source = Path(args.input).expanduser()
@@ -320,7 +324,7 @@ last_review = 0.0
 def one(path):
     global last_review
     spec = config.load(path)
-    status, note, seconds = run(path, folder / 'logs' / f"{spec['id']}.log", args.force)
+    status, note, seconds = run(path, folder / 'logs' / f"{spec['id']}.log", args.force, {'preview.py'} if args.no_preview else ())
     review.thumbnails(folder, spec['id'])
     with lock:
         results.append({'id': spec['id'], 'category': spec['category'], 'source': Path(spec['photo']).name,

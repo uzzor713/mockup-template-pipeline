@@ -45,7 +45,7 @@ ViTMatte、两个 Marigold 和 MoGe-2 在 Replicate 上用的是个人上传的�
 
 ```bash
 .venv/bin/python -I batch.py 源图文件夹 --dry-run   # 先只生成配置、列出各品类张数,确认文件夹都对上了预设
-.venv/bin/python -I batch.py 源图文件夹             # --jobs N 同时跑几个模板,--force 全部重跑
+.venv/bin/python -I batch.py 源图文件夹             # --jobs N 同时跑几个模板,--force 全部重跑,--no-preview 不出预览
 ```
 
 `--jobs`:`MODEL_BACKEND=local` 时每个模板峰值约 6–7GB 内存,16GB 的机器开 1 个;`replicate` 时本机只等网络,可以多开,各模型一直有请求就不会闲置下来、反复冷启动。
