@@ -402,7 +402,10 @@ for index, (product, printable) in enumerate(zip(carriers, prints)):
 
 
 def save_flows(flows, prefix):
-    """通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉"""
+    """通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉。
+    每张先整体减去守住范围的格子里各方向最大、最小位移的中点:渲染端减去设计稿中心处的位移,整体平移不改变结果,
+    范围小了每一级对应的位移就小,直线上的台阶跟着变小"""
+    flows = [flow - (flow[g].max(axis=0) + flow[g].min(axis=0)) / 2 for flow, g in zip(flows, guards)]
     range_px = round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1)
     for index, flow in enumerate(flows, start=1):
         rgb = np.dstack([0.5 + np.clip(flow, -range_px, range_px) / (2 * range_px), np.full(flow.shape[:2], 0.5, np.float32)])
