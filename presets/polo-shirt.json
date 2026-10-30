@@ -33,7 +33,9 @@
       },
       "logo": {
         "top": 0.32,
-        "side": "left"
+        "closure": {
+          "side": "left"
+        }
       }
     }
   ]

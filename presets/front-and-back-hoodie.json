@@ -31,7 +31,10 @@
       ],
       "instance": 0,
       "logo": {
-        "top": 0.32
+        "top": 0.32,
+        "closure": {
+          "side": "left"
+        }
       }
     },
     {
@@ -55,7 +58,10 @@
       ],
       "instance": 1,
       "logo": {
-        "top": 0.32
+        "top": 0.32,
+        "closure": {
+          "side": "left"
+        }
       }
     }
   ]

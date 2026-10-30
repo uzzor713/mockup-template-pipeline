@@ -4,13 +4,17 @@
 商品的 logo 设置:
 - 不写:框是正方形,放在可印区正中,边长为可印区最宽处的 width(默认 LOGO_WIDTH);
 - top:上衣用,框往上挪到中心在可印区从上往下 top 处(胸口,背面是上背部),竞品 Mockey 的上衣在约 32%;框上沿碰到领口就停;
-- side 为 left:左胸(穿衣人的左边,正面照里在画面右侧),带拉链、扣子的正面用,和 top 一起写;横向放在门襟(那一高度可印区的中线)
+- side 为 left:左胸(穿衣人的左边,正面照里在画面右侧),和 top 一起写;横向放在门襟(那一高度可印区的中线)
   到右端的中点,边长为门襟到右端宽度的 width;
+- closure:上衣用,问 Gemini 照片拍的是不是这件的正面、前襟有没有拉链或扣子,是就把 closure 里的设置合进来(预设里写左胸);
+  回答存在 work/<id>/logo-closure.json,图和问题没变就不再问;
 - fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区,形状和可印区一样。
 框跟着可印区摆放的方向转(rotation,度,屏幕上顺时针为正)。
-用法:.venv/bin/python -I logo.py specs/<模板>.json
+用法:.venv/bin/python -I logo.py specs/<模板>.json(配置里写了 closure 时要 Replicate 的 token,同 run_segment.py)
 """
+import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -23,8 +27,15 @@ TILT_FREE = 10  # 可印区不是四边形(衣服等)时摆正的上限:人穿�
 ROUND_SHAPE = 0.93  # 可印区轮廓和拟合椭圆的重合度(交 / 并)高于它算圆形、椭圆形,看不出方向,框不转(圆贴纸中位数 0.99,衣服、海报、卡片至多 0.91)
 LOGO_WIDTH = 0.4  # 没写 width 时,框边长至多为可印区最宽处的这么多
 LOGO_REACH = 1.4  # 框边长至多为可印区最大内切圆半径的这么多倍,窄长的可印区里框不至于太大
-# 例外清单 logo 列可填的名字(按模板单独改放法,如同一品类里拍正面、带拉链的那几张)
-PLACES = {'left-chest': {'top': 0.32, 'side': 'left'}}
+# 例外清单 logo 列可填的名字,Gemini 判断前襟判错时按模板改正:left-chest 左胸,chest 胸口正中
+PLACES = {'left-chest': {'top': 0.32, 'side': 'left'}, 'chest': {'top': 0.32}}
+CLOSURE_SIZE = 1024  # 交给 Gemini 的图,长边缩到这么大
+CLOSURE_PROMPT = '''Both images are the same photo, used to make a mockup template for: {what}.
+In the second image, the {what} in question is outlined in yellow.
+1. Does the photo show the front of that garment (not its back or side)?
+2. Does its front open down the middle with a zipper, buttons or snaps (e.g. a zip hoodie, a jacket, a baseball jersey,
+   a polo shirt's button placket)? Count a closed zipper or buttoned placket too; a plain crew or V neck has none.
+Answer with JSON only, like {{"front": true, "closure": "zipper"}}; closure is one of "zipper", "buttons", "snaps", "none".'''
 NECK = 90  # 框横向范围里各列可印区上沿的这个分位当作领口:取最低处会被门襟、抽绳这类从领口往下的窄缺口带偏
 CHECK = 'logo center inside print'
 
@@ -97,6 +108,49 @@ def box(inside, settings):
             'height': round(float(height) / H, 4), 'rotation': rotation}
 
 
+def settle(spec, cover, prints, work):
+    """各件商品的 logo 设置。写了 closure 的,把封面和描出可印区的封面交给 Gemini,照片里是正面、前襟有拉链或扣子就合上 closure 里的设置。
+    回答看不懂、调用失败时不合(放胸口),不记下来,下次再问"""
+    path = work / 'logo-closure.json'
+    answers = json.loads(path.read_text()) if path.exists() else {}
+    h, w = cover.shape[:2]
+    k = min(1, CLOSURE_SIZE / max(h, w))
+    small = cv2.resize(cover, (round(w * k), round(h * k)), interpolation=cv2.INTER_AREA)
+    result, client = [], None
+    for printable, item in zip(prints, spec['products']):
+        settings = dict(item.get('logo', {}))
+        closure = settings.pop('closure', None)
+        if closure is not None:
+            outlined = small.copy()
+            contours, _ = cv2.findContours(cv2.resize(printable.astype(np.uint8), small.shape[1::-1], interpolation=cv2.INTER_NEAREST),
+                                           cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            cv2.drawContours(outlined, contours, -1, (255, 220, 0), 4)
+            prompt = CLOSURE_PROMPT.format(what=item['name'].lower())
+            key = hashlib.sha1(prompt.encode() + small.tobytes() + outlined.tobytes()).hexdigest()
+            if key not in answers:
+                from remote import Replicate  # 只有要问 Gemini 时才用到网络和 token
+                from segment import GEMINI
+                import config
+                try:
+                    client = client or Replicate(**config.replicate())
+                    output = client.predict(GEMINI, {'prompt': prompt, 'images': [client.upload(small), client.upload(outlined)],
+                                                     'temperature': 0, 'max_output_tokens': 2000})
+                    answer = ''.join(output) if isinstance(output, list) else str(output)
+                    parsed = json.loads(re.search(r'\{.*\}', answer, re.S).group())
+                    answers[key] = {'front': parsed['front'] is True, 'closure': str(parsed['closure']), 'product': item['key']}
+                    path.write_text(json.dumps(answers, indent=2))
+                except (RuntimeError, OSError, AttributeError, ValueError, KeyError, TypeError) as error:
+                    print(f'{item["key"]}:问 Gemini 前襟没问到({error}),放胸口')
+            answer = answers.get(key)
+            if answer and answer['front'] and answer['closure'] != 'none':
+                settings |= closure
+            if answer:
+                print(f"{item['key']}:Gemini 说{'是正面' if answer['front'] else '不是正面'},前襟 {answer['closure']}"
+                      f"{',放左胸' if settings.get('side') == 'left' else ''}")
+        result.append(settings)
+    return result
+
+
 def centered(prints, products, logos):
     """框的中心在可印区里(铺满的框中心可以落在可印区外,比如几张卡片之间)"""
     H, W = prints[0].shape
@@ -112,7 +166,9 @@ if __name__ == '__main__':
     out = config.folder(spec, 'output')
     template = json.loads((out / 'template.json').read_text())
     prints = [np.asarray(Image.open(out / region['print']).getchannel('A')).astype(np.float32) / 255 for region in template['regions']]
-    logos = [box(printable > 0.5, item.get('logo', {})) for printable, item in zip(prints, spec['products'])]
+    cover = np.asarray(Image.open(out / 'cover.webp').convert('RGB'))
+    settings = settle(spec, cover, [printable > 0.5 for printable in prints], config.folder(spec, 'work'))
+    logos = [box(printable > 0.5, s) for printable, s in zip(prints, settings)]
     for region, logo in zip(template['regions'], logos):
         region['logo'] = logo
     (out / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))

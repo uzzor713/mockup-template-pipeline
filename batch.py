@@ -10,7 +10,7 @@ pipeline.py 和 preview.py,最后汇总结果。
 个别源图要改设置时用 --overrides 给例外清单,按 id 对上,空着的列不改:
 - product、parts:这张的商品提示词、不可印部件提示词(; 隔开,- 表示没有),只能用在一件商品的预设上;
 - occluders、crop、preset:同下面清单的列;
-- logo:这张的默认 Logo 放法,填 logo.py 里 PLACES 的名字(如 left-chest:左胸),只能用在一件商品的预设上;
+- logo:这张的默认 Logo 放法,填 logo.py 里 PLACES 的名字(left-chest 左胸、chest 胸口正中,Gemini 判断前襟判错时改正),只能用在一件商品的预设上;
 - skip:填 1 跳过这张,不跑也不进抽查页;
 - issue、note:抽查页导出的问题类型和备注,只给人看。
 --overrides 可以写多次,也可以给文件夹(里面的 csv 按文件名顺序),后面的覆盖前面的。每次运行都按清单重新生成配置,

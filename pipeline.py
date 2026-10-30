@@ -433,9 +433,11 @@ for index, (product, printable) in enumerate(zip(products, prints), start=1):
     save_mask(product, f'product-{index}.png')
     save_mask(printable, f'print-{index}.png')
 
-# ---- 5. 配置:默认 Logo 框由 logo.py 算(上衣放在胸口,平面印刷品铺满可印区,跟着可印区摆放的方向转)
+# ---- 5. 配置:默认 Logo 框由 logo.py 算(上衣放在胸口,正面带拉链、扣子的放左胸,平面印刷品铺满可印区,跟着可印区摆放的方向转)
 regions = []
-for index, (printable, item) in enumerate(zip(prints, spec['products']), start=1):
+# 和单独跑 logo.py 时一样读回封面,问 Gemini 的图相同,回答对得上
+settings = logo.settle(spec, np.asarray(Image.open(OUT / 'cover.webp').convert('RGB')), [printable > 0.5 for printable in prints], WORK)
+for index, (printable, item, logo_settings) in enumerate(zip(prints, spec['products'], settings), start=1):
     regions.append({
         'key': item['key'],
         'name': item['name'],
@@ -444,7 +446,7 @@ for index, (printable, item) in enumerate(zip(prints, spec['products']), start=1
         'surface': f'surface-{index}.png',
         'folds': f'folds-{index}.png',
         'recolorable': item.get('recolorable', True),
-        'logo': logo.box(printable > 0.5, item.get('logo', {})),
+        'logo': logo.box(printable > 0.5, logo_settings),
     })
 template = {
     'id': spec['id'],

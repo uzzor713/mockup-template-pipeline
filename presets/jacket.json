@@ -30,7 +30,10 @@
         "largest": true
       },
       "logo": {
-        "top": 0.32
+        "top": 0.32,
+        "closure": {
+          "side": "left"
+        }
       }
     }
   ]
