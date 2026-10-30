@@ -24,7 +24,7 @@ ROUND_SHAPE = 0.93  # 可印区轮廓和拟合椭圆的重合度(交 / 并)高�
 LOGO_WIDTH = 0.4  # 没写 width 时,框边长至多为可印区最宽处的这么多
 LOGO_REACH = 1.4  # 框边长至多为可印区最大内切圆半径的这么多倍,窄长的可印区里框不至于太大
 # 例外清单 logo 列可填的名字(按模板单独改放法,如同一品类里拍正面、带拉链的那几张)
-PLACES = {'left-chest': {'top': 0.25, 'side': 'left'}}
+PLACES = {'left-chest': {'top': 0.32, 'side': 'left'}}
 NECK = 90  # 框横向范围里各列可印区上沿的这个分位当作领口:取最低处会被门襟、抽绳这类从领口往下的窄缺口带偏
 CHECK = 'logo center inside print'
 
