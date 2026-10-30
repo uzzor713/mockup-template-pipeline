@@ -8,7 +8,8 @@
   到右端的中点,边长为门襟到右端宽度的 width;
 - closure:上衣用,问 Gemini 照片拍的是不是这件的正面、前襟有没有拉链或扣子,是就把 closure 里的设置合进来(预设里写左胸);
   回答存在 work/<id>/logo-closure.json,图和问题没变就不再问;
-- fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区,形状和可印区一样。
+- fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区,形状和可印区一样;
+- freeform:贴纸用,可印区可能是爱心、闪电这类异形,看不出摆放方向:不是四边形、也不接近矩形(见 RECT_SHAPE)时框不转。
 框跟着可印区摆放的方向转(rotation,度,屏幕上顺时针为正)。
 用法:.venv/bin/python -I logo.py specs/<模板>.json(配置里写了 closure 时要 Replicate 的 token,同 run_segment.py)
 """
@@ -25,7 +26,8 @@ from PIL import Image
 TILT_MIN = 3  # 可印区是四边形(海报、卡片)时,倾角(度)小于它算摆正,框不转
 TILT_FREE = 10  # 可印区不是四边形(衣服等)时摆正的上限:人穿着站直时躯干轮廓不对称,会算出 3–9.4°;平放、搭着的歪 10° 以上的都是真歪
 ROUND_SHAPE = 0.93  # 可印区轮廓和拟合椭圆的重合度(交 / 并)高于它算圆形、椭圆形,看不出方向,框不转(圆贴纸中位数 0.99,衣服、海报、卡片至多 0.91)
-LOGO_WIDTH = 0.4  # 没写 width 时,框边长至多为可印区最宽处的这么多
+RECT_SHAPE = 0.85  # 写了 freeform 的,可印区面积占最小外接矩形低于它算异形,框不转(异形贴纸至多 0.82,圆角、被手指挡住一点的矩形贴纸 0.88 以上)
+LOGO_WIDTH = 0.4 # 没写 width 时,框边长至多为可印区最宽处的这么多
 LOGO_REACH = 1.4  # 框边长至多为可印区最大内切圆半径的这么多倍,窄长的可印区里框不至于太大
 # 例外清单 logo 列可填的名字,Gemini 判断前襟判错时按模板改正:left-chest 左胸,chest 胸口正中
 PLACES = {'left-chest': {'top': 0.32, 'side': 'left'}, 'chest': {'top': 0.32}}
@@ -40,10 +42,10 @@ NECK = 90  # 框横向范围里各列可印区上沿的这个分位当作领口:
 CHECK = 'logo center inside print'
 
 
-def tilt(inside):
+def tilt(inside, freeform=False):
     """可印区摆放的倾角(度,屏幕上顺时针为正,±45° 内)。最大一块的轮廓能近似成四边形时(透视下的海报、卡片)取四条边方向的平均,
     偏 TILT_MIN 以上就转;否则(衣服的躯干等)取最小外接矩形的方向,偏 TILT_FREE 以上才转。
-    方向按 90° 周期平均,横放、竖放都对齐到最近的那个。圆形、椭圆形看不出方向,为 0"""
+    方向按 90° 周期平均,横放、竖放都对齐到最近的那个。圆形、椭圆形看不出方向,为 0;freeform 时异形的也为 0"""
     contours, _ = cv2.findContours(inside.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     contour = max(contours, key=cv2.contourArea)
     if len(contour) >= 5:
@@ -52,7 +54,10 @@ def tilt(inside):
         if (filled & ellipse).sum() > ROUND_SHAPE * (filled | ellipse).sum():
             return 0.0
     quad = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)[:, 0]
-    corners = (quad if len(quad) == 4 else cv2.boxPoints(cv2.minAreaRect(contour))).astype(np.float64)
+    rect = cv2.minAreaRect(contour)
+    if freeform and len(quad) != 4 and cv2.contourArea(contour) < RECT_SHAPE * rect[1][0] * rect[1][1]:
+        return 0.0
+    corners = (quad if len(quad) == 4 else cv2.boxPoints(rect)).astype(np.float64)
     edges = np.roll(corners, -1, axis=0) - corners
     a = 4 * np.arctan2(edges[:, 1], edges[:, 0])
     angle = float(np.degrees(np.arctan2(np.sin(a).mean(), np.cos(a).mean())) / 4)
@@ -64,7 +69,7 @@ def box(inside, settings):
     在可印区自己的方向上(按 rotation 转正)量:fill 取最大一块上下、左右两端围成的框;否则竖向取上下两端之间 top 处,
     横向取那一高度左右两端的中点,落到可印区外面时(L 形、分成几块的)退回离边最远的点"""
     H, W = inside.shape
-    rotation = tilt(inside)
+    rotation = tilt(inside, settings.get('freeform', False))
     ys, xs = np.nonzero(inside)
     c, s = np.cos(np.radians(rotation)), np.sin(np.radians(rotation))
     across, along = xs * c + ys * s, -xs * s + ys * c

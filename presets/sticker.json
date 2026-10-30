@@ -20,7 +20,8 @@
         "largest": true
       },
       "logo": {
-        "fill": true
+        "fill": true,
+        "freeform": true
       }
     }
   ]
