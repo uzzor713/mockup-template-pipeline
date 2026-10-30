@@ -29,7 +29,10 @@
           "text": "ribbed waistband"
         }
       ],
-      "instance": 0
+      "instance": 0,
+      "logo": {
+        "top": 0.32
+      }
     },
     {
       "id": "hoodie-back",
@@ -50,7 +53,10 @@
           "text": "ribbed waistband"
         }
       ],
-      "instance": 1
+      "instance": 1,
+      "logo": {
+        "top": 0.32
+      }
     }
   ]
 }

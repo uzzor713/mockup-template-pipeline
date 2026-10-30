@@ -28,6 +28,9 @@
       ],
       "print": {
         "largest": true
+      },
+      "logo": {
+        "top": 0.32
       }
     }
   ]

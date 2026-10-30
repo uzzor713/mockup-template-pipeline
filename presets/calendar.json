@@ -19,7 +19,10 @@
         {
           "text": "spiral binding"
         }
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

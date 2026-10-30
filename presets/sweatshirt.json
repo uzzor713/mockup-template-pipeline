@@ -25,7 +25,10 @@
         {
           "text": "ribbed waistband"
         }
-      ]
+      ],
+      "logo": {
+        "top": 0.32
+      }
     }
   ]
 }

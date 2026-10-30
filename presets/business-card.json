@@ -13,7 +13,10 @@
       "text": "card",
       "alternatives": [
         "rectangle"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

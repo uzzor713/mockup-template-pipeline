@@ -14,7 +14,10 @@
       "alternatives": [
         "sheet of paper",
         "menu"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

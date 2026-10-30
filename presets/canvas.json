@@ -6,7 +6,10 @@
       "id": "canvas",
       "key": "main",
       "name": "Canvas",
-      "text": "canvas print"
+      "text": "canvas print",
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

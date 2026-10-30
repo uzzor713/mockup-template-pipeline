@@ -18,6 +18,9 @@
       ],
       "print": {
         "largest": true
+      },
+      "logo": {
+        "fill": true
       }
     }
   ]

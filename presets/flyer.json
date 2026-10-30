@@ -10,7 +10,10 @@
       "id": "flyer",
       "key": "main",
       "name": "Flyer",
-      "text": "sheet of paper"
+      "text": "sheet of paper",
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

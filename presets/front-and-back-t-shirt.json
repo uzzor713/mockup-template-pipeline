@@ -33,7 +33,10 @@
           "bottom": 0.012
         }
       },
-      "instance": 0
+      "instance": 0,
+      "logo": {
+        "top": 0.32
+      }
     },
     {
       "id": "tee-back",
@@ -53,7 +56,10 @@
           "bottom": 0.012
         }
       },
-      "instance": 1
+      "instance": 1,
+      "logo": {
+        "top": 0.32
+      }
     }
   ]
 }

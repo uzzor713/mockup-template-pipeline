@@ -14,7 +14,10 @@
       "alternatives": [
         "folded paper",
         "panel"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

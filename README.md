@@ -59,6 +59,7 @@ ViTMatte、两个 Marigold 和 MoGe-2 在 Replicate 上用的是个人上传的�
 | `product` | 这张的商品提示词,只能用在一件商品的预设上 |
 | `parts` | 这张的不可印部件提示词,`;` 隔开,写 `-` 表示没有;同上只能用在一件商品的预设上 |
 | `occluders`、`crop`、`preset` | 同下面清单的列 |
+| `logo` | 这张的默认 Logo 放法,填 `logo.py` 里 `PLACES` 的名字:`left-chest` 是左胸(同一品类里拍正面、带拉链或扣子的那几张);同样只能用在一件商品的预设上 |
 | `skip` | 填 `1` 跳过这张,不跑也不进抽查页,`report.csv` 里记为 `skip` |
 | `issue`、`note` | 抽查页导出的问题类型和备注,只给人看 |
 
@@ -91,7 +92,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 
 预设按 vorla mockups 页面主树的 63 个小品类各一份,文件名和 `category` 都是小品类的 slug;Seasonal、Channel 两条横轴是标签,模板仍归在某个小品类下(按画面里实际的商品选预设),不单独设预设,清单的 `tags` 列写上 `seasonal/<页面>` 或 `channel/<页面>`。一件商品一个区域,`tracksuit` 是上衣、裤子两个区域;画面里是两件同类商品的页面另设预设,文件名用页面 slug,`category` 仍是小品类:`front-and-back-hoodie`、`front-and-back-t-shirt`(正面、背面两个区域)、`mug-pair`(左右两只杯子),翻开的书用 `open-book`(内页可印),`cd-case`(CD 盒和封面卡,cd-case、cd-cover 页面用)、`cd-sleeve`(纸套)的 `category` 是 `cd`,`can-pair` 是两罐并排,`canvas-poster`(挂着的布面海报,备选说法 fabric、cloth、curtain)的 `category` 是 `poster`;`circle-sticker`(圆形贴纸,备选说法 circle、round label)的 `category` 是 `sticker`;`bottle`、`candle` 可编辑的是标签。`t-shirt`、`sweatshirt`、`tote-bag`、`cap`、`pillow`、`bottle`、`coffee-bag`、`notebook`、`poster`、`paper-bag` 各拿一张图跑通过,其余的提示词没拿图试过,全量跑之前每类先抽几张跑一遍,看抽查页;提示词分不出来的用 `experiments/sam3_replicate.py` 试别的说法。
 
-结果在 `batches/<文件夹名或清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出 / `skip`),`review.html` 是抽查页。重跑同一条命令时,各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过;改遮挡物、商品或部件提示词只重跑分割和之后两步,三个模型脚本只看源图内容和裁切,源图挪了文件夹也不重跑。
+结果在 `batches/<文件夹名或清单文件名>/`:`specs/` 是生成的配置,`logs/<id>.log` 是各步输出,`report.csv` 是每个模板的结果(`pass` / `fail` 带没通过的校验项 / `error` 带出错的步骤和最后一行输出 / `skip`),`review.html` 是抽查页。重跑同一条命令时,各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过;改商品的 `logo` 设置(预设里的,或例外清单的 `logo` 列)只重跑 `logo.py` 和预览;改遮挡物、商品或部件提示词只重跑分割和之后两步,三个模型脚本只看源图内容和裁切,源图挪了文件夹也不重跑。
 
 #### 抽查和调整
 
@@ -119,6 +120,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
 | `geometry.py` | 几何:MoGe-2 估计每个像素的 3D 坐标和相机内参,给 `pipeline.py` 出流向图里的大曲面和透视 |
 | `pipeline.py` | 改色范围、可印区域、底图(含模板墙用的 `base-css`)、流向图、`template.json`、自动校验 |
+| `logo.py` | 按可印区和商品的 `logo` 设置算默认 Logo 框,`pipeline.py` 出模板时调用;单独跑时只重写 `template.json` 里的 Logo 框和对应的校验项,不重出底图和流向图 |
 | `preview.py` | 只读模板文件合成预览,和编辑页用同一套公式 |
 | `batch.py` | 按品类文件夹(或清单)和品类预设批量生成配置、跑完各步,出汇总表和抽查页;按例外清单打包问题源图 |
 | `review.py` | 批量的抽查页:按品类分页、缩略图、标记问题并导出例外清单 |
@@ -149,6 +151,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `occluders` | 遮挡物的提示列表。一个提示是 `{text: 名词短语}`(SAM 3,图里所有符合的实例合在一起,如 `"bag strap"`),或 `{box: [x0, y0, x1, y1], points: [[x, y, 1 正 / 0 负], ...]}`(SAM 2.1,文字分不准时手点兜底);`note` 只作说明;`matteBand` 可选,和商品交界的待求带半宽 / 宽度,头发这类边上有细丝的放宽(如 `0.015`),不写为 0.004 |
 | `products` | 商品列表,由上层到下层,每件:`id`(文件名用)、`key`、`name`(写进 `template.json`)、`text` 或 `box` 和 `points`(分割提示,格式同上)、可选的 `parts`(不可印部件的提示列表,如袖子、领口)、`print`、可选的 `binaryEdge`、`recolorable`(默认 `true`)、`reference`;可选的 `alternatives`:备选的说法列表,`text` 一个实例都分不出、或 Gemini 说分出的都不是商品时按顺序换着试(空白商品上同一品类不同页面能认的说法不同);可选的 `instance`:文字提示挑剩的实例里只取从左往右第几个(从 0 数),同一张图里两件同类商品时各写一件 |
 | `products[].print` | 可印区域规则:商品区减去 `parts`,`inset: {top, bottom, left, right}` 按宽度的比例从商品和背景的交界往里收,只写需要的那几侧(部件、遮挡物和上层商品的边上不收),`rows: [从, 到]` 只留这段高度(占商品高度的比例),`largest: true` 只留最大的一块(部件把可印区切开时,如围裙的腰带),`face: true` 只留正对的那一面(法线和可印区法线中位数的夹角在 35° 以内、连成一片的最大一块;盒子、书、本子、纸袋这类硬的多面商品,侧面、书脊不印,剩下的不到原来 30% 时不收窄) |
+| `products[].logo` | 可选,默认 Logo 框的放法:不写放在可印区正中;`top` 是框中心在可印区从上往下的位置(上衣写 0.32,胸口);`side: "left"` 和 `top` 一起写,放在左胸;`fill: true` 铺满可印区(平面印刷品);`width` 改框的大小(默认 0.4)。预设里上衣写 `top`,polo 衫写左胸,平面印刷品写 `fill` |
 | `products[].binaryEdge` | 源图里这件商品的轮廓是台阶(如从竞品底图还原的),抠图救不回来:按二值来源处理,平滑轮廓后重出软边 |
 | `products[].reference` | 可选,对比用的参考蒙版 `{product, print}`,每项 `{file, transparent}`;`transparent` 取图里半透明的部分,否则取白色 × 透明度。`pipeline.py` 最后打印重合度,不算校验 |
 | `preview` | 预览的裁切范围 `crop`(占宽高的比例)和边缘放大的取样位置 `spots`(`[名称, x, y]`,模板像素) |
@@ -191,6 +194,11 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
   - Warping 只缩放褶皱层。Warping 0–100% 之间两层合起来,各方向每像素前进量都限制在 0.5–2.5(拉伸至多 2 倍、压缩至多 2.5 倍),超出的地方局部减弱褶皱那层,深褶处设计稿不会被拉成一片或翻折;大曲面层的位移幅度大、8 位量化误差也大,减弱时多留出这部分余量。大曲面层本身不减弱,人穿着的衣服侧面、袖口这些陡边上会超出一点;设计稿只画在可印区里,自动校验只查可印区,允许其中至多 0.5% 的面积超出。
   - 位移会沿曲面一路累积,渲染时减去设计稿中心处的位移(两层各自减),中心不动、两边按曲面压扁。
   - 设计稿中心可以拖出商品。商品外不让位移归零,而是铺成边上的值、远一点再抹平:要整体减掉的「中心处位移」在商品外不再猛变,拖出去时设计稿跟着手走,不会反着往商品里跑。商品分成几块(罐子和盖子、敞开夹克的两片前襟)而只印其中一块时,流向图只铺在可印区所在的那几块上,其余几块当作商品外。自动校验从可印区中心沿各方向逐像素往外拖,确认不往回走。
+- 默认 Logo 框(`template.json` 里各区域的 `logo`:`cx`、`cy`、`width`、`height` 按模板宽高归一,`rotation` 是度,屏幕上顺时针为正):
+  - 居中的、放胸口的是正方形,边长为可印区最宽处(衣服是袖口到袖口)的 40%,至多最大内切圆半径的 1.4 倍。放胸口的先放在正中,再往上挪到中心在可印区从上往下 32% 处(竞品 Mockey 的上衣在约 32%),框上沿碰到领口就停;背面照同样的规则落在上背部。
+  - 左胸指穿衣人的左胸,正面照里在画面右侧:框中心在从上往下 25% 处,横向在门襟(那一高度可印区的中线)到右端的中点,边长为门襟到右端宽度的 40%。
+  - 平面印刷品铺满可印区;一张图里几张卡片、几页纸分开时只铺满最大的一块。
+  - 框跟着可印区摆放的方向转:可印区的轮廓能近似成四边形时(海报、卡片),取四条边方向的平均,偏 3° 以上就转;衣服取最小外接矩形的方向,偏 10° 以上才转。人穿着站直时躯干轮廓左右不对称,会算出至多约 9° 的倾角,平放、搭着的衣服歪 10° 以上的都是真歪。圆形、椭圆形的可印区看不出方向,不转。
 - 模型只用在分割、边缘透明度、本征分解、法线和 3D 坐标,其余步骤都是固定代码。
 
 ## 和正式素材的差别

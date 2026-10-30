@@ -13,6 +13,9 @@
       "text": "notebook",
       "print": {
         "face": true
+      },
+      "logo": {
+        "fill": true
       }
     }
   ]

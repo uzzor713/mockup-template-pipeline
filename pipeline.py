@@ -22,6 +22,7 @@ from scipy.sparse.linalg import spsolve
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
+import logo
 from segment import drop_specks, grow
 
 spec = config.load(sys.argv[1])
@@ -432,14 +433,9 @@ for index, (product, printable) in enumerate(zip(products, prints), start=1):
     save_mask(product, f'product-{index}.png')
     save_mask(printable, f'print-{index}.png')
 
-# ---- 5. 配置:默认 Logo 框取可印区域里离边最远的点
+# ---- 5. 配置:默认 Logo 框由 logo.py 算(上衣放在胸口,平面印刷品铺满可印区,跟着可印区摆放的方向转)
 regions = []
 for index, (printable, item) in enumerate(zip(prints, spec['products']), start=1):
-    inside = printable > 0.5
-    distance = cv2.distanceTransform(inside.astype(np.uint8), cv2.DIST_L2, 5)
-    cy, cx = np.unravel_index(np.argmax(distance), distance.shape)
-    xs = np.nonzero(inside)[1]
-    size = min(0.4 * (xs.max() - xs.min()), 1.4 * distance.max())
     regions.append({
         'key': item['key'],
         'name': item['name'],
@@ -448,8 +444,7 @@ for index, (printable, item) in enumerate(zip(prints, spec['products']), start=1
         'surface': f'surface-{index}.png',
         'folds': f'folds-{index}.png',
         'recolorable': item.get('recolorable', True),
-        'logo': {'cx': round(float(cx) / W, 4), 'cy': round(float(cy) / H, 4), 'width': round(float(size) / W, 4),
-                 'height': round(float(size) / H, 4), 'rotation': 0},
+        'logo': logo.box(printable > 0.5, item.get('logo', {})),
     })
 template = {
     'id': spec['id'],
@@ -565,7 +560,7 @@ checks = {
     f'products ≥ {PRODUCT_MIN:.1%} of frame': all((pp > 0.5).mean() >= PRODUCT_MIN for pp in p),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(joined_share(qq) >= 0.8 for qq in q),
-    'logo center inside print': all(q[i][int(r['logo']['cy'] * H), int(r['logo']['cx'] * W)] > 0.5 for i, r in enumerate(regions)),
+    logo.CHECK: logo.centered(q, spec['products'], [r['logo'] for r in regions]),
 }
 (OUT / 'checks.json').write_text(json.dumps(checks, indent=2))
 for name, ok in checks.items():

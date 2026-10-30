@@ -14,7 +14,10 @@
       "alternatives": [
         "cover",
         "open book"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

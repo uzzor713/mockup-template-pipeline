@@ -14,7 +14,10 @@
       "alternatives": [
         "tag",
         "white label"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

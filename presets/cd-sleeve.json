@@ -15,7 +15,10 @@
         "envelope",
         "paper",
         "panel"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

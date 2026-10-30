@@ -10,6 +10,7 @@ pipeline.py 和 preview.py,最后汇总结果。
 个别源图要改设置时用 --overrides 给例外清单,按 id 对上,空着的列不改:
 - product、parts:这张的商品提示词、不可印部件提示词(; 隔开,- 表示没有),只能用在一件商品的预设上;
 - occluders、crop、preset:同下面清单的列;
+- logo:这张的默认 Logo 放法,填 logo.py 里 PLACES 的名字(如 left-chest:左胸),只能用在一件商品的预设上;
 - skip:填 1 跳过这张,不跑也不进抽查页;
 - issue、note:抽查页导出的问题类型和备注,只给人看。
 --overrides 可以写多次,也可以给文件夹(里面的 csv 按文件名顺序),后面的覆盖前面的。每次运行都按清单重新生成配置,
@@ -49,6 +50,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
+import logo
 import review
 
 ROOT = config.ROOT
@@ -57,13 +59,15 @@ IMAGE_SUFFIXES = {'.png', '.jpg', '.jpeg', '.webp'}
 SIZE = (2048, 2560)  # 竖版模板的尺寸,横版宽高对调:vorla 后端按这个尺寸收模板,源图裁好后不是这个尺寸的缩放过去
 LATER = {'size'}  # 后加的配置字段,没写时不算进下面的比较,加字段之前做过的模板不用重跑
 # 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND;源图路径不算,挪了文件夹不重跑):都没变、前一次成功过就跳过;
-# None 表示用到整份配置
+# None 表示用到整份配置。商品的 logo 设置只有 USES_LOGO 里的步骤算进比较,改了只重出 Logo 框和预览
+USES_LOGO = {'logo.py', 'preview.py'}
 STEPS = [
     ('run_segment.py', ['crop', 'size', 'occluders', 'products']),
     ('intrinsic.py', ['crop', 'size']),
     ('normals.py', ['crop', 'size']),
     ('geometry.py', ['crop', 'size']),
     ('pipeline.py', None),
+    ('logo.py', None),
     ('preview.py', None),
 ]
 
@@ -192,6 +196,10 @@ def make_spec(row):
             if not item['parts']:
                 del item['parts']
         products = [item]
+    if row.get('logo', '').strip():
+        if len(products) != 1:
+            raise SystemExit(f"{row.get('id') or source}:预设 {name} 有 {len(products)} 件商品,不能按单张改 logo")
+        products = [{**products[0], 'logo': logo.PLACES[row['logo'].strip()]}]
     spec = {'id': row.get('id', '').strip() or template_id(source), 'category': preset['category'], 'photo': photo}
     if words(row.get('tags', '')):
         spec['tags'] = words(row['tags'])
@@ -207,7 +215,9 @@ def make_spec(row):
     return spec
 
 
-def digest(spec, fields, photo_sha):
+def digest(spec, fields, photo_sha, logo=False):
+    if not logo:
+        spec = {**spec, 'products': [{k: v for k, v in item.items() if k != 'logo'} for item in spec['products']]}
     part = {k: v for k, v in spec.items() if k not in ('photo', 'fetch')} if fields is None else {k: spec.get(k) for k in fields if k in spec or k not in LATER}
     return hashlib.sha1(json.dumps([part, photo_sha, config.backend()], sort_keys=True).encode()).hexdigest()
 
@@ -222,7 +232,7 @@ def run(spec_path, log_path, force):
     rerun = False  # 前面有一步重跑过,用到整份配置的步骤(读前面各步的结果)也要重跑
     with open(log_path, 'a') as log:
         for script, fields in STEPS:
-            key = digest(spec, fields, photo_sha)
+            key = digest(spec, fields, photo_sha, script in USES_LOGO)
             if state.get(script) == key and not (rerun and fields is None):
                 continue
             rerun = True

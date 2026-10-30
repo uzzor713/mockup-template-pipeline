@@ -13,7 +13,10 @@
       "text": "playing card",
       "alternatives": [
         "card"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

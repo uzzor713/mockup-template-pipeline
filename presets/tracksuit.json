@@ -25,7 +25,10 @@
         {
           "text": "zipper"
         }
-      ]
+      ],
+      "logo": {
+        "top": 0.32
+      }
     },
     {
       "id": "pants",

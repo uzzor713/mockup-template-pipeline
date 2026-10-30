@@ -13,7 +13,10 @@
       "text": "id card",
       "alternatives": [
         "card"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

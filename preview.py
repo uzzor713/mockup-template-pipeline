@@ -82,10 +82,12 @@ def render(colors, warp):
         box = region['logo']
         c = int(box['cy'] * H), int(box['cx'] * W)
         offset = surfaces[index] - surfaces[index][c] + (folds[index] - folds[index][c]) * warp
-        px, py = xs + offset[..., 0], ys + offset[..., 1]
+        # 位移后的位置转到 Logo 框自己的坐标(rotation 是度,屏幕上顺时针为正)
+        dx, dy = xs + offset[..., 0] - box['cx'] * W, ys + offset[..., 1] - box['cy'] * H
+        t = np.radians(box.get('rotation', 0))
         bw, bh = box['width'] * W, box['height'] * H
-        u = (px - (box['cx'] * W - bw / 2)) / bw
-        v = (py - (box['cy'] * H - bh / 2)) / bh
+        u = (dx * np.cos(t) + dy * np.sin(t)) / bw + 0.5
+        v = (-dx * np.sin(t) + dy * np.cos(t)) / bh + 0.5
         inside = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
         n = DESIGN.shape[0]
         sample = DESIGN[np.clip((v * n).astype(int), 0, n - 1), np.clip((u * n).astype(int), 0, n - 1)]
@@ -142,9 +144,8 @@ for printable in prints:
     cv2.drawContours(vis8, contours, -1, (255, 220, 0), 4)
 for region in template['regions']:
     box = region['logo']
-    x0, y0 = int((box['cx'] - box['width'] / 2) * W), int((box['cy'] - box['height'] / 2) * H)
-    x1, y1 = int((box['cx'] + box['width'] / 2) * W), int((box['cy'] + box['height'] / 2) * H)
-    cv2.rectangle(vis8, (x0, y0), (x1, y1), (230, 30, 30), 4)
+    corners = cv2.boxPoints(((box['cx'] * W, box['cy'] * H), (box['width'] * W, box['height'] * H), box.get('rotation', 0)))
+    cv2.polylines(vis8, [np.round(corners).astype(np.int32)], True, (230, 30, 30), 4)
 masks = Image.fromarray(vis8).crop(CROP)
 masks.resize((int(masks.width * 0.4), int(masks.height * 0.4)), Image.LANCZOS).save(PREVIEW / 'masks.png')
 print(f'wrote preview.png, edges.png, masks.png to {PREVIEW.relative_to(config.ROOT)}')

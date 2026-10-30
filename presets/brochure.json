@@ -10,7 +10,10 @@
       "id": "brochure",
       "key": "main",
       "name": "Brochure",
-      "text": "folded paper"
+      "text": "folded paper",
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

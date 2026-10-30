@@ -30,6 +30,10 @@
         "inset": {
           "bottom": 0.012
         }
+      },
+      "logo": {
+        "top": 0.25,
+        "side": "left"
       }
     }
   ]

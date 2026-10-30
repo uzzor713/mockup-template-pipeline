@@ -10,7 +10,10 @@
       "id": "pages",
       "key": "main",
       "name": "Pages",
-      "text": "open book"
+      "text": "open book",
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }

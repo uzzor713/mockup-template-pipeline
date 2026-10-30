@@ -22,7 +22,10 @@
         "sheet of paper",
         "board",
         "panel"
-      ]
+      ],
+      "logo": {
+        "fill": true
+      }
     }
   ]
 }
