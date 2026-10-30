@@ -335,11 +335,11 @@ for product in products:
         # 深色照片里噪点占的比例大,抬亮后会显成颗粒:纹理减弱
         texture = texture ** DARK_TEXTURE
     diffuse = WHITE_ALBEDO * blur(luma(s * layers['shading'])) * texture
-    # 深色商品照片里光照和固有色分不开,算出的光照常偏暗:保留明暗起伏,亮部抬到白布料在正常光下的亮度
-    if dark:
-        bright = float(np.percentile(diffuse[solid], DARK_BRIGHT * 100))
-        if bright < WHITE_ALBEDO:
-            diffuse *= WHITE_ALBEDO / max(bright, 1e-4)
+    # 深色商品照片里光照和固有色分不开,算出的光照常偏暗:保留明暗起伏,亮部抬到白布料在正常光下的亮度。
+    # 反光强的深色商品照片全被残差解释,拟合的 s 会是 0 或负数,所以按光照层本身的起伏缩放(s 为正时结果相同)
+    if dark and np.percentile(diffuse[solid], DARK_BRIGHT * 100) < WHITE_ALBEDO:
+        light = blur(luma(layers['shading'])) * texture
+        diffuse = light * WHITE_ALBEDO / max(float(np.percentile(light[solid], DARK_BRIGHT * 100)), 1e-4)
     sheen = luma(max(r, 0) * layers['residual']) * texture
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
     for total, layer in ((shade, diffuse), (gloss, sheen)):
