@@ -320,6 +320,7 @@ photo_linear = to_linear(photo)
 I = luma(photo_linear)
 radius = TEXTURE_RATIO * max(W, H)
 shade, gloss = np.zeros((H, W), np.float32), np.zeros((H, W), np.float32)
+layered = []
 for product in products:
     inside = product > 0.5
     solid = product == 1
@@ -342,6 +343,13 @@ for product in products:
         light = blur(luma(layers['shading'])) * texture
         diffuse = light * WHITE_ALBEDO / max(float(np.percentile(light[solid], DARK_BRIGHT * 100)), 1e-4)
     sheen = luma(max(r, 0) * layers['residual']) * texture
+    layered.append((product, solid, diffuse, sheen))
+# 一张图里的几件商品是同一种料子(正背面、上衣和裤子、一对杯子),照片里一件迎光一件背光、深色各自抬亮后亮度也不同,
+# 选同一个颜色时会一深一浅:按实心部分 明暗 + 光泽 的中位数整体缩放到最亮的那件,起伏不变
+level = [float(np.median((diffuse + sheen)[solid])) for _, solid, diffuse, sheen in layered]
+for (product, solid, diffuse, sheen), own in zip(layered, level):
+    k = max(level) / max(own, 1e-6)
+    diffuse, sheen = diffuse * k, sheen * k
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
     for total, layer in ((shade, diffuse), (gloss, sheen)):
         total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
