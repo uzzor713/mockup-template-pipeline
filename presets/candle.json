@@ -6,7 +6,11 @@
       "id": "label",
       "key": "main",
       "name": "Label",
-      "text": "candle label"
+      "text": "candle label",
+      "alternatives": [
+        "candle jar",
+        "candle"
+      ]
     }
   ]
 }

@@ -11,6 +11,10 @@
       "key": "main",
       "name": "Banner",
       "text": "panel",
+      "alternatives": [
+        "fabric banner",
+        "tapestry"
+      ],
       "parts": [
         {
           "text": "banner pole"

@@ -38,6 +38,10 @@
       "key": "bottom",
       "name": "Pants",
       "text": "tracksuit pants",
+      "alternatives": [
+        "folded pants",
+        "pants"
+      ],
       "parts": [
         {
           "text": "waistband"

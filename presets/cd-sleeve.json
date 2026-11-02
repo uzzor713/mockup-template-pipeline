@@ -14,7 +14,8 @@
       "alternatives": [
         "envelope",
         "paper",
-        "panel"
+        "panel",
+        "album cover"
       ],
       "logo": {
         "fill": true

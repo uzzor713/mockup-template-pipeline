@@ -1,0 +1,32 @@
+{
+  "category": "cloth-napkin",
+  "occluders": [
+    {
+      "text": "hand"
+    },
+    {
+      "text": "plate"
+    },
+    {
+      "text": "fork"
+    },
+    {
+      "text": "knife"
+    },
+    {
+      "text": "glass"
+    }
+  ],
+  "products": [
+    {
+      "id": "napkin",
+      "key": "main",
+      "name": "Napkin",
+      "text": "cloth napkin",
+      "alternatives": [
+        "napkin",
+        "linen cloth"
+      ]
+    }
+  ]
+}

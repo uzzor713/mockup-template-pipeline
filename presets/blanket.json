@@ -14,7 +14,11 @@
       "id": "blanket",
       "key": "main",
       "name": "Blanket",
-      "text": "blanket"
+      "text": "blanket",
+      "alternatives": [
+        "mat",
+        "rug"
+      ]
     }
   ]
 }

@@ -1,0 +1,29 @@
+{
+  "category": "pet-tag",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tag",
+      "key": "main",
+      "name": "Tag",
+      "text": "pet tag",
+      "alternatives": [
+        "dog tag",
+        "tag"
+      ],
+      "parts": [
+        {
+          "text": "split ring"
+        }
+      ],
+      "logo": {
+        "fill": true,
+        "freeform": true
+      }
+    }
+  ]
+}

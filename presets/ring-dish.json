@@ -1,0 +1,27 @@
+{
+  "category": "ring-dish",
+  "occluders": [
+    {
+      "text": "hand"
+    },
+    {
+      "text": "ring"
+    }
+  ],
+  "products": [
+    {
+      "id": "dish",
+      "key": "main",
+      "name": "Dish",
+      "text": "ring dish",
+      "alternatives": [
+        "trinket dish",
+        "small dish",
+        "plate"
+      ],
+      "logo": {
+        "freeform": true
+      }
+    }
+  ]
+}

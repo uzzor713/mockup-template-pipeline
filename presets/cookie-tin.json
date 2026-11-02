@@ -1,0 +1,24 @@
+{
+  "category": "cookie-tin",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tin",
+      "key": "main",
+      "name": "Tin",
+      "text": "cookie tin",
+      "alternatives": [
+        "tin box",
+        "tin",
+        "box"
+      ],
+      "print": {
+        "face": true
+      }
+    }
+  ]
+}

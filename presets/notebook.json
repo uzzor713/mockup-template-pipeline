@@ -11,6 +11,9 @@
       "key": "main",
       "name": "Notebook",
       "text": "notebook",
+      "alternatives": [
+        "hardcover book"
+      ],
       "print": {
         "face": true
       },

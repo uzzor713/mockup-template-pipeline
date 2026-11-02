@@ -1,0 +1,24 @@
+{
+  "category": "compact-mirror",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "mirror",
+      "key": "main",
+      "name": "Mirror",
+      "text": "compact mirror",
+      "alternatives": [
+        "mirror",
+        "compact"
+      ],
+      "logo": {
+        "fill": true,
+        "freeform": true
+      }
+    }
+  ]
+}

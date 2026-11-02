@@ -6,7 +6,11 @@
       "id": "pin",
       "key": "main",
       "name": "Pin",
-      "text": "enamel pin"
+      "text": "enamel pin",
+      "alternatives": [
+        "button",
+        "pin"
+      ]
     }
   ]
 }

@@ -14,7 +14,11 @@
       "id": "scarf",
       "key": "main",
       "name": "Scarf",
-      "text": "scarf"
+      "text": "scarf",
+      "alternatives": [
+        "fabric",
+        "handkerchief"
+      ]
     }
   ]
 }

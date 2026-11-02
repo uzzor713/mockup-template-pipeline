@@ -10,7 +10,8 @@ SAM 3 走 Replicate,会把源图上传过去;给了 remote 时抠图也走 Repli
 - occluders:遮挡物的提示列表,合在一起求透明度;头发这类边上有细丝的,提示里加 matteBand(和商品交界的待求带半宽 / 宽度);
 - products:商品列表,由上层到下层,每项本身是一个提示,加可选的 parts(不可印部件的提示列表,如袖子、领口)。
   文字提示分出几个实例时(如书架上的书、背景里路人的包),交给 Gemini 看编号叠图挑出要展示的那几个;
-  可选的 alternatives 是备选说法,text 一个实例都分不出时按顺序换着试;
+  可选的 alternatives 是备选说法,text 一个实例都分不出时按顺序换着试;所有说法在 SAM 3 默认阈值下都分不出时,
+  依次放低阈值(THRESHOLDS)再把各个说法试一遍,低阈值下哪怕只分出一个实例也交给 Gemini 确认;
   可选的 instance 只取挑剩的实例里从左往右第几个(从 0 数),同一张图里的两件同类商品(正反两面、两只杯子)各成一件。
 """
 import io, json, re, zipfile
@@ -23,6 +24,7 @@ from remote import Replicate
 SAM_MODEL = 'facebook/sam2.1-hiera-base-plus'
 SAM3 = 'mattsays/sam3-image:d73db077226443ba4fafd34e233b3626b552eac2a433f90c7c32a9ac89bd9e72'
 GEMINI = 'google/gemini-3-flash:61ebd56fbf92e15093c9abae6e4437e5c06260bd64f839e784f68d9d7f3e95b0'
+THRESHOLDS = (0.5, 0.3, 0.2)  # SAM 3 的置信度阈值。空白商品没印花、特征少,0.5 常常一个都分不出,依次放低
 PICK_SIZE = 1024  # 交给 Gemini 挑实例的图,长边缩到这么大
 PICK_COLORS = [(230, 25, 75), (60, 180, 75), (0, 130, 200), (245, 130, 48), (145, 30, 180), (70, 240, 240), (240, 50, 230), (210, 245, 60)]
 PICK_PROMPT = '''Both images are the same photo, used to make a mockup template for: {what}.
@@ -85,10 +87,10 @@ def despur(parts, r):
 class Sam3Replicate(Replicate):
     """SAM 3 按文字提示分割,走 Replicate"""
 
-    def instances(self, photo, text):
+    def instances(self, photo, text, threshold=THRESHOLDS[0]):
         """文字提示 → 各实例的蒙版"""
         output = self.predict(SAM3, {'image': self.upload(photo), 'prompt': text, 'mask_only': True, 'return_zip': True,
-                                     'threshold': 0.5})
+                                     'threshold': threshold})
         if not output:
             return []
         with zipfile.ZipFile(io.BytesIO(self.fetch(output if isinstance(output, str) else output[0]))) as package:
@@ -211,20 +213,25 @@ def prompted(models, photo, prompts):
 
 def product_mask(models, photo, item, what, found):
     """一件商品的蒙版。text 分出几个实例时由 Gemini 挑出要展示的那几个;一个实例都分不出、或 Gemini 说一个都不是时,
-    按顺序换 alternatives 里的说法,用第一个挑得出的;写了 instance 的只取挑剩的里从左往右第几个;
+    按顺序换 alternatives 里的说法,用第一个挑得出的;所有说法都挑不出时放低阈值再试一遍,低阈值下只分出一个实例
+    也要 Gemini 确认(低阈值容易分到别的东西上);写了 instance 的只取挑剩的里从左往右第几个;
     found 存每个提示词挑好的实例,同一张图里两件同类商品只分、只挑一次"""
     if 'text' not in item:
         return prompted(models, photo, [item])
     if models.sam3 is None:
         raise ValueError(f"文字提示「{item['text']}」要用 SAM 3")
     if item['text'] not in found:
-        for text in [item['text'], *item.get('alternatives', [])]:
-            masks = [m for m in models.sam3.instances(photo, text) if m.any()]
-            if len(masks) > 1:
-                masks = [masks[i] for i in models.sam3.pick(photo, masks, what)]
+        masks = []
+        for threshold in THRESHOLDS:
+            for text in [item['text'], *item.get('alternatives', [])]:
+                masks = [m for m in models.sam3.instances(photo, text, threshold) if m.any()]
+                if len(masks) > 1 or masks and threshold < THRESHOLDS[0]:
+                    masks = [masks[i] for i in models.sam3.pick(photo, masks, what)]
+                if masks:
+                    break
             if masks:
-                if text != item['text']:
-                    print(f"「{item['text']}」分不出,换成「{text}」")
+                if text != item['text'] or threshold != THRESHOLDS[0]:
+                    print(f"「{item['text']}」在阈值 {THRESHOLDS[0]} 分不出,用「{text}」在阈值 {threshold} 分出")
                 break
         found[item['text']] = sorted(masks, key=lambda m: np.nonzero(m)[1].mean())
     masks = found[item['text']]

@@ -11,6 +11,10 @@
       "key": "main",
       "name": "Tube",
       "text": "tube",
+      "alternatives": [
+        "cardboard tube",
+        "paper tube"
+      ],
       "parts": [
         {
           "text": "tube cap"

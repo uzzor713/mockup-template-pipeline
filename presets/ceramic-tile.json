@@ -1,0 +1,23 @@
+{
+  "category": "ceramic-tile",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tile",
+      "key": "main",
+      "name": "Tile",
+      "text": "ceramic tile",
+      "alternatives": [
+        "tile",
+        "square tile"
+      ],
+      "logo": {
+        "fill": true
+      }
+    }
+  ]
+}

@@ -7,6 +7,9 @@
       "key": "main",
       "name": "Cap",
       "text": "baseball cap",
+      "alternatives": [
+        "hat"
+      ],
       "parts": [
         {
           "text": "cap brim"
