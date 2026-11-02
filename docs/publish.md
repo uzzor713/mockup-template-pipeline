@@ -70,3 +70,24 @@ B-纸品 这种分批跑的,每次整理到新的日期目录,用 `--uploaded` �
 ## 六、线上读取时注意
 
 模板上线后,`base.webp`、`surface-n.png`、`folds-n.png` 只能读原文件,不能经过 OSS 图片处理(缩放、转格式):底图的透明度存的是明暗,流向图的像素值是位移数据,处理过就不准了。模板墙用的 `cover.webp` 可以随意缩放;`base-css.webp`、`product-n.png`、`print-n.png` 缩放时要输出无损透明度(转 PNG)。
+
+## 七、发布到测试站
+
+收件箱里的模板由 vorla 仓库的发布脚本 `apps/web/scripts/mockup-templates-publish.ts` 发布(用法写在脚本开头):校验通过的模板复制原图到私有目录、生成模板墙和编辑页的预览、按 slug 写库。默认连 `.env.local` 里的测试库 `vorla_test`;写正式库要显式传 `DATABASE_URL`,每次单独授权。
+
+```bash
+cd ~/Projects/vorla/apps/web
+pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templates-publish.ts            # 只检查,不写 OSS、不写库
+pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templates-publish.ts --apply    # 发布
+... --apply --only id1,id2 --concurrency 2                                                                    # 只发这几个
+```
+
+- 先跑只检查,看报告里的「不通过」:品类页还没上线的、同一个 id 出现两个目录的(两份都会被挡掉)、`template.json` 解析失败的、Logo 框超出 0–1 的。报告在 `scripts/output/mockup-publish/<时间>/`。
+- 发布可以重复跑:同版本、源文件没变的跳过文件(报告记为 unchanged),照样写库。中途网络超时、写库报错的,把失败的 id 用 `--only` 再发一次;写库报错时报告里只有 SQL,看不到原因,降低 `--concurrency` 重发。
+- 默认并发 4,每个模板下载约 3MB,网络慢时约每分钟 20 个;只改了 `template.json`(如 Logo 框)的也要复制原图、重出预览。
+
+## 八、改已经发布的模板
+
+改了已发布模板的任何文件(包括只改 `template.json` 里的 Logo 框),`template.json` 的 `version` 都要加 1 再传到收件箱:发布后的公开文件按版本放在 `v<版本>/` 下、缓存一年不过期,脚本发现同版本的源文件变了会拒绝(「已发布过,这些文件变了但版本号没升」)。新版本发在新目录,旧版本目录留着,模板墙按库里的版本换地址。版本号以测试站模板墙为准(`mockup.listTemplates` 返回的 `coverImage` 里的 `v<版本>`),没上过墙的保持原样。
+
+核对时用接口拉模板墙(`https://vorla.drfans.com/api/trpc/mockup.listTemplates`,分页参数 `{"json":{"page":1,"pageSize":48}}`)看总数、版本和 `materials.regions` 里的 Logo 框;直接请求 `assets.vorla.ai` 上的图要带浏览器的 User-Agent,不带会被 CDN 拦成 403。
