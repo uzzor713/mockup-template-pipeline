@@ -8,7 +8,7 @@
   到右端的中点,边长为门襟到右端宽度的 width;
 - closure:上衣用,问 Gemini 照片拍的是不是这件的正面、前襟有没有拉链或扣子,是就把 closure 里的设置合进来(预设里写左胸);
   回答存在 work/<id>/logo-closure.json,图和问题没变就不再问;
-- fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区,形状和可印区一样;
+- fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区;透视下的梯形、斜放的平行四边形取里面放得下的最大矩形,不往外包;
 - freeform:贴纸用,可印区可能是爱心、闪电这类异形,看不出摆放方向:不是四边形、也不接近矩形(见 RECT_SHAPE)时框不转。
 框跟着可印区摆放的方向转(rotation,度,屏幕上顺时针为正)。
 用法:.venv/bin/python -I logo.py specs/<模板>.json(配置里写了 closure 时要 Replicate 的 token,同 run_segment.py)
@@ -38,6 +38,9 @@ In the second image, the {what} in question is outlined in yellow.
 2. Does its front open down the middle with a zipper, buttons or snaps (e.g. a zip hoodie, a jacket, a baseball jersey,
    a polo shirt's button placket)? Count a closed zipper or buttoned placket too; a plain crew or V neck has none.
 Answer with JSON only, like {{"front": true, "closure": "zipper"}}; closure is one of "zipper", "buttons", "snaps", "none".'''
+SKEW_FILL = 0.9  # 铺满的框:可印区凸包不到它方向上外接框的这么多算透视、斜放,取最大内接矩形;否则取外接框
+HULL_SOLID = 0.9  # 铺满的框:可印区面积占凸包至少这么多时按凸包算(边角被挡的缺口小),否则按可印区本身
+INSCRIBED_SIZE = 512  # 铺满的框在这么大的格子上找最大内接矩形(模板长边 2560 时误差约 5 像素,只往里收)
 NECK = 90  # 框横向范围里各列可印区上沿的这个分位当作领口:取最低处会被门襟、抽绳这类从领口往下的窄缺口带偏
 CHECK = 'logo center inside print'
 
@@ -64,9 +67,34 @@ def tilt(inside, freeform=False):
     return 0.0 if abs(angle) < (TILT_MIN if len(quad) == 4 else TILT_FREE) else round(angle, 1)
 
 
+def inscribed(across, along, size=INSCRIBED_SIZE):
+    """多边形(顶点在可印区自己方向上的坐标)里放得下的最大矩形:中心和宽高,同一坐标。
+    缩到长边 size 上逐行累计高度、按直方图找最大矩形,只取完全在多边形里的格子,往里收不往外包"""
+    x0, y0 = across.min(), along.min()
+    k = size / max(across.max() - x0, along.max() - y0)
+    canvas = np.zeros((size + 3, size + 3), np.uint8)
+    points = np.round(np.stack([(across - x0) * k, (along - y0) * k], 1) * 16).astype(np.int32)
+    cv2.fillPoly(canvas, [points], 1, cv2.LINE_8, 4)
+    canvas = cv2.erode(canvas, np.ones((3, 3), np.uint8))  # 格子压线的不算在里面
+    heights = np.zeros(canvas.shape[1] + 1, int)
+    best = (0, 0, 0, 0, 0)  # 面积, 左, 右(不含), 上, 下(不含)
+    for row in range(canvas.shape[0]):
+        heights[:-1] = np.where(canvas[row], heights[:-1] + 1, 0)
+        stack = []
+        for col, h in enumerate(heights):
+            start = col
+            while stack and stack[-1][1] >= h:
+                start, top = stack.pop()
+                if top * (col - start) > best[0]:
+                    best = (top * (col - start), start, col, row + 1 - top, row + 1)
+            stack.append((start, h))
+    _, left, right, top, bottom = best
+    return x0 + (left + right) / 2 / k, y0 + (top + bottom) / 2 / k, (right - left) / k, (bottom - top) / k
+
+
 def box(inside, settings):
     """一个区域的默认 Logo 框 {cx, cy, width, height, rotation},位置、宽高按模板宽高归一。
-    在可印区自己的方向上(按 rotation 转正)量:fill 取最大一块上下、左右两端围成的框;否则竖向取上下两端之间 top 处,
+    在可印区自己的方向上(按 rotation 转正)量:fill 取最大一块上下、左右两端围成的框,透视、斜放的取里面的最大内接矩形;否则竖向取上下两端之间 top 处,
     横向取那一高度左右两端的中点,落到可印区外面时(L 形、分成几块的)退回离边最远的点"""
     H, W = inside.shape
     rotation = tilt(inside, settings.get('freeform', False))
@@ -74,13 +102,38 @@ def box(inside, settings):
     c, s = np.cos(np.radians(rotation)), np.sin(np.radians(rotation))
     across, along = xs * c + ys * s, -xs * s + ys * c
     if settings.get('fill'):
-        # 分成几块的(几张名片、扑克牌)只铺满最大的那块
+        # 分成几块的(几张名片、扑克牌)只铺满最大的那块。正对着的矩形、圆形和星形这类异形取上下、左右两端围成的框,
+        # 设计稿铺满不留白,异形外面的部分本来就被可印区裁掉;透视下的梯形、斜放的平行四边形(凸包是四边形、
+        # 不到外接框的 SKEW_FILL)取里面放得下的最大矩形,不往外包、设计稿四边不被裁掉。
+        # 缺口小的(手指、夹子挡住边角)按凸包算;两张卡叠成 L 形这类缺口大的不补,框只落在一张上
+        # (写了 freeform 的贴纸缺口大是花形、树形这类异形,照样取外接框)
         count, labels, stats, _ = cv2.connectedComponentsWithStats(inside.astype(np.uint8))
-        keep = labels[ys, xs] == 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
+        largest = (labels == 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])).astype(np.uint8)
+        keep = largest[ys, xs] > 0
         across, along = across[keep], along[keep]
-        middle, level = (across.min() + across.max()) / 2, (along.min() + along.max()) / 2
-        width, height = across.max() - across.min(), along.max() - along.min()
-        x, y = middle * c - level * s, middle * s + level * c
+        contours, _ = cv2.findContours(largest, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        contour = max(contours, key=cv2.contourArea)
+        hull = cv2.convexHull(contour)
+        solid = cv2.contourArea(contour) >= HULL_SOLID * cv2.contourArea(hull)
+        bound = (across.max() - across.min()) * (along.max() - along.min())
+        quad = len(cv2.approxPolyDP(hull, 0.02 * cv2.arcLength(hull, True), True)) == 4
+        if (not quad or cv2.contourArea(hull) >= SKEW_FILL * bound) if solid else settings.get('freeform', False):
+            middle, level = (across.min() + across.max()) / 2, (along.min() + along.max()) / 2
+            width, height = across.max() - across.min(), along.max() - along.min()
+            x, y = middle * c - level * s, middle * s + level * c
+        else:
+            px, py = ((hull if solid else contour)[:, 0, i].astype(np.float64) for i in (0, 1))
+
+            def fit(angle, size):
+                c, s = np.cos(np.radians(angle)), np.sin(np.radians(angle))
+                middle, level, width, height = inscribed(px * c + py * s, -px * s + py * c, size)
+                return width * height, middle * c - level * s, middle * s + level * c, width, height
+
+            # 方向取放得下最大矩形的那个:透视下窄长的四边形两条短边斜得厉害,四条边平均的方向会偏;
+            # 连成一块的看不出整体方向,框跟着最大的那张走。先粗找方向再细算
+            rotation = max(range(-45, 45), key=lambda angle: fit(angle, INSCRIBED_SIZE // 4)[0])
+            rotation = 0.0 if abs(rotation) < TILT_MIN else float(rotation)
+            _, x, y, width, height = fit(rotation, INSCRIBED_SIZE)
     else:
         distance = cv2.distanceTransform(inside.astype(np.uint8), cv2.DIST_L2, 5)
         span = along.max() - along.min()
