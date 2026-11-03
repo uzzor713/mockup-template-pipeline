@@ -1,0 +1,56 @@
+{
+  "category": "frame",
+  "occluders": [],
+  "products": [
+    {
+      "id": "artwork-left",
+      "key": "left",
+      "name": "Left Artwork",
+      "text": "framed artwork",
+      "alternatives": [
+        "hanging poster",
+        "poster",
+        "cloth",
+        "fabric",
+        "scroll"
+      ],
+      "print": {
+        "inset": {
+          "top": 0.03,
+          "bottom": 0.03,
+          "left": 0.03,
+          "right": 0.03
+        }
+      },
+      "logo": {
+        "fill": true
+      },
+      "instance": 0
+    },
+    {
+      "id": "artwork-right",
+      "key": "right",
+      "name": "Right Artwork",
+      "text": "framed artwork",
+      "alternatives": [
+        "hanging poster",
+        "poster",
+        "cloth",
+        "fabric",
+        "scroll"
+      ],
+      "print": {
+        "inset": {
+          "top": 0.03,
+          "bottom": 0.03,
+          "left": 0.03,
+          "right": 0.03
+        }
+      },
+      "logo": {
+        "fill": true
+      },
+      "instance": 1
+    }
+  ]
+}

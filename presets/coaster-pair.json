@@ -1,0 +1,30 @@
+{
+  "category": "coaster",
+  "occluders": [
+    {
+      "text": "mug"
+    },
+    {
+      "text": "glass"
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "coaster-left",
+      "key": "left",
+      "name": "Left Coaster",
+      "text": "coaster",
+      "instance": 0
+    },
+    {
+      "id": "coaster-right",
+      "key": "right",
+      "name": "Right Coaster",
+      "text": "coaster",
+      "instance": 1
+    }
+  ]
+}

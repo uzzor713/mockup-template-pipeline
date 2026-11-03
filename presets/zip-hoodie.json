@@ -1,0 +1,46 @@
+{
+  "category": "hoodie",
+  "folders": [
+    "zip-up-hoodie"
+  ],
+  "occluders": [
+    {
+      "text": "hair",
+      "matteBand": 0.015
+    },
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "hoodie",
+      "key": "top",
+      "name": "Hoodie",
+      "text": "hoodie",
+      "parts": [
+        {
+          "text": "sleeve"
+        },
+        {
+          "text": "hood"
+        },
+        {
+          "text": "drawstring"
+        },
+        {
+          "text": "ribbed waistband"
+        }
+      ],
+      "logo": {
+        "top": 0.32,
+        "closure": {
+          "side": "left"
+        }
+      },
+      "print": {
+        "bridge": true
+      }
+    }
+  ]
+}

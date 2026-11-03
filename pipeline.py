@@ -548,10 +548,19 @@ def within_stretch(surface, fold, printable):
     return True
 
 
-def joined_share(printable):
-    """可印区最大一块占的比例。遮挡物(如交握的手)横穿可印区时,设计稿在它下面照样铺着,隔开的两边算一块"""
+def joined_share(printable, product, rule):
+    """可印区最大一块占的比例。遮挡物(如交握的手)横穿可印区时,设计稿在它下面照样铺着,隔开的两边算一块。
+    print.bridge:敞开的拉链外套,可印区本来就是左右两片前襟,中间的拉链、内搭当遮挡物:
+    带可印区的那几块商品合起来的凸包都算连着"""
     visible = printable > 0.5
-    labels, count = ndimage.label(visible | occluders)
+    joined = visible | occluders
+    if rule.get('bridge') and visible.any():
+        solid = product > 0.5
+        labels, _ = ndimage.label(solid)
+        hull = np.zeros((H, W), np.uint8)
+        cv2.fillConvexPoly(hull, cv2.convexHull(cv2.findNonZero((solid & np.isin(labels, np.unique(labels[visible & solid]))).astype(np.uint8))), 1)
+        joined |= hull > 0
+    labels, count = ndimage.label(joined)
     if not count:
         return 0.0
     return float(ndimage.sum(visible, labels, range(1, count + 1)).max() / visible.sum())
@@ -573,7 +582,7 @@ checks = {
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     f'products ≥ {PRODUCT_MIN:.1%} of frame': all((pp > 0.5).mean() >= PRODUCT_MIN for pp in p),
     'prints not empty': all((qq > 0.5).any() for qq in q),
-    'print largest component ≥ 80%': all(joined_share(qq) >= 0.8 for qq in q),
+    'print largest component ≥ 80%': all(joined_share(qq, pp, item.get('print', {})) >= 0.8 for pp, qq, item in zip(p, q, spec['products'])),
     logo.CHECK: logo.centered(q, spec['products'], [r['logo'] for r in regions]),
 }
 (OUT / 'checks.json').write_text(json.dumps(checks, indent=2))

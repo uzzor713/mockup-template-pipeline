@@ -1,0 +1,42 @@
+{
+  "category": "tube",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "tube-left",
+      "key": "left",
+      "name": "Left Tube",
+      "text": "tube",
+      "alternatives": [
+        "cardboard tube",
+        "paper tube"
+      ],
+      "parts": [
+        {
+          "text": "tube cap"
+        }
+      ],
+      "instance": 0
+    },
+    {
+      "id": "tube-right",
+      "key": "right",
+      "name": "Right Tube",
+      "text": "tube",
+      "alternatives": [
+        "cardboard tube",
+        "paper tube"
+      ],
+      "parts": [
+        {
+          "text": "tube cap"
+        }
+      ],
+      "instance": 1
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "category": "cap",
+  "occluders": [],
+  "products": [
+    {
+      "id": "cap-left",
+      "key": "left",
+      "name": "Left Cap",
+      "text": "baseball cap",
+      "alternatives": [
+        "hat"
+      ],
+      "parts": [
+        {
+          "text": "cap brim"
+        }
+      ],
+      "instance": 0
+    },
+    {
+      "id": "cap-right",
+      "key": "right",
+      "name": "Right Cap",
+      "text": "baseball cap",
+      "alternatives": [
+        "hat"
+      ],
+      "parts": [
+        {
+          "text": "cap brim"
+        }
+      ],
+      "instance": 1
+    }
+  ]
+}
