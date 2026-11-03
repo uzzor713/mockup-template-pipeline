@@ -1,0 +1,28 @@
+{
+  "category": "socks",
+  "occluders": [],
+  "products": [
+    {
+      "id": "sock-left",
+      "key": "left",
+      "name": "Left Sock",
+      "text": "sock",
+      "instance": 0,
+      "logo": {
+        "top": 0.3,
+        "freeform": true
+      }
+    },
+    {
+      "id": "sock-right",
+      "key": "right",
+      "name": "Right Sock",
+      "text": "sock",
+      "instance": 1,
+      "logo": {
+        "top": 0.3,
+        "freeform": true
+      }
+    }
+  ]
+}

@@ -44,6 +44,7 @@ SKEW_FILL = 0.9  # 铺满的框:可印区凸包不到它方向上外接框的这
 HULL_SOLID = 0.9  # 铺满的框:可印区面积占凸包至少这么多时按凸包算(边角被挡的缺口小),否则按可印区本身
 INSCRIBED_SIZE = 512  # 铺满的框在这么大的格子上找最大内接矩形(模板长边 2560 时误差约 5 像素,只往里收)
 NECK = 90  # 框横向范围里各列可印区上沿的这个分位当作领口:取最低处会被门襟、抽绳这类从领口往下的窄缺口带偏
+NECK_ROUNDS = 4  # 框挪了再量领口,至多几次(一般两三次就不动了)
 SPLIT_SHARE = 0.1  # split 分出的单只盖住可印区至少这么多才算一只(背景里别的袜子、裤子不算)
 CHECK = 'logo center inside print'
 
@@ -156,17 +157,26 @@ def box(inside, settings):
             return middle, x, y, reach
 
         # 大小:居中的只看整块可印区,最宽处(衣服是袖口到袖口)的 width;左胸看胸口那一高度门襟到右端的宽度。都至多最大内切圆半径的 LOGO_REACH 倍。
-        # 先放在正中(左胸先放在胸口);top 再把框往上挪到那里,框上沿碰到领口(框横向范围里可印区上沿的低处,见 NECK)就停
+        # 先放在正中(左胸先放在胸口);top 再把框往上挪到那里,框上沿碰到领口(框横向范围里可印区上沿的低处,见 NECK)就停。
+        # 领口在框挪到的那一高度、按它横向范围里的各列量,挪了再量,至多 NECK_ROUNDS 次:斜放的袜子正中那一高度在脚跟,
+        # 那几列往上先碰到的是袜筒斜着的侧边,按它量框会停在脚跟
         middle, x, y, reach = place(along.min() + (settings['top'] if left else 0.5) * span)
         wide = reach if left else across.max() - across.min()
         width = height = min(settings.get('width', LOGO_WIDTH) * wide, LOGO_REACH * float(distance.max()))
         if 'top' in settings:
-            under = np.abs(across - middle) <= width / 2
-            columns = np.round(across[under] - across[under].min()).astype(int)
-            tops = np.full(columns.max() + 1, np.inf)
-            np.minimum.at(tops, columns, along[under])
-            neck = float(np.percentile(tops[np.isfinite(tops)], NECK))
-            middle, x, y, _ = place(min(max(along.min() + settings['top'] * span, neck + width / 2), along.min() + 0.5 * span))
+            target = level = along.min() + settings['top'] * span
+            for _ in range(NECK_ROUNDS):
+                middle, x, y, _ = place(level)
+                under = np.abs(across - middle) <= width / 2
+                columns = np.round(across[under] - across[under].min()).astype(int)
+                tops = np.full(columns.max() + 1, np.inf)
+                np.minimum.at(tops, columns, along[under])
+                neck = float(np.percentile(tops[np.isfinite(tops)], NECK))
+                moved = min(max(target, neck + width / 2), along.min() + 0.5 * span)
+                if abs(moved - level) < 1:
+                    break
+                level = moved
+            middle, x, y, _ = place(level)
     return {'cx': round(float(x) / W, 4), 'cy': round(float(y) / H, 4), 'width': round(float(width) / W, 4),
             'height': round(float(height) / H, 4), 'rotation': rotation}
 
