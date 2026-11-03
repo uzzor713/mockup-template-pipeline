@@ -13,6 +13,7 @@ SAM 3 走 Replicate,会把源图上传过去;给了 remote 时抠图也走 Repli
   可选的 alternatives 是备选说法,text 一个实例都分不出时按顺序换着试;所有说法在 SAM 3 默认阈值下都分不出时,
   依次放低阈值(THRESHOLDS)再把各个说法试一遍,低阈值下哪怕只分出一个实例也交给 Gemini 确认;
   可选的 instance 只取挑剩的实例里从左往右第几个(从 0 数),同一张图里的两件同类商品(正反两面、两只杯子)各成一件。
+  上层商品的蒙版吞了下层的(同色的整套运动服分成一个实例)时,从上层减掉下层。
 """
 import io, json, re, zipfile
 import numpy as np, cv2
@@ -39,6 +40,7 @@ BAND_RATIO = 0.004  # 待求带向外的半宽 / 宽度,要盖住 SAM 的边界�
 MATTE_FLOOR = 0.1  # 遮挡物待求带宽时,抠图在纯色衣服上也会给出这么多以内的透明度:低于它算 0、高于 1 − 它算 1,中间线性拉开
 SPECK_RATIO = 0.01  # 面积不到整件这么多的碎块去掉
 HOLE_RATIO = 0.002  # 商品蒙版里面积不到整件这么多的洞补上;更大的是包带、提手围出来的背景,留着
+SWALLOW = 0.8  # 下层商品的蒙版有这么多落在上层商品的蒙版里,算上层的说法把下层一起分进去了
 SPUR_RATIO = 0.005  # 部件边上伸进相邻部件的细长毛刺,按这个半径 / 宽度做开运算去掉
 TILE, OVERLAP = 768, 128  # 整图一次推理要十几 GB 内存,按块推理
 
@@ -265,6 +267,15 @@ def segment(photo, spec, models):
         parts = ndimage.binary_fill_holes(prompted(models, photo, item.get('parts', [])))
         raws.append(fill_small_holes(raw | touching(parts, grow(raw, band))))
         part_raws.append(parts)
+    # 上下两件同色时(整套运动服),上层的说法常把两件分成一个实例,下层分完全被上层减掉。
+    # 下层的蒙版大半落在上层里、上层没有大半落在下层里,算上层把下层吞了,从上层减掉下层;
+    # 同一说法分出的两件(正反面)不相交,同一说法不写 instance 的两件蒙版相同,都不动
+    for i in range(len(raws)):
+        for lower in raws[i + 1:]:
+            overlap = np.count_nonzero(raws[i] & lower)
+            if lower.any() and overlap >= SWALLOW * np.count_nonzero(lower) and overlap < SWALLOW * np.count_nonzero(raws[i]):
+                raws[i] = drop_specks(raws[i] & ~lower)
+                print(f"「{spec['products'][i].get('text', spec['products'][i].get('name'))}」的蒙版吞了下层商品,减掉下层的部分")
     # 遮挡物和商品的交界两边都待求,遮挡物当前景抠(抠图模型最擅长头发这类前景),商品在这里的覆盖度 = 1 − 遮挡物透明度。
     # 发丝伸出去多远按各自的 matteBand 给;离商品远的边不影响模板,不求
     near = np.logical_or.reduce(raws)

@@ -7,6 +7,10 @@
       "key": "main",
       "name": "Artwork",
       "text": "framed artwork",
+      "alternatives": [
+        "hanging poster",
+        "poster"
+      ],
       "print": {
         "inset": {
           "top": 0.03,

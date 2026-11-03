@@ -114,7 +114,7 @@ https://assets.vorla.ai/mockup-templates/boxy-tee/mockup-boxy-tee-001-blank.webp
 | `config.py` | 读模板配置、源图、设置和密钥(环境变量、`.env.local`、`.env`),给出每个模板的 `work/`、`output/`、`preview/` 目录,各脚本共用 |
 | `remote.py` | Replicate 的调用(上传、预测、取结果),以及 `MODEL_BACKEND=replicate` 时四个模型的封装版本和输出换算 |
 | `fetch_sources.py` | 按配置的 `fetch` 下载素材,并核对是否与生成样本时的文件一致 |
-| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;商品的提示词分出几个实例时(如书架上的书、背景里路人的包),把各实例编号画在图上,和原图一起交给 Gemini(`google/gemini-3-flash`,走 Replicate,一次约 0.1 美分)挑出要展示的那几个,回答看不懂时全留,说一个都不是时换备选说法(`alternatives`),挑的结果写在日志里;SAM 3 的置信度阈值默认 0.5,所有说法都分不出时(空白商品没印花、特征少)依次放低到 0.3、0.2 再把各个说法试一遍,低阈值下只分出一个实例也交给 Gemini 确认,日志里写明最后用的说法和阈值;ViTMatte 在商品和背景的交界求商品的透明度,在商品和遮挡物的交界求遮挡物的透明度(`MODEL_BACKEND=replicate` 时走 Replicate)。不读写本地文件 |
+| `segment.py` | 分割的函数:SAM 3 按文字提示(走 Replicate)或 SAM 2.1 按外接框和提示点,分出遮挡物、商品和不可印部件;商品的提示词分出几个实例时(如书架上的书、背景里路人的包),把各实例编号画在图上,和原图一起交给 Gemini(`google/gemini-3-flash`,走 Replicate,一次约 0.1 美分)挑出要展示的那几个,回答看不懂时全留,说一个都不是时换备选说法(`alternatives`),挑的结果写在日志里;SAM 3 的置信度阈值默认 0.5,所有说法都分不出时(空白商品没印花、特征少)依次放低到 0.3、0.2 再把各个说法试一遍,低阈值下只分出一个实例也交给 Gemini 确认,日志里写明最后用的说法和阈值;上层商品的蒙版吞了下层的(同色的整套运动服,外套的说法把裤子一起分成一个实例:下层蒙版八成以上落在上层里,上层没有八成落在下层里)时,从上层减掉下层,日志里写明;ViTMatte 在商品和背景的交界求商品的透明度,在商品和遮挡物的交界求遮挡物的透明度(`MODEL_BACKEND=replicate` 时走 Replicate)。不读写本地文件 |
 | `run_segment.py` | 按配置调 `segment.py`,存每件商品的透明度和部件蒙版、遮挡物透明度,以及人工检查用的叠图 `segment-check.png` |
 | `intrinsic.py` | 本征分解:Marigold 把照片拆成固有色、光照和残差,给 `pipeline.py` 出底图的明暗和光泽,去掉商品上的花纹 |
 | `normals.py` | 法线:Marigold 估计每个像素的表面朝向,给 `pipeline.py` 出流向图里的褶皱 |
