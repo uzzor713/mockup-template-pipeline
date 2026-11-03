@@ -208,6 +208,8 @@ def make_spec(row):
     spec = {'id': row.get('id', '').strip() or template_id(source), 'category': preset['category'], 'photo': photo}
     if words(row.get('tags', '')):
         spec['tags'] = words(row['tags'])
+    if spec['category'] is None and not any(t.split('/')[0] in ('seasonal', 'channel') for t in spec.get('tags', [])):
+        raise SystemExit(f"{spec['id']}:预设 {name} 不归商品小品类,清单的 tags 要写 seasonal/<页面> 或 channel/<页面>")
     if crop != [0, 0, width, height]:
         spec['crop'] = crop
     w, h = crop[2] - crop[0], crop[3] - crop[1]
@@ -334,7 +336,9 @@ def one(path):
     status, note, seconds = run(path, folder / 'logs' / f"{spec['id']}.log", args.force, {'preview.py'} if args.no_preview else ())
     review.thumbnails(folder, spec['id'])
     with lock:
-        results.append({'id': spec['id'], 'category': spec['category'], 'source': Path(spec['photo']).name,
+        # 只挂节日 / 渠道的横轴模板 category 为 null,抽查页和汇总按标签的页面分组
+        category = spec['category'] or '|'.join(t.split('/')[-1] for t in spec.get('tags', [])) or '-'
+        results.append({'id': spec['id'], 'category': category, 'source': Path(spec['photo']).name,
                         'status': status, 'note': note, 'seconds': round(seconds)})
         print(f"[{len(results)}/{len(paths)}] {status:5} {seconds:6.0f}s  {spec['id']}" + (f'  {note}' if note else ''), flush=True)
         if time.time() - last_review > REVIEW_EVERY:
