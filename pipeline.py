@@ -29,7 +29,7 @@ spec = config.load(sys.argv[1])
 WORK, OUT = config.folder(spec, 'work'), config.folder(spec, 'output')
 
 WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(样本白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
-DARK_PHOTO = 0.05  # 商品实心部分照片亮度(线性)的中位数低于它算深色商品(sRGB 约 0.25)
+DARK_PHOTO = 0.1  # 商品实心部分照片亮度(线性)的中位数低于它算深色商品(sRGB 约 0.35)
 DARK_BRIGHT = 0.9  # 深色商品抬亮时对齐的亮部百分位
 DARK_TEXTURE = 0.5  # 深色商品的纹理(对数)保留这么多
 GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(样本上约为白色亮度的 3%)
