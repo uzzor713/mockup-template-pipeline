@@ -46,6 +46,7 @@ PRODUCT_MIN = 0.005  # 每件商品至少占画面这么多;源图里商品被�
 FACE_ANGLE = 35  # print.face:法线和主朝向夹角在这么多度以内的算同一面;盒子相邻两面差 90°
 FACE_MIN = 0.3  # print.face:正对的那一面至少要占原来可印区这么多才收窄;更小的不收,由校验标出来
 CAP_MARGIN = (0.1, 0.2)  # 减弱时比上面的范围再收一点,留给 8 位量化和双线性放大
+SLACK_SHARE = 0.5  # 大曲面层 8 位量化的余量按相邻格差一级的这么多份留:扣满一级时位移幅度大的商品褶皱几乎全被减掉,不留时可印区超出范围的面积过 0.5%
 CAP_AREA = 0.2  # 每件商品的坡度系数按它定:Warping 100% 时可印区域里这么多面积刚好顶到上限
 SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / 宽度)的坡度)的上限:几乎没褶的商品不把噪点放大成假褶皱
 SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
@@ -399,8 +400,9 @@ to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模�
 low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
 carriers = [carrier(product, printable) for product, printable in zip(products, prints)]
 surfaces = [surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) for product in carriers]
-# 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分
-slack = 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
+# 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分的 SLACK_SHARE:
+# 整级只在两格取整刚好相反时才出现,扣满一级时大曲面层 200px 以上的商品上下限只剩约 1.0–1.9,褶皱几乎全被减掉
+slack = SLACK_SHARE * 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
 folds, guards, gains = [], [], []
 for index, (product, printable) in enumerate(zip(carriers, prints)):
     inside = product > 0.5
@@ -473,7 +475,7 @@ template = {
                  'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
-                 'capArea': CAP_AREA, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
+                 'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
                  'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE)},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
