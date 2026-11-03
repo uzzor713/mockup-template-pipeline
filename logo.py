@@ -9,9 +9,11 @@
 - closure:上衣用,问 Gemini 照片拍的是不是这件的正面、前襟有没有拉链或扣子,是就把 closure 里的设置合进来(预设里写左胸);
   回答存在 work/<id>/logo-closure.json,图和问题没变就不再问;
 - fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区;透视下的梯形、斜放的平行四边形取里面放得下的最大矩形,不往外包;
-- freeform:贴纸用,可印区可能是爱心、闪电这类异形,看不出摆放方向:不是四边形、也不接近矩形(见 RECT_SHAPE)时框不转。
+- freeform:贴纸用,可印区可能是爱心、闪电这类异形,看不出摆放方向:不是四边形、也不接近矩形(见 RECT_SHAPE)时框不转;
+- split:一双袜子、两条裤腿这类挨在一起、可印区连成一块的用,写单只的说法(如 sock、pant leg);SAM 3 按它分出单只,
+  框只放在可印区里最大的那只上,再按 top 等设置放;分出的不到两只时照常按整块放。分出的蒙版存在 work/<id>/logo-split*,图和说法没变就不再分。
 框跟着可印区摆放的方向转(rotation,度,屏幕上顺时针为正)。
-用法:.venv/bin/python -I logo.py specs/<模板>.json(配置里写了 closure 时要 Replicate 的 token,同 run_segment.py)
+用法:.venv/bin/python -I logo.py specs/<模板>.json(配置里写了 closure、split 时要 Replicate 的 token,同 run_segment.py)
 """
 import hashlib
 import json
@@ -42,6 +44,7 @@ SKEW_FILL = 0.9  # 铺满的框:可印区凸包不到它方向上外接框的这
 HULL_SOLID = 0.9  # 铺满的框:可印区面积占凸包至少这么多时按凸包算(边角被挡的缺口小),否则按可印区本身
 INSCRIBED_SIZE = 512  # 铺满的框在这么大的格子上找最大内接矩形(模板长边 2560 时误差约 5 像素,只往里收)
 NECK = 90  # 框横向范围里各列可印区上沿的这个分位当作领口:取最低处会被门襟、抽绳这类从领口往下的窄缺口带偏
+SPLIT_SHARE = 0.1  # split 分出的单只盖住可印区至少这么多才算一只(背景里别的袜子、裤子不算)
 CHECK = 'logo center inside print'
 
 
@@ -94,9 +97,11 @@ def inscribed(across, along, size=INSCRIBED_SIZE):
 
 def box(inside, settings):
     """一个区域的默认 Logo 框 {cx, cy, width, height, rotation},位置、宽高按模板宽高归一。
-    在可印区自己的方向上(按 rotation 转正)量:fill 取最大一块上下、左右两端围成的框,透视、斜放的取里面的最大内接矩形;否则竖向取上下两端之间 top 处,
+    within(split 分出的那只)不为 None 时只在可印区和它重合的部分里放。在可印区自己的方向上(按 rotation 转正)量:fill 取最大一块上下、左右两端围成的框,透视、斜放的取里面的最大内接矩形;否则竖向取上下两端之间 top 处,
     横向取那一高度左右两端的中点,落到可印区外面时(L 形、分成几块的)退回离边最远的点"""
     H, W = inside.shape
+    if settings.get('within') is not None:
+        inside = inside & settings['within']
     rotation = tilt(inside, settings.get('freeform', False))
     ys, xs = np.nonzero(inside)
     c, s = np.cos(np.radians(rotation)), np.sin(np.radians(rotation))
@@ -166,9 +171,43 @@ def box(inside, settings):
             'height': round(float(height) / H, 4), 'rotation': rotation}
 
 
+def single(cover, printable, item, text, work):
+    """split:SAM 3 按 text 分出单只,返回可印区里最大的那只的蒙版;分出的盖住可印区 SPLIT_SHARE 以上的不到两只、调用失败时返回 None。
+    各只的蒙版按图和说法存成 work/logo-split-<商品 key>.png(像素值是第几只),对得上就不再调用"""
+    path, labels_path = work / 'logo-split.json', work / f"logo-split-{item['key']}.png"
+    done = json.loads(path.read_text()) if path.exists() else {}
+    key = hashlib.sha1(text.encode() + cover.tobytes()).hexdigest()
+    if done.get(item['key']) == key and labels_path.exists():
+        labels = np.asarray(Image.open(labels_path))
+    else:
+        from segment import Sam3Replicate  # 只有要分的时候才用到网络和 token
+        import config
+        try:
+            masks = Sam3Replicate(**config.replicate()).instances(cover, text)
+        except (RuntimeError, OSError, ValueError) as error:
+            print(f'{item["key"]}:SAM 3 按 {text} 没分到({error}),按整块放')
+            return None
+        labels = np.zeros(cover.shape[:2], np.uint8)
+        for index, mask in enumerate(masks[:255], start=1):
+            labels[cv2.resize(mask.astype(np.uint8), cover.shape[1::-1], interpolation=cv2.INTER_NEAREST) > 0] = index
+        Image.fromarray(labels).save(labels_path)
+        path.write_text(json.dumps({**done, item['key']: key}, indent=2))
+    if labels.shape != printable.shape:
+        labels = cv2.resize(labels, printable.shape[::-1], interpolation=cv2.INTER_NEAREST)
+    shares = np.bincount(labels[printable], minlength=int(labels.max()) + 1)[1:] / max(printable.sum(), 1)
+    count = int((shares >= SPLIT_SHARE).sum())
+    print(f"{item['key']}:SAM 3 按 {text} 分出 {count} 只{',放在最大的那只上' if count >= 2 else ',按整块放'}")
+    if count < 2:
+        return None
+    # 图上已经印了图案的(收件箱里的封面),SAM 3 分出的单只常把图案那块挖掉,补上里面的洞,框不至于落进洞里退到别处
+    chosen = (labels == 1 + np.argmax(shares)).astype(np.uint8)
+    contours, _ = cv2.findContours(chosen, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    return cv2.drawContours(chosen, contours, -1, 1, cv2.FILLED) > 0
+
+
 def settle(spec, cover, prints, work):
     """各件商品的 logo 设置。写了 closure 的,把封面和描出可印区的封面交给 Gemini,照片里是正面、前襟有拉链或扣子就合上 closure 里的设置。
-    回答看不懂、调用失败时不合(放胸口),不记下来,下次再问"""
+    回答看不懂、调用失败时不合(放胸口),不记下来,下次再问。写了 split 的,within 是框要放的那只(见 single)"""
     path = work / 'logo-closure.json'
     answers = json.loads(path.read_text()) if path.exists() else {}
     h, w = cover.shape[:2]
@@ -177,6 +216,8 @@ def settle(spec, cover, prints, work):
     result, client = [], None
     for printable, item in zip(prints, spec['products']):
         settings = dict(item.get('logo', {}))
+        if 'split' in settings:
+            settings['within'] = single(cover, printable, item, settings.pop('split'), work)
         closure = settings.pop('closure', None)
         if closure is not None:
             outlined = small.copy()

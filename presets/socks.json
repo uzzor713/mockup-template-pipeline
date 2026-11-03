@@ -6,7 +6,12 @@
       "id": "socks",
       "key": "main",
       "name": "Socks",
-      "text": "sock"
+      "text": "sock",
+      "logo": {
+        "split": "sock",
+        "top": 0.3,
+        "freeform": true
+      }
     }
   ]
 }

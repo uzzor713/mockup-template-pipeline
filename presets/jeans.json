@@ -18,7 +18,11 @@
         {
           "text": "belt loop"
         }
-      ]
+      ],
+      "logo": {
+        "split": "pant leg",
+        "top": 0.25
+      }
     }
   ]
 }

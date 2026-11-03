@@ -17,8 +17,20 @@
         },
         {
           "text": "key"
+        },
+        {
+          "text": "chain"
+        },
+        {
+          "text": "clasp"
+        },
+        {
+          "text": "zipper pull"
         }
-      ]
+      ],
+      "logo": {
+        "freeform": true
+      }
     }
   ]
 }
