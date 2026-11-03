@@ -1,0 +1,34 @@
+{
+  "category": "frame",
+  "occluders": [],
+  "products": [
+    {
+      "id": "canvas-left",
+      "key": "left",
+      "name": "Left Canvas",
+      "text": "canvas print",
+      "alternatives": [
+        "panel",
+        "canvas"
+      ],
+      "logo": {
+        "fill": true
+      },
+      "instance": 0
+    },
+    {
+      "id": "canvas-right",
+      "key": "right",
+      "name": "Right Canvas",
+      "text": "canvas print",
+      "alternatives": [
+        "panel",
+        "canvas"
+      ],
+      "logo": {
+        "fill": true
+      },
+      "instance": 1
+    }
+  ]
+}

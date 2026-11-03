@@ -12,7 +12,9 @@
         "poster",
         "cloth",
         "fabric",
-        "scroll"
+        "scroll",
+        "canvas",
+        "panel"
       ],
       "print": {
         "inset": {
@@ -37,7 +39,9 @@
         "poster",
         "cloth",
         "fabric",
-        "scroll"
+        "scroll",
+        "canvas",
+        "panel"
       ],
       "print": {
         "inset": {

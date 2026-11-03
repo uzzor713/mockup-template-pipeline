@@ -213,8 +213,8 @@ def prompted(models, photo, prompts):
     return union
 
 
-def product_mask(models, photo, item, what, found):
-    """一件商品的蒙版。text 分出几个实例时由 Gemini 挑出要展示的那几个;一个实例都分不出、或 Gemini 说一个都不是时,
+def product_mask(models, photo, item, what, found, need=1):
+    """一件商品的蒙版。text 分出几个实例时由 Gemini 挑出要展示的那几个;挑出的不到 need 个(两件同类商品的预设要 2 个)、或 Gemini 说一个都不是时,
     按顺序换 alternatives 里的说法,用第一个挑得出的;所有说法都挑不出时放低阈值再试一遍,低阈值下只分出一个实例
     也要 Gemini 确认(低阈值容易分到别的东西上);写了 instance 的只取挑剩的里从左往右第几个;
     found 存每个提示词挑好的实例,同一张图里两件同类商品只分、只挑一次"""
@@ -229,9 +229,9 @@ def product_mask(models, photo, item, what, found):
                 masks = [m for m in models.sam3.instances(photo, text, threshold) if m.any()]
                 if len(masks) > 1 or masks and threshold < THRESHOLDS[0]:
                     masks = [masks[i] for i in models.sam3.pick(photo, masks, what)]
-                if masks:
+                if len(masks) >= need:
                     break
-            if masks:
+            if len(masks) >= need:
                 if text != item['text'] or threshold != THRESHOLDS[0]:
                     print(f"「{item['text']}」在阈值 {THRESHOLDS[0]} 分不出,用「{text}」在阈值 {threshold} 分出")
                 break
@@ -263,7 +263,8 @@ def segment(photo, spec, models):
     raws, part_raws = [], []
     found = {}
     for item in spec['products']:
-        raw = product_mask(models, photo, item, f"{item.get('text', item.get('name'))} (a {spec.get('category', 'product').replace('-', ' ')} mockup)", found)
+        need = 1 + max(other.get('instance', 0) for other in spec['products'] if other.get('text') == item.get('text'))
+        raw = product_mask(models, photo, item, f"{item.get('text', item.get('name'))} (a {spec.get('category', 'product').replace('-', ' ')} mockup)", found, need)
         parts = ndimage.binary_fill_holes(prompted(models, photo, item.get('parts', [])))
         raws.append(fill_small_holes(raw | touching(parts, grow(raw, band))))
         part_raws.append(parts)
