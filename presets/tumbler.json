@@ -11,6 +11,10 @@
       "key": "main",
       "name": "Tumbler",
       "text": "tumbler",
+      "alternatives": [
+        "cup",
+        "paper cup"
+      ],
       "parts": [
         {
           "text": "lid"

@@ -11,6 +11,10 @@
       "key": "bottom",
       "name": "Sweatpants",
       "text": "sweatpants",
+      "alternatives": [
+        "pants",
+        "trousers"
+      ],
       "parts": [
         {
           "text": "waistband"

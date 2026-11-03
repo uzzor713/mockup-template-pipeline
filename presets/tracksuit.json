@@ -15,6 +15,11 @@
       "key": "top",
       "name": "Jacket",
       "text": "tracksuit jacket",
+      "alternatives": [
+        "sweater",
+        "top",
+        "jacket"
+      ],
       "parts": [
         {
           "text": "sleeve"

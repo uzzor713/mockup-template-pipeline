@@ -15,6 +15,10 @@
       "key": "main",
       "name": "Backpack",
       "text": "backpack",
+      "alternatives": [
+        "drawstring bag",
+        "bag"
+      ],
       "parts": [
         {
           "text": "backpack strap"

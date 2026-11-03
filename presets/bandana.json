@@ -14,7 +14,11 @@
       "id": "bandana",
       "key": "main",
       "name": "Bandana",
-      "text": "bandana"
+      "text": "bandana",
+      "alternatives": [
+        "fabric",
+        "cloth"
+      ]
     }
   ]
 }

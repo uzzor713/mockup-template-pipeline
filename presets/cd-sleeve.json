@@ -15,7 +15,11 @@
         "envelope",
         "paper",
         "panel",
-        "album cover"
+        "album cover",
+        "case",
+        "cd case",
+        "wallet",
+        "book"
       ],
       "logo": {
         "fill": true

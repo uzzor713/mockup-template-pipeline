@@ -9,7 +9,10 @@
       "text": "framed artwork",
       "alternatives": [
         "hanging poster",
-        "poster"
+        "poster",
+        "cloth",
+        "fabric",
+        "scroll"
       ],
       "print": {
         "inset": {

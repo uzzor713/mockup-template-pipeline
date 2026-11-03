@@ -13,7 +13,9 @@
       "text": "box",
       "alternatives": [
         "mailer envelope",
-        "envelope"
+        "envelope",
+        "book",
+        "square"
       ],
       "print": {
         "face": true

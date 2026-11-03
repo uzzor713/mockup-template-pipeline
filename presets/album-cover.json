@@ -13,7 +13,8 @@
       "text": "album cover",
       "alternatives": [
         "folded paper",
-        "panel"
+        "panel",
+        "paper"
       ],
       "logo": {
         "fill": true

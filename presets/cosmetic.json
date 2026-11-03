@@ -12,7 +12,13 @@
       "name": "Container",
       "text": "cosmetic container",
       "alternatives": [
-        "box"
+        "box",
+        "bottle",
+        "pump bottle",
+        "tube",
+        "compact",
+        "packet",
+        "sachet"
       ],
       "parts": [
         {

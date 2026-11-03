@@ -15,6 +15,12 @@
       "key": "top",
       "name": "Jersey",
       "text": "jersey",
+      "alternatives": [
+        "shirt",
+        "sweater",
+        "t-shirt",
+        "top"
+      ],
       "parts": [
         {
           "text": "sleeve"

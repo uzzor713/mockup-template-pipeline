@@ -15,6 +15,11 @@
       "key": "top",
       "name": "Crop top",
       "text": "crop top",
+      "alternatives": [
+        "t-shirt",
+        "top",
+        "shirt"
+      ],
       "parts": [
         {
           "text": "short sleeve"
