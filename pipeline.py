@@ -41,6 +41,7 @@ DISP_SCALE = 4  # 起伏图缩小倍数:按块求平均,抹掉 8 位台阶和纹
 SLOPE_BLUR = 2.0  # 求坡度前在缩小后的起伏上再模糊(格):坡度再求一次导就是形变,对噪点更敏感
 STRETCH_RANGE = (0.5, 2.5)  # Warping 0–100% 时各方向每像素前进量的范围:拉伸至多 2 倍、压缩至多 2.5 倍
 STRETCH_OUTLIER = 0.005  # 校验时可印区里至多这么多面积可以超出上面的范围:人穿着的衣服侧面、袖口这些陡边上,大曲面层自己就会超出一点
+DRAG_BACK = 3  # 校验时设计稿中心往外拖,画上去的位置往回退超过这么多像素才算往回跑:大曲面层位移幅度大(平放、斜着拍的围裙、卡片一两百像素),8 位量化在商品外铺平的那圈会退两三个像素,拖动时看不出
 PRODUCT_MIN = 0.005  # 每件商品至少占画面这么多;源图里商品被去印花一起抹掉、只分出一点碎块时由校验标出来(胸牌约 1%)
 FACE_ANGLE = 35  # print.face:法线和主朝向夹角在这么多度以内的算同一面;盒子相邻两面差 90°
 FACE_MIN = 0.3  # print.face:正对的那一面至少要占原来可印区这么多才收窄;更小的不收,由校验标出来
@@ -506,7 +507,7 @@ def offsets(surface, fold, warp):
 
 def drag_never_back(surface, fold, printable):
     """设计稿中心从可印区中心沿各方向一路拖出画面,画上去的位置(中心 + 中心处位移)不往回走;
-    8 位量化本身有零点几像素的抖动,回退超过 1px 才算"""
+    8 位量化本身有抖动,回退超过 DRAG_BACK 像素才算"""
     ys, xs = np.nonzero(printable > 0.5)
     cx, cy = xs.mean(), ys.mean()
     for warp in np.linspace(0, 1, 5):
@@ -519,7 +520,7 @@ def drag_never_back(surface, fold, printable):
             px, py = px[keep], py[keep]
             ox, oy = (ndimage.map_coordinates(offset[..., c], [py, px], order=1) for c in (0, 1))
             drawn = (px + ox) * d[0] + (py + oy) * d[1]
-            if (np.diff(drawn) < -1).any():
+            if (np.diff(drawn) < -DRAG_BACK).any():
                 return False
     return True
 
