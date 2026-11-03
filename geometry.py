@@ -18,17 +18,17 @@ MODEL = 'Ruicheng/moge-2-vitl-normal'
 
 spec = config.load(sys.argv[1])
 WORK = config.folder(spec, 'work')
-photo, _ = config.photo(spec)
 t0 = time.time()
 if config.backend() == 'replicate':
     import remote
     device = 'replicate'
     t1 = time.time()
     client = remote.Replicate(**config.replicate())
-    points, intrinsics = remote.geometry(client, np.round(photo * 255).astype(np.uint8))
+    points, intrinsics = remote.geometry(client, config.photo8(spec))
 else:
     import torch
     from moge.model.v2 import MoGeModel
+    photo, _ = config.photo(spec)
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     model = MoGeModel.from_pretrained(MODEL).to(device).eval()
     t1 = time.time()

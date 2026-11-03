@@ -1,7 +1,7 @@
 """
 批量出模板:每张源图按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
 pipeline.py 和 preview.py,最后汇总结果。
-用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--force] [--no-preview]
+用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--local N] [--force] [--no-preview]
       .venv/bin/python -I batch.py <按品类分好的文件夹> --pack 例外.csv   # 把这几张打包给调参数的人
 
 按品类分好的文件夹:每个子文件夹是一个品类,文件夹名是预设名或预设里 folders 列的别名,里面(含更深的子文件夹)
@@ -34,6 +34,7 @@ review.html 是抽查页(按品类分页,见 review.py)。--dry-run 只生成配
 --no-preview 不出预览(只用来抽查,上传用不到),这次没出的下次不带它跑时补上。
 """
 import argparse
+import contextlib
 import csv
 import hashlib
 import json
@@ -62,6 +63,9 @@ LATER = {'size'}  # 后加的配置字段,没写时不算进下面的比较,加�
 # 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND;源图路径不算,挪了文件夹不重跑):都没变、前一次成功过就跳过;
 # None 表示用到整份配置。商品的 logo 设置只有 USES_LOGO 里的步骤算进比较,改了只重出 Logo 框和预览
 USES_LOGO = {'logo.py', 'preview.py'}
+# 在本机算的步骤:每个峰值约 2GB 内存、一两核,同一时间至多 --local 个模板在跑,其余排队;前四步大半时间在等 Replicate,不限。
+# pipeline.py 里问 Gemini、分单只(logo.py)也占着名额,几秒到一分钟
+LOCAL_STEPS = {'pipeline.py', 'logo.py', 'preview.py'}
 STEPS = [
     ('run_segment.py', ['crop', 'size', 'occluders', 'products']),
     ('intrinsic.py', ['crop', 'size']),
@@ -239,10 +243,11 @@ def run(spec_path, log_path, force, skip=()):
             if state.get(script) == key and not (rerun and fields is None):
                 continue
             rerun = True
-            log.write(f'\n==== {time.strftime("%F %T")} {script}\n')
-            log.flush()
-            result = subprocess.run([sys.executable, '-I', str(ROOT / script), str(spec_path)],
-                                    cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+            with local_slots if script in LOCAL_STEPS else contextlib.nullcontext():
+                log.write(f'\n==== {time.strftime("%F %T")} {script}\n')
+                log.flush()
+                result = subprocess.run([sys.executable, '-I', str(ROOT / script), str(spec_path)],
+                                        cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
             if result.returncode != 0:
                 state.pop(script, None)
                 state_path.write_text(json.dumps(state, indent=2))
@@ -261,9 +266,11 @@ parser.add_argument('--overrides', action='append', default=[], help='例外清�
 parser.add_argument('--pack', help='把这份例外清单里的源图、分割叠图和蒙版示意打成 zip,不跑')
 parser.add_argument('--dry-run', action='store_true', help='只生成配置、列出各品类的张数,不跑')
 parser.add_argument('--jobs', type=int, default=1, help='同时跑几个模板;MODEL_BACKEND=local 时每个峰值约 6–7GB 内存')
+parser.add_argument('--local', type=int, default=2, help='同一时间至多几个模板跑本机计算的步骤(pipeline.py、logo.py、preview.py,各约 2GB)')
 parser.add_argument('--force', action='store_true', help='忽略上次的结果,全部重跑')
 parser.add_argument('--no-preview', action='store_true', help='不出预览,下次不带它跑时补上')
 args = parser.parse_args()
+local_slots = threading.Semaphore(max(1, args.local))
 
 source = Path(args.input).expanduser()
 if source.is_dir():

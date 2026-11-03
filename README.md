@@ -45,10 +45,10 @@ ViTMatte、两个 Marigold 和 MoGe-2 在 Replicate 上用的是个人上传的�
 
 ```bash
 .venv/bin/python -I batch.py 源图文件夹 --dry-run   # 先只生成配置、列出各品类张数,确认文件夹都对上了预设
-.venv/bin/python -I batch.py 源图文件夹             # --jobs N 同时跑几个模板,--force 全部重跑,--no-preview 不出预览
+.venv/bin/python -I batch.py 源图文件夹             # --jobs N 同时跑几个模板,--local N 至多几个同时在本机算,--force 全部重跑,--no-preview 不出预览
 ```
 
-`--jobs`:`MODEL_BACKEND=local` 时每个模板峰值约 6–7GB 内存,16GB 的机器开 1 个;`replicate` 时本机只等网络,可以多开,各模型一直有请求就不会闲置下来、反复冷启动。
+`--jobs`:`MODEL_BACKEND=local` 时每个模板峰值约 6–7GB 内存,16GB 的机器开 1 个;`replicate` 时本机只等网络,可以多开,各模型一直有请求就不会闲置下来、反复冷启动。前四步等 Replicate 时每个进程占约 150MB;`pipeline.py`、`logo.py`、`preview.py` 在本机算,每个峰值约 2GB、要一两核,`--local N`(默认 2)让同一时间至多 N 个模板在跑这几步,其余排队,`--jobs` 开大时内存不会跟着涨。一个模板的这几步约 40 秒,`--local 2` 每分钟约能过 2 个模板,`--jobs` 开到十几个才会在这里排队。
 
 - 每个子文件夹是一个品类,文件夹名是预设名(vorla 的小品类 slug,如 `t-shirt`、`coffee-bag`),或写在预设的 `folders` 里(如 `"folders": ["T恤", "boxy-tee"]`);里面(含更深的子文件夹)的 png / jpg / webp 都算,以 `_` 开头的文件夹不算。对不上预设的文件夹、不在品类文件夹里的图会列出来并停下,不会悄悄跳过。
 - id 是品类文件夹名(不是纯英文时换成预设名)加文件名:文件名去掉 `mockup-` 前缀和 `-blank` 后缀,转小写,字母数字以外的连成 `-`;文件名本来就以文件夹名开头的不重复加。`t-shirt/001.png` → `t-shirt-001`,`boxy-tee/mockup-boxy-tee-020-blank.webp` → `boxy-tee-020`。生成的清单存在 `batches/<文件夹名>/list.csv`。

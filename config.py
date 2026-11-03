@@ -57,16 +57,32 @@ def backend():
     return value
 
 
-def photo(spec):
-    """源图:0–1 的 RGB,带透明度的叠在白色上;另返回透明度,不到 1 的像素不是原始照片(如从竞品底图还原的商品区)。
-    配置里有 crop 时先裁,有 size 时再缩放到这个尺寸"""
+def source_rgba(spec):
+    """源图的 RGBA(uint8),配置里有 crop 时先裁,有 size 时再缩放到这个尺寸"""
     image = Image.open(ROOT / spec['photo']).convert('RGBA')
     if 'crop' in spec:
         image = image.crop(spec['crop'])
     if 'size' in spec:
         image = image.resize(tuple(spec['size']), Image.LANCZOS)
-    rgba = np.asarray(image).astype(np.float32) / 255
+    return np.asarray(image)
+
+
+def photo(spec):
+    """源图:0–1 的 RGB,带透明度的叠在白色上;另返回透明度,不到 1 的像素不是原始照片(如从竞品底图还原的商品区)"""
+    rgba = source_rgba(spec).astype(np.float32) / 255
     return rgba[..., :3] * rgba[..., 3:] + (1 - rgba[..., 3:]), rgba[..., 3]
+
+
+def photo8(spec, rows=128):
+    """photo() 的 8 位版,和 np.round(photo * 255) 逐位相同,给只要 8 位图的分割和模型脚本。
+    按条带换算:整张一次换算的浮点中间结果有几百 MB,macOS 释放后不还给系统,
+    进程等 Replicate 的几分钟里一直占着,批量并发高时内存大半耗在这里"""
+    rgba = source_rgba(spec)
+    out = np.empty(rgba.shape[:2] + (3,), np.uint8)
+    for y in range(0, len(rgba), rows):
+        strip = rgba[y:y + rows].astype(np.float32) / 255
+        out[y:y + rows] = np.round((strip[..., :3] * strip[..., 3:] + (1 - strip[..., 3:])) * 255)
+    return out
 
 
 def save_points(work, points):

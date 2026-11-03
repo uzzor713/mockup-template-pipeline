@@ -19,8 +19,7 @@ RESOLUTION = 768  # 长边;不放大回原图,pipeline.py 按这个分辨率决�
 
 spec = config.load(sys.argv[1])
 WORK = config.folder(spec, 'work')
-photo, _ = config.photo(spec)
-photo = np.round(photo * 255).astype(np.uint8)
+photo = config.photo8(spec)
 t0 = time.time()
 if config.backend() == 'replicate':
     import remote
