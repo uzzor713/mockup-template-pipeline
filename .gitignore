@@ -17,3 +17,6 @@ batches/
 
 # 整理好、待上传 OSS 的模板(inbox.py 生成)
 inbox/
+
+# ossutil 在当前目录写的传输报告
+ossutil_output/
