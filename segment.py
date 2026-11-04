@@ -40,7 +40,7 @@ BAND_RATIO = 0.004  # 待求带向外的半宽 / 宽度,要盖住 SAM 的边界�
 MATTE_FLOOR = 0.1  # 遮挡物待求带宽时,抠图在纯色衣服上也会给出这么多以内的透明度:低于它算 0、高于 1 − 它算 1,中间线性拉开
 SPECK_RATIO = 0.01  # 面积不到整件这么多的碎块去掉
 HOLE_RATIO = 0.002  # 商品蒙版里面积不到整件这么多的洞补上;更大的是包带、提手围出来的背景,留着
-SWALLOW = 0.8  # 下层商品的蒙版有这么多落在上层商品的蒙版里,算上层的说法把下层一起分进去了
+SWALLOW = 0.6  # 下层商品的蒙版有这么多落在上层商品的蒙版里,算上层的说法把下层一起分进去了
 SPUR_RATIO = 0.005  # 部件边上伸进相邻部件的细长毛刺,按这个半径 / 宽度做开运算去掉
 TILE, OVERLAP = 768, 128  # 整图一次推理要十几 GB 内存,按块推理
 
@@ -264,9 +264,22 @@ def segment(photo, spec, models):
     found = {}
     for item in spec['products']:
         need = 1 + max(other.get('instance', 0) for other in spec['products'] if other.get('text') == item.get('text'))
-        raw = product_mask(models, photo, item, f"{item.get('text', item.get('name'))} (a {spec.get('category', 'product').replace('-', ' ')} mockup)", found, need)
+        raw = product_mask(models, photo, item, f"{item.get('text', item.get('name'))} (a {(spec.get('category') or 'product').replace('-', ' ')} mockup)", found, need)
         parts = ndimage.binary_fill_holes(prompted(models, photo, item.get('parts', [])))
-        raws.append(fill_small_holes(raw | touching(parts, grow(raw, band))))
+        raw = raw | touching(parts, grow(raw, band))
+        # solid:硬的、实心的商品(画布、盒子、唱片)没有镂空,SAM 在空白面上漏掉的大块也是商品,洞全补上;
+        # 先按待求带的半宽闭运算,接上横穿商品的细缝(透明储物盒的上沿、玻璃反光)
+        if item.get('solid'):
+            raw = ndimage.binary_fill_holes(cv2.morphologyEx(raw.astype(np.uint8), cv2.MORPH_CLOSE, disk(band)) > 0)
+        # hull:看得见的轮廓是凸的(唱片被纸套的直边切掉一块、立着的台历),SAM 在和背景同色的地方漏掉、
+        # 缺口开在轮廓上补不成洞时,换成最大一块的凸包
+        if item.get('hull') and raw.any():
+            labels, n = ndimage.label(raw)
+            largest = labels == 1 + np.argmax(ndimage.sum(raw, labels, range(1, n + 1)))
+            hull = np.zeros(raw.shape, np.uint8)
+            cv2.fillConvexPoly(hull, cv2.convexHull(cv2.findNonZero(largest.astype(np.uint8))), 1)
+            raw = raw | (hull > 0)
+        raws.append(fill_small_holes(raw))
         part_raws.append(parts)
     # 上下两件同色时(整套运动服),上层的说法常把两件分成一个实例,下层分完全被上层减掉。
     # 下层的蒙版大半落在上层里、上层没有大半落在下层里,算上层把下层吞了,从上层减掉下层;
