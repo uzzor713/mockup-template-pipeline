@@ -1368,3 +1368,16 @@ zip-up-hoodie-016,white-gray,2026-11-09,区域 1 白色中位亮度 0.732
 zip-up-hoodie-022,white-gray,2026-11-09,区域 1 白色中位亮度 0.569
 zip-up-hoodie-036,white-gray,2026-11-09,区域 1 白色中位亮度 0.643
 zip-up-hoodie-039,white-gray,2026-11-09,区域 1 白色中位亮度 0.706
+apron-010,drag-stale,2026-11-09,
+book-hardcover-book-018,drag-stale,2026-11-09,拖动校验已过;拉伸检查不过
+calendar-025,drag-stale,2026-11-09,
+front-and-back-t-shirt-021,drag-stale,2026-11-09,
+greeting-card-postcard-006,drag-stale,2026-11-09,"拖动校验已过;立着的卡和平放的明信片算成一个可印区,最大一块 67%"
+playing-cards-006,drag-stale,2026-11-09,"拖动校验已过;桌上散开的四张牌算成一个可印区,最大一块 27%"
+playing-cards-008,drag-stale,2026-11-09,"拖动校验已过;两只手各拿一张牌,算成一个可印区,最大一块 54%"
+playing-cards-010,drag-stale,2026-11-09,"拖动校验已过;牌堆顶上那张和左下角的牌算成一个可印区,最大一块 66%"
+playing-cards-018,drag-stale,2026-11-09,"拖动校验已过;两只手各拿一张牌,算成一个可印区,最大一块 52%;base-css 白底 / 黑底对不上"
+poster-movie-poster-003,drag-stale,2026-11-09,"拖动校验已过;可印区选成了后墙上的三张小海报,前面两个海报框没选上"
+sticker-blank-sticker-020,drag-stale,2026-11-09,
+sticker-laptop-sticker-009,drag-stale,2026-11-09,
+sticker-laptop-sticker-036,drag-stale,2026-11-09,拖动校验已过;拉伸检查不过
