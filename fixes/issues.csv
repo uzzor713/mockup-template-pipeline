@@ -4,7 +4,7 @@ white-gray,深色商品换白发灰,pipeline.py,,tracksuit-012,"深色照片只�
 flat-bow,平面商品上设计稿被弯,pipeline.py,,sticker-blank-sticker-033,"纸品、卡片、盒面这类平的商品,流向图把设计稿的横竖线弯了框宽或框高的 2% 以上。按本机产出筛,不含摊开的双页(归 spread)"
 cylinder-flat,圆柱商品上设计稿不跟弧度,pipeline.py,,candle-018,"杯子、罐、瓶、蜡烛的大曲面层只有压缩拉伸,俯视、仰视时横线弯不成弧,看着像贴在平面上。按小品类全收,含模板墙上本机没有的"
 box-face,可印区并进了别的面,run_segment.py,2026-11-09T15:14:26Z,square-box-008,"朝向相近又连成一片的几个面并成了一块可印区,Logo 框落在交界上。按模板在例外清单的 parts 写不印的部分:蜡烛杯写 rim of the jar(杯口填满后连杯内一起去掉),敞开的盒子写 open box(只留盒盖)。其他例子还没筛"
-spread,摊开的双页当成一页,run_segment.py,,magazine-ad-002,"摊开的杂志、书只有一件商品铺满两页,设计稿横跨中缝;要新加左右两页各一个区域的预设。按 id 前缀全收"
+spread,摊开的双页当成一页,run_segment.py,2026-11-09T16:00:38Z,magazine-ad-002,"摊开的杂志、书只有一件商品铺满两页,设计稿横跨中缝。open-book 预设和新加的 magazine-spread 预设分左右两页两个区域,说法 page,按从左到右取第 1、2 个实例;B-纸品清单里 magazine-ad、magazine-spread 改用 magazine-spread。按 id 前缀全收"
 bookmark,书签认成书封,run_segment.py,2026-11-09T08:27:10Z,etsy-016,"书签压在书封上的图套了书本类预设,选中的是书封;要新加书签预设"
 pants-logo,裤子的 Logo 放在裆部,logo.py,2026-11-09T07:46:38Z,shorts-004,"短裤和运动套装的裤子没写 Logo 规则,框按整条裤子居中;补上运动裤那样只放一条腿的规则。按小品类全收"
 drag-stale,拖动校验记录过期,pipeline.py,2026-11-03T02:39:42Z,calendar-025,"本机输出和 checks.json 早于拖动校验改成回退超过 3 像素才算没过(202fcce),按旧规则没过、没有发布;按现行规则没有超过 3 像素的回退,是 8 位量化的抖动。用现在的代码重跑本机三步,按新的检查结果发布。按本机 checks.json 筛"

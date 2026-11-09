@@ -100,7 +100,7 @@ poster-017,其他,画框也被改色,,,,,,1
 - Seasonal、Channel 两条横轴是标签,不单独设预设:模板按画面里实际的商品选预设,清单的 `tags` 写 `seasonal/<页面>` 或 `channel/<页面>`。
 - 主树里没有对应小品类的商品(`pet-tag`、`compact-mirror`、`ceramic-tile`、`ring-dish`、`bookmark`),预设的 `category` 是 `null`,模板只挂在横轴页面上,清单必须写 `tags`。
 - 书签压在书上的照片用 `bookmark`,不用 `book`:书本类预设会选中下面的书封。书签上系的丝带算遮挡物,不跟着改色。
-- 一件商品一个区域;`tracksuit` 是上衣、裤子两个区域。`bottle`、`candle` 可编辑的是标签。
+- 一件商品一个区域;`tracksuit` 是上衣、裤子两个区域,摊开的书和杂志是左右两页两个区域。`bottle`、`candle` 可编辑的是标签。
 
 ### 特殊预设
 
@@ -113,7 +113,7 @@ poster-017,其他,画框也被改色,,,,,,1
 | `socks-pair` | 一双袜子分开摆,左右各一件 | `socks` |
 | `can-pair`、`coaster-pair`、`frame-pair`、`cap-pair`、`tube-pair` | 两罐、两个杯垫、两幅挂画、两顶帽子、两个纸筒并排,左右各一件 | 同单件的预设 |
 | `canvas-pair` | 两块无框画布挂墙(挂画页面),说法同 `canvas`,边上不往里收 | `frame` |
-| `open-book` | 翻开的书,内页可印 | `book` |
+| `open-book`、`magazine-spread` | 摊开的书、杂志(magazine-ad、magazine-spread 页面),左右两页各一个区域,说法 page | `book`、`magazine` |
 | `cd-case` | CD 盒和封面卡(cd-case、cd-cover 页面) | `cd` |
 | `cd-sleeve` | CD 纸套 | `cd` |
 | `zip-hoodie` | 敞开的拉链卫衣,可印区按左右两片前襟连着算 | `hoodie` |

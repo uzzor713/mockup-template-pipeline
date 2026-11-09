@@ -1,0 +1,30 @@
+{
+  "category": "magazine",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "left-page",
+      "key": "left",
+      "name": "Left Page",
+      "text": "page",
+      "instance": 0,
+      "logo": {
+        "fill": true
+      }
+    },
+    {
+      "id": "right-page",
+      "key": "right",
+      "name": "Right Page",
+      "text": "page",
+      "instance": 1,
+      "logo": {
+        "fill": true
+      }
+    }
+  ]
+}
