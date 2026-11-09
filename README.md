@@ -10,6 +10,7 @@
 | `presets/` | 品类预设,每个小品类一份 | 是 |
 | `experiments/` | 试验脚本,不在流程里 | 是 |
 | `docs/` | 文档 | 是 |
+| `fixes/` | 修复进度表:已知的问题、受影响的模板(`plan/` 是算出来的重跑、发布清单和同步总结,不进仓库) | 是 |
 | `requirements/` | 依赖 | 是 |
 | `sources/` | 源图、清单、例外清单 | 否 |
 | `batches/<批次>/` | 每批的配置、日志、汇总表、抽查页 | 否 |
@@ -39,6 +40,12 @@ Replicate 的 token 写进仓库根目录的 `.env.local`(不进仓库),一行 `
 
 # 上传:整理通过的模板
 .venv/bin/python -I scripts/inbox.py batches/<批次> inbox/<日期>
+
+# 修复:看各问题修到哪一步,挑出该重跑、该发布、该同步正式库的
+.venv/bin/python -I scripts/fixes.py
+.venv/bin/python -I scripts/fixes.py rerun
+.venv/bin/python -I scripts/fixes.py publish
+.venv/bin/python -I scripts/fixes.py sync      # 给管正式库的同事的同步总结
 ```
 
 单独重跑一个模板的某一步,给它的配置:
@@ -62,6 +69,7 @@ SPEC=batches/<批次>/specs/<id>.json
 | `review.py` | 抽查页,`batch.py` 调用 |
 | `inbox.py` | 把通过的模板整理成上传用的文件夹;重跑过的已发布模板换文件、升版本 |
 | `wall.py` | 拉测试站或正式站的模板墙:每个模板的版本、显示名、小品类、标签、最后发布的时间 |
+| `fixes.py` | 修复进度表:各问题修到哪一步,挑出该重跑、该发布的模板,写同步正式库的总结 |
 | `fetch_sources.py` | 按配置的 `fetch` 下载素材并核对 sha256 |
 | `run_segment.py` | 分割:商品、不可印部件、遮挡物的蒙版和边缘透明度 |
 | `intrinsic.py` | 本征分解:固有色、光照、残差 |
@@ -117,4 +125,5 @@ SPEC=batches/<批次>/specs/<id>.json
 | [how-it-works.md](docs/how-it-works.md) | 分割、可印区、底图、流向图、Logo 框各自怎么算 |
 | [models.md](docs/models.md) | 模型在哪跑、Replicate 设置、耗时、许可 |
 | [publish.md](docs/publish.md) | 上传到 vorla |
+| [fixes.md](docs/fixes.md) | 修复进度表:已知问题、进度怎么算、重跑、发布和同步正式库的流程 |
 | [batch-plan.md](docs/batch-plan.md) | 8000 张的批量方案和费用 |

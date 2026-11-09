@@ -145,6 +145,7 @@ poster-017,其他,画框也被改色,,,,,,1
 | `logs/<id>.log` | 各步输出 |
 | `report.csv` | 每个模板的结果:`pass` / `fail`(带没通过的校验项)/ `error`(带出错的步骤和最后一行输出)/ `skip` |
 | `review.html` | 抽查页,跑的过程中每分钟更新 |
+| `command.json` | 最近一次运行的输入和例外清单,[修复进度表](fixes.md)按它打出重跑命令 |
 
 重跑同一条命令时,各步记下上次用到的配置字段、源图内容和 `MODEL_BACKEND`(`work/<id>/steps.json`),没变的跳过:
 

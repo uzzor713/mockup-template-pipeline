@@ -18,5 +18,8 @@ batches/
 # 整理好、待上传 OSS 的模板(inbox.py 生成)
 inbox/
 
+# 修复进度表算出的重跑、发布清单和同步总结(fixes.py 生成)
+fixes/plan/
+
 # ossutil 在当前目录写的传输报告
 ossutil_output/

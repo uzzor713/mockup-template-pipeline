@@ -104,4 +104,10 @@ pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templ
 - 小品类和测试库里不一样的列出来(预设改过小品类时会有):发布后测试库跟着改,同步正式库时也会改。
 - 最后打出两条命令:整个输出目录传到收件箱根目录,盖在原处;再用发布脚本 `--apply --batch mockup-template-inbox/ --only` 发这几个。前缀给收件箱根目录,哪个日期目录里的都找得到;不加 `--files-only`,测试库里的那一行和文件一起更新。
 
+[修复进度表](fixes.md)的 `fixes.py publish` 按批次挑出该发布的,打出这条命令。
+
 核对时 `scripts/wall.py` 打出模板墙的总数和各版本的个数,给一个路径时每个模板一行存成 CSV(id、版本、显示名、小品类、标签、最后发布的时间);加 `--prod` 拉正式站(读正式库)。接口是 `https://vorla.drfans.com/api/trpc/mockup.listTemplates`,分页参数 `{"json":{"page":1,"pageSize":48}}`,`materials.regions` 里是各区域的 Logo 框;直接请求 `assets.vorla.ai` 上的图要带浏览器的 User-Agent,不带会被 CDN 拦成 403。
+
+## 九、同步到正式库
+
+正式库和测试库的模板文件在 OSS 同一个 bucket,发布到测试库时已经发好,同步只改正式库 `template` 表里的行。写正式库由管正式库的同事做:[修复进度表](fixes.md#流程)的 `fixes.py sync` 列出进了测试库、正式库还是旧版本的模板,写成同步总结交给他们。
