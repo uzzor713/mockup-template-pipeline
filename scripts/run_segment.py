@@ -2,7 +2,7 @@
 按模板配置跑 segment.py,结果存到 work/<模板 id>/:每件商品 <商品 id>-alpha.png(16 位透明度)、<商品 id>-parts.png
 (不可印部件),遮挡物 occluders.png(16 位透明度),以及人工检查用的叠图 segment-check.png。
 用到文字提示或 MODEL_BACKEND=replicate(抠图也走 Replicate)时要 Replicate 的 token:环境变量或仓库根目录 .env.local 里的 REPLICATE_API_TOKEN。
-用法:.venv/bin/python -I run_segment.py specs/<模板>.json
+用法:.venv/bin/python -I scripts/run_segment.py batches/<批次>/specs/<id>.json
 """
 import sys, time
 from pathlib import Path

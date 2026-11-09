@@ -1,5 +1,5 @@
 """
-模板配置(specs/*.json)和密钥的读取,各脚本共用。配置里的路径相对仓库根目录;
+模板配置(batch.py 生成在 batches/<批次>/specs/<id>.json)和密钥的读取,各脚本共用。配置里的路径相对仓库根目录;
 每个模板的中间结果放 work/<id>/,模板文件放 output/<id>/,预览图放 preview/<id>/。
 """
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent  # 本文件在 scripts/ 下
 
 
 def load(path):

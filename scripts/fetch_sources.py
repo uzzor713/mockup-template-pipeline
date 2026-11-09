@@ -1,7 +1,6 @@
 """
-按模板配置的 fetch 把源图等素材下载到配置里的路径,并核对是否与生成样本时的文件一致。
-样本用的竞品素材只作内部示例,不进仓库、不用于产品。
-用法:.venv/bin/python -I fetch_sources.py specs/<模板>.json
+按模板配置的 fetch 把源图等素材下载到配置里的路径,并按 sha256 核对是否与生成配置时的文件一致。
+用法:.venv/bin/python -I scripts/fetch_sources.py batches/<批次>/specs/<id>.json
 """
 import hashlib
 import sys
@@ -20,4 +19,4 @@ for name, item in spec.get('fetch', {}).items():
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     same = hashlib.sha256(data).hexdigest() == item['sha256']
-    print(f'{len(data) / 1024:8.1f} KB  {name}' + ('' if same else '  (与样本生成时的文件不同,产出可能对不上)'))
+    print(f'{len(data) / 1024:8.1f} KB  {name}' + ('' if same else '  (与生成配置时的文件不同,产出可能对不上)'))

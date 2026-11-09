@@ -2,7 +2,7 @@
 法线:Marigold(法线版)估计照片里每个像素的表面朝向,存 work/<id>/normals.png(16 位,(n + 1) / 2,模型处理分辨率)。
 pipeline.py 用它出流向图里的褶皱。
 MODEL_BACKEND=local 本机跑,首次运行会从 Hugging Face 下载模型(约 2.6GB);replicate 调 Replicate 上的封装(见 remote.py)。
-用法:.venv/bin/python -I normals.py specs/<模板>.json
+用法:.venv/bin/python -I scripts/normals.py batches/<批次>/specs/<id>.json
 """
 import sys
 import time

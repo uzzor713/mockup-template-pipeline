@@ -2,7 +2,7 @@
 试验:detect_boxes.py 检测出的框直接当 SAM 2.1 的提示,不用手点,和手点提示的现有结果(work/<模板 id>/ 下)对比。
 袖子比三种提示:只给框 / 框 + 框中心正点 + T 恤中心负点 / 同样的点,三个候选里挑最贴框的。
 结果在 work/<模板 id>/experiments/。
-用法:.venv/bin/python -I experiments/sam21_auto.py specs/<模板>.json [SAM 模型] [检测模型]
+用法:.venv/bin/python -I experiments/sam21_auto.py batches/<批次>/specs/<id>.json [SAM 模型] [检测模型]
 """
 import json, sys, time
 from pathlib import Path
@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy import ndimage
 
-sys.path.insert(0, str(Path(__file__).parent.parent))  # -I 运行时仓库根目录不在 sys.path 里
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))  # -I 运行时 scripts/ 不在 sys.path 里
 import config
 import torch
 from transformers import Sam2Model, Sam2Processor

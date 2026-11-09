@@ -2,7 +2,7 @@
 几何:MoGe-2 估计照片里每个像素的 3D 坐标和相机内参,存 work/<id>/points.z(无损压缩,相机坐标,x 右、y 下、z 朝前,原图尺寸)
 和 work/<id>/geometry.json(归一化内参)。pipeline.py 用它出流向图里的大曲面和透视。
 MODEL_BACKEND=local 本机跑,首次运行会从 Hugging Face 下载模型(约 1.3GB);replicate 调 Replicate 上的封装(见 remote.py)。
-用法:.venv/bin/python -I geometry.py specs/<模板>.json
+用法:.venv/bin/python -I scripts/geometry.py batches/<批次>/specs/<id>.json
 """
 import json
 import sys

@@ -1,7 +1,7 @@
 """
 只读 output/<id>/ 里的模板文件,按编辑页的公式合成预览:每件商品各自的颜色和设计稿 → 按流向图位移 → 底图按 alpha 在线性光下盖上。
 另出边缘放大图和蒙版示意图,存到 preview/<id>/;裁切范围和边缘取样位置在模板配置的 preview 里。
-用法:.venv/bin/python -I preview.py specs/<模板>.json
+用法:.venv/bin/python -I scripts/preview.py batches/<批次>/specs/<id>.json
 """
 import json
 import sys

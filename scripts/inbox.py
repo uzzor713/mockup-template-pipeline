@@ -2,7 +2,7 @@
 按 vorla 的模板上传说明,把一批里通过的模板(report.csv 里 status 为 pass,自动校验全过、不在跳过之列)整理成上传用的文件夹:每个模板一个目录(目录名是 id),
 放模板文件(template.json 里列的,原样复制)、展示图 cover.webp、白模图 white.png,根目录写 manifest.csv。
 整个文件夹原样传到 OSS 的收件目录(如 vorla-assets/mockup-template-inbox/<日期>/),checks.json 不传。
-用法:.venv/bin/python -I inbox.py batches/<批次> <输出目录> [--uploaded 已传过的 manifest.csv ...]
+用法:.venv/bin/python -I scripts/inbox.py batches/<批次> <输出目录> [--uploaded 已传过的 manifest.csv ...]
 
 源图按生图包的布局找另外两张:<页面>/<key>/<key>-blank-2x.png 是源图,同一目录的 <key>.png 是带印花的展示图,
 <页面> 文件夹名是 manifest 的小品类(categories)。展示图和源图构图不一定对得上,按源图同样的比例裁、放大到模板尺寸。

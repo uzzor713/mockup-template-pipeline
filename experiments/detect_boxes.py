@@ -1,14 +1,14 @@
 """
 试验:开放词汇检测模型按文字找出各部分的外接框,给 sam21_auto.py 当 SAM 2.1 的提示,省掉手点。
 结果在 work/<模板 id>/experiments/:detections-<模型>.json 和画了框的图。
-用法:.venv/bin/python -I experiments/detect_boxes.py specs/<模板>.json [检测模型]
+用法:.venv/bin/python -I experiments/detect_boxes.py batches/<批次>/specs/<id>.json [检测模型]
 """
 import json, sys, time
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-sys.path.insert(0, str(Path(__file__).parent.parent))  # -I 运行时仓库根目录不在 sys.path 里
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))  # -I 运行时 scripts/ 不在 sys.path 里
 import config
 import torch
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection

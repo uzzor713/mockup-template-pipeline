@@ -2,7 +2,7 @@
 本征分解:Marigold(光照版)把照片拆成固有色、漫反射光照和残差(高光等),存 work/<id>/albedo.png、shading.png、residual.png
 (线性值,16 位,模型处理分辨率)。pipeline.py 用光照和残差出明暗,花纹和染料留在固有色里。
 MODEL_BACKEND=local 本机跑,首次运行会从 Hugging Face 下载模型(约 2.6GB);replicate 调 Replicate 上的封装(见 remote.py)。
-用法:.venv/bin/python -I intrinsic.py specs/<模板>.json
+用法:.venv/bin/python -I scripts/intrinsic.py batches/<批次>/specs/<id>.json
 """
 import sys
 import time

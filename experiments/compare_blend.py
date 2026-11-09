@@ -4,7 +4,7 @@
 - 线性光:和编辑页、导出同一个公式,不做位移;
 - 编辑页:线性光 + 大曲面 + 褶皱(Warping 默认 40%)。
 每格标出和「线性光」那格的平均色差(商品区内,0–255)。
-用法:.venv/bin/python -I experiments/compare_blend.py specs/<模板>.json <设计稿 PNG>
+用法:.venv/bin/python -I experiments/compare_blend.py batches/<批次>/specs/<id>.json <设计稿 PNG>
 """
 import json
 import sys
@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))  # -I 运行时 scripts/ 不在 sys.path 里
 import config
 
 spec = config.load(sys.argv[1])

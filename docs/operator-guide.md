@@ -1,6 +1,6 @@
 # 批量出模板操作说明
 
-给跑批量的人看:把一批空白底商品图做成 Mockup 模板。原理和参数见仓库根目录的 README,这里只讲怎么操作。
+给跑批量的人看:把一批空白底商品图做成 Mockup 模板。规则和参数见 [batch.md](batch.md),原理见 [how-it-works.md](how-it-works.md),这里只讲怎么操作。
 
 命令都在仓库根目录执行。
 
@@ -11,7 +11,7 @@
 
    ```bash
    python3.12 -m venv .venv
-   .venv/bin/pip install -r requirements.txt
+   .venv/bin/pip install -r requirements/base.txt
    ```
 
 3. 向晋卓然要 Replicate 的 token,在仓库根目录新建一个文件 `.env.local`,写一行:
@@ -46,7 +46,7 @@
 ## 三、先试跑
 
 ```bash
-.venv/bin/python -I batch.py 源图 --dry-run
+.venv/bin/python -I scripts/batch.py 源图 --dry-run
 ```
 
 只生成配置、不真跑,会列出每个品类认出了几张。文件夹名对不上品类、或者总文件夹下直接放了图,会列出来并停下:改文件夹名;如果是新品类,找晋卓然加。
@@ -54,7 +54,7 @@
 ## 四、正式跑
 
 ```bash
-.venv/bin/python -I batch.py 源图 --jobs 8
+.venv/bin/python -I scripts/batch.py 源图 --jobs 8
 ```
 
 - `--jobs 8` 是同时跑 8 张。一张一张跑时模型会闲下来,每次重新启动要等几分钟,所以要同时跑多张。
@@ -89,7 +89,7 @@
 ## 六、把有问题的发给晋卓然
 
 ```bash
-.venv/bin/python -I batch.py 源图 --pack 下载的例外清单.csv
+.venv/bin/python -I scripts/batch.py 源图 --pack 下载的例外清单.csv
 ```
 
 会在 `batches/源图/` 下生成一个 `...-issues-日期.zip`,里面是这几张的原图、分割结果和你的标记。把这个 zip 发给晋卓然。
@@ -100,7 +100,7 @@
 2. 重跑时带上这个文件夹:
 
    ```bash
-   .venv/bin/python -I batch.py 源图 --jobs 8 --overrides 例外清单
+   .venv/bin/python -I scripts/batch.py 源图 --jobs 8 --overrides 例外清单
    ```
 
    只有清单里那几张会重做,其他的跳过。清单里标了跳过的不会再做,`report.csv` 里记为 `skip`。

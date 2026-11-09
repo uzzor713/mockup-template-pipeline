@@ -13,7 +13,7 @@
 - split:一双袜子、两条裤腿这类挨在一起、可印区连成一块的用,写单只的说法(如 sock、pant leg);SAM 3 按它分出单只,
   框只放在可印区里最大的那只上,再按 top 等设置放;分出的不到两只时照常按整块放。分出的蒙版存在 work/<id>/logo-split*,图和说法没变就不再分。
 框跟着可印区摆放的方向转(rotation,度,屏幕上顺时针为正)。
-用法:.venv/bin/python -I logo.py specs/<模板>.json(配置里写了 closure、split 时要 Replicate 的 token,同 run_segment.py)
+用法:.venv/bin/python -I scripts/logo.py batches/<批次>/specs/<id>.json(配置里写了 closure、split 时要 Replicate 的 token,同 run_segment.py)
 """
 import hashlib
 import json

@@ -2,14 +2,14 @@
 试验:SAM 3 按文字提示分割,每个提示的各个实例分别存下蒙版,再出一张叠图,用来给新模板挑提示词。
 走 segment.py 的 Replicate 后端,会把源图上传到 Replicate;token 是环境变量或 .env.local 里的 REPLICATE_API_TOKEN。
 结果在 work/<模板 id>/experiments/sam3/。
-用法:.venv/bin/python -I experiments/sam3_replicate.py specs/<模板>.json [提示 ...]
+用法:.venv/bin/python -I experiments/sam3_replicate.py batches/<批次>/specs/<id>.json [提示 ...]
 """
 import sys
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-sys.path.insert(0, str(Path(__file__).parent.parent))  # -I 运行时仓库根目录不在 sys.path 里
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))  # -I 运行时 scripts/ 不在 sys.path 里
 import config
 from segment import Sam3Replicate
 

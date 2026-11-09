@@ -1,5 +1,5 @@
 """
-按模板配置(specs/*.json)生成模板文件到 output/<id>/,并跑自动校验。
+按模板配置生成模板文件到 output/<id>/,并跑自动校验。
 
 模型的结果由前面的脚本存在 work/<id>/:
 - 分割(第 2 步):SAM 3(文字提示)或 SAM 2.1(手点)分出的商品、不可印部件和遮挡物,ViTMatte 求的边缘透明度(run_segment.py);
@@ -7,7 +7,7 @@
 - 底图(第 3 步):Marigold 本征分解(intrinsic.py 产出 albedo.png、shading.png、residual.png)。
 - 流向图(第 4 步):大曲面和透视取 MoGe-2 的 3D 坐标(geometry.py 产出 points.z、geometry.json),
   褶皱取 Marigold 法线(normals.py 产出 normals.png)。
-其余步骤都是固定代码。用法:.venv/bin/python -I pipeline.py specs/<模板>.json
+其余步骤都是固定代码。用法:.venv/bin/python -I scripts/pipeline.py batches/<批次>/specs/<id>.json
 """
 import json
 import sys
@@ -28,11 +28,11 @@ from segment import drop_specks, grow
 spec = config.load(sys.argv[1])
 WORK, OUT = config.folder(spec, 'work'), config.folder(spec, 'output')
 
-WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(样本白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
+WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(白 T 恤实测 0.86–0.88):选白色时还原照片的亮度
 DARK_PHOTO = 0.1  # 商品实心部分照片亮度(线性)的中位数低于它算深色商品(sRGB 约 0.35)
 DARK_BRIGHT = 0.9  # 深色商品抬亮时对齐的亮部百分位
 DARK_TEXTURE = 0.5  # 深色商品的纹理(对数)保留这么多
-GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(样本上约为白色亮度的 3%)
+GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(白 T 恤上约为白色亮度的 3%)
 SHADE_HEADROOM = 99.9  # 明暗倍数让商品区这个百分位以内的明暗都放得下,更亮的极少数截掉:倍数越大,8 位 alpha 里明暗的精度越低
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
 TEXTURE_CLIP = (-0.65, 0.44)  # 纹理(对数)的截断,个别像素不过亮过暗

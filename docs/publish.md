@@ -9,7 +9,7 @@
 ## 二、整理
 
 ```bash
-.venv/bin/python -I inbox.py batches/b-print inbox/2026-10-28
+.venv/bin/python -I scripts/inbox.py batches/b-print inbox/2026-10-28
 ```
 
 `inbox.py` 把这一批里全过的模板整理到输出目录,结构就是上传说明要的样子:
@@ -64,7 +64,7 @@ ossutil cp -r inbox/2026-10-28/ oss://vorla-assets/mockup-template-inbox/2026-10
 B-纸品 这种分批跑的,每次整理到新的日期目录,用 `--uploaded` 带上之前传过的 `manifest.csv`,已经传过的 `id` 跳过:
 
 ```bash
-.venv/bin/python -I inbox.py batches/b-print inbox/2026-10-30 --uploaded inbox/2026-10-28/manifest.csv
+.venv/bin/python -I scripts/inbox.py batches/b-print inbox/2026-10-30 --uploaded inbox/2026-10-28/manifest.csv
 ```
 
 ## 六、线上读取时注意

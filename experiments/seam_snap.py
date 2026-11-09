@@ -2,7 +2,7 @@
 试验:SAM 2.1 只给出袖子的大致范围(sam21_auto.py 的结果),这里沿照片里的接缝重新切分袖子和身体,不用手标。
 接缝是布面上的细暗线:按 Hessian 求暗线强度,跨过暗线的代价高;从身体、袖子两侧的种子各求测地距离,
 每个像素归近的一边,分界就落在两边之间最强的那条暗线上。结果在 work/<模板 id>/experiments/。
-用法:.venv/bin/python -I experiments/seam_snap.py specs/<模板>.json [SAM 结果的变体名]
+用法:.venv/bin/python -I experiments/seam_snap.py batches/<批次>/specs/<id>.json [SAM 结果的变体名]
 """
 import sys, time
 from pathlib import Path
@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 from scipy import ndimage, sparse
 from scipy.sparse.csgraph import dijkstra
 
-sys.path.insert(0, str(Path(__file__).parent.parent))  # -I 运行时仓库根目录不在 sys.path 里
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))  # -I 运行时 scripts/ 不在 sys.path 里
 import config
 from segment import grow
 

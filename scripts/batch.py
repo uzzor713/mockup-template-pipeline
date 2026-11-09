@@ -1,8 +1,8 @@
 """
 批量出模板:每张源图按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
 pipeline.py 和 preview.py,最后汇总结果。
-用法:.venv/bin/python -I batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--local N] [--force] [--no-preview]
-      .venv/bin/python -I batch.py <按品类分好的文件夹> --pack 例外.csv   # 把这几张打包给调参数的人
+用法:.venv/bin/python -I scripts/batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--local N] [--force] [--no-preview]
+      .venv/bin/python -I scripts/batch.py <按品类分好的文件夹> --pack 例外.csv   # 把这几张打包给调参数的人
 
 按品类分好的文件夹:每个子文件夹是一个品类,文件夹名是预设名或预设里 folders 列的别名,里面(含更深的子文件夹)
 的 png / jpg / webp 都算,以 _ 开头的文件夹不算。对不上预设的文件夹会列出来并停下。id 默认是品类文件夹名(不是纯英文时换成预设名)加文件名(规则同下),
@@ -254,7 +254,7 @@ def run(spec_path, log_path, force, skip=()):
             with local_slots if script in LOCAL_STEPS else contextlib.nullcontext():
                 log.write(f'\n==== {time.strftime("%F %T")} {script}\n')
                 log.flush()
-                result = subprocess.run([sys.executable, '-I', str(ROOT / script), str(spec_path)],
+                result = subprocess.run([sys.executable, '-I', str(Path(__file__).parent / script), str(spec_path)],
                                         cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
             if result.returncode != 0:
                 state.pop(script, None)
