@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Sleeve",
       "text": "square",
+      "surface": "plane",
       "alternatives": [
         "envelope",
         "paper",

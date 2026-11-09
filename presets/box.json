@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Box",
       "text": "box",
+      "surface": "plane",
       "alternatives": [
         "mailer envelope",
         "envelope",

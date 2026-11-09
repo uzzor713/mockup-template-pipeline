@@ -17,6 +17,7 @@
       "key": "left",
       "name": "Left Coaster",
       "text": "coaster",
+      "surface": "plane",
       "instance": 0
     },
     {
@@ -24,6 +25,7 @@
       "key": "right",
       "name": "Right Coaster",
       "text": "coaster",
+      "surface": "plane",
       "instance": 1
     }
   ]

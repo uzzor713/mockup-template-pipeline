@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Cover",
       "text": "magazine",
+      "surface": "plane",
       "alternatives": [
         "cover",
         "open book"

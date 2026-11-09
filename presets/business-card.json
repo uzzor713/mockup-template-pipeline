@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Card",
       "text": "card",
+      "surface": "plane",
       "alternatives": [
         "rectangle"
       ],

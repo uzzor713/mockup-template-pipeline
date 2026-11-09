@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Case",
       "text": "cd case",
+      "surface": "plane",
       "alternatives": [
         "cover",
         "square"

@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Menu",
       "text": "card",
+      "surface": "plane",
       "alternatives": [
         "sheet of paper",
         "menu"

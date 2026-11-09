@@ -7,6 +7,7 @@
       "key": "main",
       "name": "Artwork",
       "text": "framed artwork",
+      "surface": "plane",
       "alternatives": [
         "hanging poster",
         "poster",

@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Sticker",
       "text": "decal",
+      "surface": "plane",
       "alternatives": [
         "circle",
         "round label",

@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Cards",
       "text": "playing card",
+      "surface": "plane",
       "alternatives": [
         "card"
       ],

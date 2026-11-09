@@ -7,6 +7,7 @@
       "key": "left",
       "name": "Left Canvas",
       "text": "canvas print",
+      "surface": "plane",
       "alternatives": [
         "panel",
         "canvas"
@@ -21,6 +22,7 @@
       "key": "right",
       "name": "Right Canvas",
       "text": "canvas print",
+      "surface": "plane",
       "alternatives": [
         "panel",
         "canvas"

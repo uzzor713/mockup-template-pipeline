@@ -10,7 +10,8 @@
       "id": "disc",
       "key": "main",
       "name": "Disc",
-      "text": "compact disc"
+      "text": "compact disc",
+      "surface": "plane"
     }
   ]
 }

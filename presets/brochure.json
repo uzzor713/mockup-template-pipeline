@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Brochure",
       "text": "folded paper",
+      "surface": "plane",
       "logo": {
         "fill": true
       }

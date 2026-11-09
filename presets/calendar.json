@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Calendar",
       "text": "sheet of paper",
+      "surface": "plane",
       "alternatives": [
         "rectangle",
         "panel"

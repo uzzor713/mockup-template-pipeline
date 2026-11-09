@@ -72,10 +72,10 @@ LATER = {'size'}  # 后加的配置字段,没写时不算进下面的比较,加�
 # None 表示用到整份配置。商品的 logo 设置只有 USES_LOGO 里的步骤算进比较,改了只重出 Logo 框和预览。
 # 代码版本:改了这一步的脚本、同样的配置算出的结果会变时加 1(只是整理代码、结果不变的不加);0 不算进比较,有版本号之前做过的模板不用重跑
 USES_LOGO = {'logo.py', 'preview.py'}
-# 商品设置里不算进分割比较的:print 分割不读,只给 pipeline.py;alternatives 只在主说法分不出时换着试,上次分成功的加了也一样
+# 商品设置里不算进分割比较的:print、surface 分割不读,只给 pipeline.py;alternatives 只在主说法分不出时换着试,上次分成功的加了也一样
 # (上次失败的没记比较值,照样重跑;上次放低阈值才分出的,加了备选说法可能改用备选说法,要重分单独跑 run_segment.py)。
-# 早先的比较值含这两项,含和不含都算对得上,不为这个重跑、重新计费
-SEGMENT_IGNORES = ('alternatives', 'print')
+# 早先的比较值含或不含这几项,都算对得上,不为这个重跑、重新计费
+SEGMENT_IGNORES = ('alternatives', 'print', 'surface')
 # 在本机算的步骤:每个峰值约 2GB 内存、一两核,同一时间至多 --local 个模板在跑,其余排队;前四步大半时间在等 Replicate,不限。
 # pipeline.py 里问 Gemini、分单只(logo.py)也占着名额,几秒到一分钟
 LOCAL_STEPS = {'pipeline.py', 'logo.py', 'preview.py'}

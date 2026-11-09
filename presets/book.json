@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Cover",
       "text": "book cover",
+      "surface": "plane",
       "alternatives": [
         "book",
         "notebook"

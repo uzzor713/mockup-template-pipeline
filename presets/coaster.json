@@ -16,7 +16,8 @@
       "id": "coaster",
       "key": "main",
       "name": "Coaster",
-      "text": "coaster"
+      "text": "coaster",
+      "surface": "plane"
     }
   ]
 }

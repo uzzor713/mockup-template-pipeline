@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Flyer",
       "text": "sheet of paper",
+      "surface": "plane",
       "logo": {
         "fill": true
       }

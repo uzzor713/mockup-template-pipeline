@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Card",
       "text": "id card",
+      "surface": "plane",
       "alternatives": [
         "card"
       ],

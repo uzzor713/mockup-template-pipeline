@@ -7,6 +7,7 @@
       "key": "left",
       "name": "Left Artwork",
       "text": "framed artwork",
+      "surface": "plane",
       "alternatives": [
         "hanging poster",
         "poster",
@@ -34,6 +35,7 @@
       "key": "right",
       "name": "Right Artwork",
       "text": "framed artwork",
+      "surface": "plane",
       "alternatives": [
         "hanging poster",
         "poster",

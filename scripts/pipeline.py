@@ -55,6 +55,8 @@ SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / �
 SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
+PLANE_INSET = 7  # surface: plane:可印区往里收这么多像素再拟合平面
+PLANE_BEND = 0.05  # surface: plane:可印区 3D 点离拟合平面的距离 90% 分位不到可印区边长(面积开方)的这么多才按平面贴。平的约 1–2%;贴在罐子、杯子上的圆贴纸约 6–12%,三折页、拿在手里的报纸约 5–15%
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
 GAP_RATIO = 0.004  # 商品和遮挡物之间的缝,两边都在这么远(× 宽度)以内的算遮挡物
 FLOW_BLEND = 4  # 流向图商品外铺成边上的值,离守住范围的格子这么多格以外完全换成模糊过的值(格)
@@ -207,6 +209,107 @@ def surface_flow(points, focal, product, small_size, sigma):
         flow[..., component][region] = solution - solution[index[inside]].mean()
     _, (iy, ix) = ndimage.distance_transform_edt(~region, return_indices=True)
     return flow[iy, ix]
+
+
+def stored_beyond(flow, guard, inside):
+    """位移(每格 DISP_SCALE 像素)按 save_flows 存成 8 位、按编辑页双线性放大回模板尺寸后,
+    inside 里各方向每像素前进量低于、高于 STRETCH_RANGE 的面积占比"""
+    flow = flow - (flow[guard].max(axis=0) + flow[guard].min(axis=0)) / 2
+    limit = max(float(np.ceil(np.abs(flow[guard]).max() * 10)) / 10, 0.1)
+    stored = np.round((0.5 + np.clip(flow, -limit, limit) / (2 * limit)) * 255) / 255
+    full = cv2.resize(((stored - 0.5) * 2 * limit).astype(np.float32), (W, H), interpolation=cv2.INTER_LINEAR)
+    smin, smax = stretch_range(*jacobian(full[..., 0], full[..., 1], 1))
+    return float((smin[inside] < STRETCH_RANGE[0]).mean()), float((smax[inside] > STRETCH_RANGE[1]).mean())
+
+
+def plane_flow(points, intrinsics, product, printable, small_size):
+    """平的商品(配置写 surface: plane):可印区的 3D 坐标拟合一个平面,屏幕到平面是单应(透视变换),设计稿按它贴上去,直线还是直的。
+    surface_flow 只记每格拉伸多少、不记方向,积分时斜着拍的平面也会被弯成弧。
+    长度单位和 surface_flow 相同;可印区中心处只拉伸、不转,拉伸截到 SURFACE_RANGE。
+    返回 (位移, 说明);可印区离平面远(贴在罐子上的贴纸、三折页、拿在手里的报纸)或透视太陡的,位移为 None,照旧按曲面算"""
+    inside = printable > 0.5
+    if not inside.any():
+        return None, '没有可印区'
+    fit = cv2.erode(inside.astype(np.uint8), np.ones((2 * PLANE_INSET + 1,) * 2, np.uint8)) > 0
+    pts = points[::DISP_SCALE, ::DISP_SCALE][(fit if fit.sum() >= 500 else inside)[::DISP_SCALE, ::DISP_SCALE]].astype(np.float64)
+    pts = pts[np.isfinite(pts).all(1)]
+    if len(pts) < 50:
+        return None, '可印区太小'
+    keep = np.ones(len(pts), bool)
+    for _ in range(3):  # 剔除离面 3 倍中位距离以外的点(没分出去的手指、夹子)再拟合
+        center = pts[keep].mean(0)
+        axes = np.linalg.svd(pts[keep] - center, full_matrices=False)[2]
+        distance = np.abs((pts - center) @ axes[2])
+        keep = distance < 3 * np.median(distance[keep]) + 1e-12
+    solid = cv2.erode((product > 0.5).astype(np.uint8), np.ones((2 * SURFACE_INSET + 1,) * 2, np.uint8)) > 0
+    unit = np.median(points[..., 2][solid if solid.any() else product > 0.5]) / intrinsics[0, 0]
+    bend = np.percentile(distance, 90) / unit / np.sqrt(inside.sum())
+    if bend > PLANE_BEND:
+        return None, f'可印区离平面 {bend:.1%}(边长的),按曲面'
+    fx, fy, ox, oy = intrinsics[0, 0], intrinsics[1, 1], intrinsics[0, 2], intrinsics[1, 2]
+    normal, offset = axes[2], center @ axes[2]
+
+    def on_plane(x, y):
+        """模板像素 (x, y) 的视线和平面的交点在平面内的坐标(÷ unit)"""
+        ray = np.stack([(x + 0.5 - ox) / fx, (y + 0.5 - oy) / fy, np.ones_like(x)], -1)
+        hit = (offset / (ray @ normal))[..., None] * ray - center
+        return np.stack([hit @ axes[0], hit @ axes[1]], -1) / unit
+
+    # 屏幕到平面是单应:相对可印区中心 c,平面坐标的差 = J Δ / (1 + h·Δ),Δ = 像素 − c,
+    # J 是中心处的雅可比,h 是视线和平面交点深度的倒数沿屏幕的变化率(近大远小都在 h 里)
+    ys, xs = np.nonzero(inside)
+    cx, cy = float(xs.mean()), float(ys.mean())
+    facing = np.array([(cx + 0.5 - ox) / fx, (cy + 0.5 - oy) / fy, 1]) @ normal
+    tilt = np.array([normal[0] / fx, normal[1] / fy]) / facing
+    jac = np.stack([on_plane(np.float64(cx + 0.5), np.float64(cy)) - on_plane(np.float64(cx - 0.5), np.float64(cy)),
+                    on_plane(np.float64(cx), np.float64(cy + 0.5)) - on_plane(np.float64(cx), np.float64(cy - 0.5))], -1)
+    # 设计稿坐标的差 = M Δ / (1 + α h·Δ),仍是单应,直线照样直。J = U S Vᵀ,M = V S' Vᵀ:中心处只拉伸不转,
+    # S' 是 S 截到 SURFACE_RANGE;α 是透视留多少,1 时和照片里的平面一样近大远小
+    _, s, vt = np.linalg.svd(jac)
+    gy, gx = (np.mgrid[0:small_size[1], 0:small_size[0]] * DISP_SCALE + (DISP_SCALE - 1) / 2).astype(np.float64)
+    delta = np.stack([gx - cx, gy - cy], -1)  # 缩小后每格的中心相对 c 的模板像素坐标,和双线性放大对齐
+    product_cells = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0
+    region = cv2.dilate(product_cells.astype(np.uint8), np.ones((9, 9), np.uint8)) > 0  # 算位移的格子,再往外铺最近值
+    guard = cv2.dilate(product_cells.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0  # 和存图时一样,按这些格子定 8 位的范围
+    if (1 + delta[region] @ tilt).min() < 0.2:
+        return None, '平面在商品范围里转到镜头后面,按曲面'
+    cells = cv2.resize(printable, small_size, interpolation=cv2.INTER_AREA) > 0.5
+    _, (iy, ix) = ndimage.distance_transform_edt(~region, return_indices=True)
+
+    def design(scale, perspective):
+        """每格的位移(设计稿坐标 − 像素坐标),和可印区各格每像素前进量的最小、最大值"""
+        stretch = vt.T @ np.diag(scale) @ vt
+        across = 1 + perspective * delta @ tilt
+        flow = (delta @ stretch.T / across[..., None] - delta).astype(np.float32)
+        flow -= flow[cells].mean(axis=0)
+        flow[~region] = 0
+        # M Δ / t 的雅可比 = (M t − M Δ (α h)ᵀ) / t²
+        t = across[cells][:, None, None]
+        local = (stretch * t - (delta[cells] @ stretch.T)[:, :, None] * (perspective * tilt)[None, None, :]) / t ** 2
+        return flow[iy, ix], np.linalg.svd(local, compute_uv=False)
+
+    # 大曲面层不减弱,可印区里各方向每像素前进量要自己落在校验范围里:按 save_flows 存成 8 位、按编辑页放大回来再量,
+    # 超出的面积至多 STRETCH_OUTLIER 的一半(另一半留给褶皱层)。斜着拍的,近处放大、远处压扁,位移幅度大了 8 位量化的抖动也大:
+    # 先少留透视(α 从 1 往 0 降,近处远处的差别变小),还不够再把压得最扁的方向整体少压一点。直线都照样直
+    clipped = np.clip(s, *SURFACE_RANGE)
+    scale = clipped.copy()
+    while True:
+        for perspective in np.linspace(1, 0, 6):
+            flow, spread = design(scale, perspective)
+            under, over = stored_beyond(flow, guard, inside)
+            if under + over <= STRETCH_OUTLIER / 2:
+                break
+        if under + over <= STRETCH_OUTLIER / 2 or scale[0] <= 1:
+            break
+        scale[0] = max(1.0, scale[0] * 0.9)
+    if under + over > STRETCH_OUTLIER / 2:
+        return None, f'透视太陡,可印区 {under:.1%} 前进量不到 {STRETCH_RANGE[0]}、{over:.1%} 超过 {STRETCH_RANGE[1]},按曲面'
+    notes = [f'可印区离平面 {bend:.1%}', f'前进量 {spread.min():.2f}–{spread.max():.2f}']
+    if perspective < 0.999:
+        notes.append(f'透视留 {perspective:.0%}')
+    if scale[0] < clipped[0] * 0.995:
+        notes.append(f'压得最扁的方向少压到 {scale[0] / clipped[0]:.0%}')
+    return flow, f"按平面({','.join(notes)})"
 
 
 def extend_outside(flow, inside):
@@ -401,13 +504,21 @@ Image.fromarray(np.round(css_base * 255).astype(np.uint8), 'RGBA').save(OUT / 'b
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
 points = config.load_points(WORK)
-focal = json.loads((WORK / 'geometry.json').read_text())['intrinsics'][0][0] * W
+intrinsics = np.array(json.loads((WORK / 'geometry.json').read_text())['intrinsics']) * [[W], [H], [1]]  # 存的按宽高归一
+focal = intrinsics[0, 0]
 sigma = SIGMA_RATIO * W
 small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
 low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
 carriers = [carrier(product, printable) for product, printable in zip(products, prints)]
-surfaces = [surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) for product in carriers]
+# 配置写 surface: plane 的先按平面贴,真弯的、透视太陡的照旧按曲面
+surfaces, fits = [], []
+for item, product, printable in zip(spec['products'], carriers, prints):
+    flat, note = plane_flow(points, intrinsics, product, printable, small_size) if item.get('surface') == 'plane' else (None, '')
+    if note:
+        print(f"{item['id']} 大曲面层:{note}")
+    surfaces.append(surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) if flat is None else flat)
+    fits.append('curved' if flat is None else 'plane')
 # 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分的 SLACK_SHARE:
 # 整级只在两格取整刚好相反时才出现,扣满一级时大曲面层 200px 以上的商品上下限只剩约 1.0–1.9,褶皱几乎全被减掉
 slack = SLACK_SHARE * 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
@@ -484,7 +595,8 @@ template = {
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
-                 'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE)},
+                 'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE),
+                 'surfaceFit': fits, 'planeBend': PLANE_BEND},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
