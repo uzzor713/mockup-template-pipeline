@@ -32,6 +32,8 @@ WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(白 T 恤�
 DARK_PHOTO = 0.1  # 商品实心部分照片亮度(线性)的中位数低于它算深色商品(sRGB 约 0.35)
 DARK_BRIGHT = 0.9  # 深色商品抬亮时对齐的亮部百分位
 DARK_TEXTURE = 0.5  # 深色商品的纹理(对数)保留这么多
+WHITE_CAP = 0.95  # 选白色时每件商品实心部分 WHITE_CAP_AT 分位的亮度(线性)至多这么亮,更亮的整件压暗:截成纯白的约 5–7%,和正常照片相当
+WHITE_CAP_AT = 90
 GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(白 T 恤上约为白色亮度的 3%)
 SHADE_HEADROOM = 99.9  # 明暗倍数让商品区这个百分位以内的明暗都放得下,更亮的极少数截掉:倍数越大,8 位 alpha 里明暗的精度越低
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
@@ -348,10 +350,12 @@ for product in products:
     sheen = luma(max(r, 0) * layers['residual']) * texture
     layered.append((product, solid, diffuse, sheen))
 # 一张图里的几件商品是同一种料子(正背面、上衣和裤子、一对杯子),照片里一件迎光一件背光、深色各自抬亮后亮度也不同,
-# 选同一个颜色时会一深一浅:按实心部分 明暗 + 光泽 的中位数整体缩放到最亮的那件,起伏不变
+# 选同一个颜色时会一深一浅:按实心部分 明暗 + 光泽 的中位数整体缩放到最亮的那件,起伏不变。
+# 缩放后每件的亮部不超过 WHITE_CAP:浅色、彩色商品的固有色估低时光照偏亮,迎光的那件被提亮时也会,选白色大片截成纯白
 level = [float(np.median((diffuse + sheen)[solid])) for _, solid, diffuse, sheen in layered]
 for (product, solid, diffuse, sheen), own in zip(layered, level):
-    k = max(level) / max(own, 1e-6)
+    bright = float(np.percentile((diffuse + sheen)[solid], WHITE_CAP_AT))
+    k = min(max(level) / max(own, 1e-6), WHITE_CAP / max(bright, 1e-6))
     diffuse, sheen = diffuse * k, sheen * k
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
     for total, layer in ((shade, diffuse), (gloss, sheen)):
@@ -472,7 +476,7 @@ template = {
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
     'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'darkPhoto': DARK_PHOTO, 'darkBright': DARK_BRIGHT, 'darkTexture': DARK_TEXTURE,
-                 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
+                 'whiteCap': WHITE_CAP, 'whiteCapAt': WHITE_CAP_AT, 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],

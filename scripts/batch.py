@@ -84,7 +84,7 @@ STEPS = [
     ('intrinsic.py', ['crop', 'size'], 0),
     ('normals.py', ['crop', 'size'], 0),
     ('geometry.py', ['crop', 'size'], 0),
-    ('pipeline.py', None, 0),
+    ('pipeline.py', None, 1),
     ('logo.py', None, 0),
     ('preview.py', None, 0),
 ]
