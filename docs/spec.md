@@ -71,12 +71,12 @@
 | `fill: true` | 铺满可印区(平面印刷品) |
 | `freeform: true` | 可印区是异形时框不转(贴纸、袜子、钥匙扣) |
 | `width` | 框的大小,默认 `0.4` |
-| `split` | 单只的说法,框只放在 SAM 3 分出的最大那只上(袜子、牛仔裤、运动裤) |
+| `split` | 单只的说法,或几个说法的列表(按顺序试,分出两只就停),框只放在 SAM 3 分出的最大那只上(袜子、裤子、短裤) |
 
 预设里的惯例:
 
 - 上衣写 `top`;卫衣、夹克、球衣、polo 衫、运动套装的上衣另写 `closure: {side: "left"}`;
 - 平面印刷品写 `fill`,贴纸另写 `freeform`;
-- 袜子写 `split: "sock"`、`top: 0.3`、`freeform: true`,裤子写 `split: "pant leg"`、`top: 0.25`。
+- 袜子写 `split: "sock"`、`top: 0.3`、`freeform: true`,裤子写 `split: "pant leg"`、`top: 0.25`;短裤写 `split: ["leg of the shorts", "shorts leg"]`,框放在那只裤腿正中(SAM 3 按 pant leg 分不出短裤的裤腿,两个说法各有分不出的照片)。
 
 各种放法具体怎么算,见 [how-it-works.md](how-it-works.md#默认-logo-框)。

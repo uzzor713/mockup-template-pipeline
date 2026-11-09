@@ -54,7 +54,11 @@
         {
           "text": "waistband"
         }
-      ]
+      ],
+      "logo": {
+        "split": "pant leg",
+        "top": 0.25
+      }
     }
   ]
 }

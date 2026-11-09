@@ -15,7 +15,10 @@
         {
           "text": "waistband"
         }
-      ]
+      ],
+      "logo": {
+        "split": ["leg of the shorts", "shorts leg"]
+      }
     }
   ]
 }

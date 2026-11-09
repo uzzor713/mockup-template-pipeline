@@ -97,7 +97,8 @@ poster-017,其他,画框也被改色,,,,,,1
 
 - vorla mockups 页面主树的每个小品类一份预设,文件名和 `category` 都是小品类的 slug。
 - Seasonal、Channel 两条横轴是标签,不单独设预设:模板按画面里实际的商品选预设,清单的 `tags` 写 `seasonal/<页面>` 或 `channel/<页面>`。
-- 主树里没有对应小品类的商品(`pet-tag`、`compact-mirror`、`ceramic-tile`、`ring-dish`),预设的 `category` 是 `null`,模板只挂在横轴页面上,清单必须写 `tags`。
+- 主树里没有对应小品类的商品(`pet-tag`、`compact-mirror`、`ceramic-tile`、`ring-dish`、`bookmark`),预设的 `category` 是 `null`,模板只挂在横轴页面上,清单必须写 `tags`。
+- 书签压在书上的照片用 `bookmark`,不用 `book`:书本类预设会选中下面的书封。书签上系的丝带算遮挡物,不跟着改色。
 - 一件商品一个区域;`tracksuit` 是上衣、裤子两个区域。`bottle`、`candle` 可编辑的是标签。
 
 ### 特殊预设

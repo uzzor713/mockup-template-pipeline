@@ -10,8 +10,9 @@
   回答存在 work/<id>/logo-closure.json,图和问题没变就不再问;
 - fill:平面印刷品(海报、书、杂志、卡片、传单等)用,框铺满可印区;透视下的梯形、斜放的平行四边形取里面放得下的最大矩形,不往外包;
 - freeform:贴纸用,可印区可能是爱心、闪电这类异形,看不出摆放方向:不是四边形、也不接近矩形(见 RECT_SHAPE)时框不转;
-- split:一双袜子、两条裤腿这类挨在一起、可印区连成一块的用,写单只的说法(如 sock、pant leg);SAM 3 按它分出单只,
-  框只放在可印区里最大的那只上,再按 top 等设置放;分出的不到两只时照常按整块放。分出的蒙版存在 work/<id>/logo-split*,图和说法没变就不再分。
+- split:一双袜子、两条裤腿这类挨在一起、可印区连成一块的用,写单只的说法(如 sock、pant leg),或几个说法的列表;SAM 3 按它分出单只,
+  框只放在可印区里最大的那只上,再按 top 等设置放。列表按顺序试,分出两只就不再往下试;都不到两只时照常按整块放。
+  分出的蒙版存在 work/<id>/logo-split*,图和说法没变就不再分。
 框跟着可印区摆放的方向转(rotation,度,屏幕上顺时针为正)。
 用法:.venv/bin/python -I scripts/logo.py batches/<批次>/specs/<id>.json(配置里写了 closure、split 时要 Replicate 的 token,同 run_segment.py)
 """
@@ -181,33 +182,46 @@ def box(inside, settings):
             'height': round(float(height) / H, 4), 'rotation': rotation}
 
 
-def single(cover, printable, item, text, work):
-    """split:SAM 3 按 text 分出单只,返回可印区里最大的那只的蒙版;分出的盖住可印区 SPLIT_SHARE 以上的不到两只、调用失败时返回 None。
-    各只的蒙版按图和说法存成 work/logo-split-<商品 key>.png(像素值是第几只),对得上就不再调用"""
-    path, labels_path = work / 'logo-split.json', work / f"logo-split-{item['key']}.png"
+def split_labels(cover, item, text, n, work):
+    """SAM 3 按 text 分出的各只,像素值是第几只;第 n 个说法的存成 work/logo-split-<商品 key>[-n].png,图和说法对得上就不再调用。
+    调用失败时返回 None"""
+    name = item['key'] if n == 0 else f"{item['key']}-{n}"
+    path, labels_path = work / 'logo-split.json', work / f'logo-split-{name}.png'
     done = json.loads(path.read_text()) if path.exists() else {}
     key = hashlib.sha1(text.encode() + cover.tobytes()).hexdigest()
-    if done.get(item['key']) == key and labels_path.exists():
-        labels = np.asarray(Image.open(labels_path))
+    if done.get(name) == key and labels_path.exists():
+        return np.asarray(Image.open(labels_path))
+    from segment import Sam3Replicate  # 只有要分的时候才用到网络和 token
+    import config
+    try:
+        masks = Sam3Replicate(**config.replicate()).instances(cover, text)
+    except (RuntimeError, OSError, ValueError) as error:
+        print(f'{item["key"]}:SAM 3 按 {text} 没分到({error})')
+        return None
+    labels = np.zeros(cover.shape[:2], np.uint8)
+    for index, mask in enumerate(masks[:255], start=1):
+        labels[cv2.resize(mask.astype(np.uint8), cover.shape[1::-1], interpolation=cv2.INTER_NEAREST) > 0] = index
+    Image.fromarray(labels).save(labels_path)
+    path.write_text(json.dumps({**done, name: key}, indent=2))
+    return labels
+
+
+def single(cover, printable, item, texts, work):
+    """split:SAM 3 按说法分出单只,返回可印区里最大的那只的蒙版。texts 是一个说法或几个说法的列表,按顺序试,
+    分出的盖住可印区 SPLIT_SHARE 以上的有两只就用这个说法;都不到两只、调用失败时返回 None"""
+    for n, text in enumerate([texts] if isinstance(texts, str) else texts):
+        labels = split_labels(cover, item, text, n, work)
+        if labels is None:
+            continue
+        if labels.shape != printable.shape:
+            labels = cv2.resize(labels, printable.shape[::-1], interpolation=cv2.INTER_NEAREST)
+        shares = np.bincount(labels[printable], minlength=int(labels.max()) + 1)[1:] / max(printable.sum(), 1)
+        count = int((shares >= SPLIT_SHARE).sum())
+        print(f"{item['key']}:SAM 3 按 {text} 分出 {count} 只{',放在最大的那只上' if count >= 2 else ''}")
+        if count >= 2:
+            break
     else:
-        from segment import Sam3Replicate  # 只有要分的时候才用到网络和 token
-        import config
-        try:
-            masks = Sam3Replicate(**config.replicate()).instances(cover, text)
-        except (RuntimeError, OSError, ValueError) as error:
-            print(f'{item["key"]}:SAM 3 按 {text} 没分到({error}),按整块放')
-            return None
-        labels = np.zeros(cover.shape[:2], np.uint8)
-        for index, mask in enumerate(masks[:255], start=1):
-            labels[cv2.resize(mask.astype(np.uint8), cover.shape[1::-1], interpolation=cv2.INTER_NEAREST) > 0] = index
-        Image.fromarray(labels).save(labels_path)
-        path.write_text(json.dumps({**done, item['key']: key}, indent=2))
-    if labels.shape != printable.shape:
-        labels = cv2.resize(labels, printable.shape[::-1], interpolation=cv2.INTER_NEAREST)
-    shares = np.bincount(labels[printable], minlength=int(labels.max()) + 1)[1:] / max(printable.sum(), 1)
-    count = int((shares >= SPLIT_SHARE).sum())
-    print(f"{item['key']}:SAM 3 按 {text} 分出 {count} 只{',放在最大的那只上' if count >= 2 else ',按整块放'}")
-    if count < 2:
+        print(f"{item['key']}:没分出两只,按整块放")
         return None
     # 图上已经印了图案的(收件箱里的封面),SAM 3 分出的单只常把图案那块挖掉,补上里面的洞,框不至于落进洞里退到别处
     chosen = (labels == 1 + np.argmax(shares)).astype(np.uint8)

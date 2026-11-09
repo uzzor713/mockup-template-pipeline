@@ -1,0 +1,25 @@
+{
+  "category": null,
+  "occluders": [
+    {
+      "text": "hand"
+    },
+    {
+      "text": "ribbon"
+    }
+  ],
+  "products": [
+    {
+      "id": "bookmark",
+      "key": "main",
+      "name": "Bookmark",
+      "text": "bookmark",
+      "alternatives": [
+        "rectangle"
+      ],
+      "logo": {
+        "fill": true
+      }
+    }
+  ]
+}
