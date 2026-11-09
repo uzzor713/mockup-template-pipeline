@@ -1381,3 +1381,33 @@ poster-movie-poster-003,drag-stale,2026-11-09,"拖动校验已过;可印区选�
 sticker-blank-sticker-020,drag-stale,2026-11-09,
 sticker-laptop-sticker-009,drag-stale,2026-11-09,
 sticker-laptop-sticker-036,drag-stale,2026-11-09,拖动校验已过;拉伸检查不过
+business-card-016,multi-item,2026-11-09,"两张名片,53% / 47%"
+business-card-027,multi-item,2026-11-09,"并排两张名片,50% / 50%"
+business-card-031,multi-item,2026-11-09,"两张名片,50% / 50%"
+greeting-card-postcard-006,multi-item,2026-11-09,"立着的卡和平放的明信片,67% / 30%"
+greeting-card-postcard-019,multi-item,2026-11-09,"手里一张、桌上一张,59% / 41%"
+greeting-card-postcard-032,multi-item,2026-11-09,"立着的卡和平放的卡,78% / 22%"
+id-card-name-badge-034,multi-item,2026-11-09,"胸前一张、挂绳上一张,76% / 24%"
+playing-cards-006,multi-item,2026-11-09,"桌上散开的四张,最大一块 27%"
+playing-cards-008,multi-item,2026-11-09,"两只手各拿一张,54% / 46%"
+playing-cards-010,multi-item,2026-11-09,"牌堆顶上一张和左下角的牌,66% / 34%"
+playing-cards-011,multi-item,2026-11-09,"一摞和一张,50% / 50%"
+playing-cards-012,multi-item,2026-11-09,"两只手各拿一张,50% / 50%"
+playing-cards-013,multi-item,2026-11-09,"排成一排的七张,最大一块 19%"
+playing-cards-015,multi-item,2026-11-09,"摊成弧形的一副,露出的几条牌边各算一块,最大一块 52%"
+playing-cards-016,multi-item,2026-11-09,"桌上两张,52% / 48%"
+playing-cards-018,multi-item,2026-11-09,"两只手各拿一张,52% / 48%"
+playing-cards-027,multi-item,2026-11-09,"一张和一摞,53% / 47%"
+playing-cards-037,multi-item,2026-11-09,"架子上并排两张,52% / 48%"
+playing-cards-039,multi-item,2026-11-09,"两只手各拿一摞,50% / 50%"
+playing-cards-040,multi-item,2026-11-09,"牌盒上一张和右边的牌,58% / 42%"
+poster-wall-poster-002,multi-item,2026-11-09,"墙上三张海报,49% / 26% / 25%"
+greeting-card-postcard-012,drag-back,2026-11-09,"可印区里回跳 227 px,72 个方向里 16 个"
+halloween-015,drag-back,2026-11-09,"毯子,可印区里回跳 130 px"
+shorts-016,drag-back,2026-11-09,"可印区里回跳 117 px,72 个方向里 15 个;测试库 v2 带着这个问题发布"
+poster-street-poster-012,drag-back,2026-11-09,可印区里回跳 85 px
+greeting-card-postcard-032,drag-back,2026-11-09,可印区里回跳 64 px
+poster-street-poster-022,drag-back,2026-11-09,可印区里回跳 16 px
+square-box-034,drag-back,2026-11-09,拖出可印区以后才往回跳
+front-and-back-hoodie-017,drag-back,2026-11-09,"背面,拖出可印区以后才往回跳"
+etsy-019,drag-back,2026-11-09,"围裙,拖出可印区以后才往回跳"

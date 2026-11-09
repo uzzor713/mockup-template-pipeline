@@ -134,7 +134,8 @@ def summary(ledger):
     for issue, info in ledger.issues.items():
         counts = Counter(stages[issue] for stages in table.values() if issue in stages)
         fixed = f"{info['fixed'][:16].replace('T', ' ')} 修好" if info['fixed'] else ''
-        print(f"  {issue}  {info['title']}({', '.join(filter(None, [info['step'], fixed]))}):"
+        where = ', '.join(filter(None, [info['step'], fixed]))
+        print(f"  {issue}  {info['title']}{f'({where})' if where else ''}:"
               + ' · '.join(f'{s} {counts[s]}' for s in STAGES if counts[s]))
     counts = Counter(slowest(stages) for stages in table.values())
     print('按模板(取最慢的问题):' + ' · '.join(f'{s} {counts[s]}' for s in STAGES if counts[s]))
@@ -164,6 +165,8 @@ def mark_fixed(issue):
     match = [row for row in rows if row['issue'] == issue]
     if not match:
         raise SystemExit(f"issues.csv 里没有 {issue},有:{', '.join(row['issue'] for row in rows)}")
+    if not match[0]['step']:
+        raise SystemExit(f'issues.csv 里 {issue} 的 step 还空着,先写上修在哪一步,按这一步跑完的时间认重跑')
     match[0]['fixed'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     with open(FIXES / 'issues.csv', 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=ISSUE_FIELDS, lineterminator='\n')

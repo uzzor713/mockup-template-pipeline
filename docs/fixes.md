@@ -19,7 +19,7 @@
 | --- | --- |
 | `issue` | 问题的短名,如 `white-gray` |
 | `title` | 中文名 |
-| `step` | 修在哪一步(`run_segment.py`、`pipeline.py`、`logo.py` 等),按这一步跑完的时间认重跑 |
+| `step` | 修在哪一步(`run_segment.py`、`pipeline.py`、`logo.py` 等),按这一步跑完的时间认重跑;还没定怎么修的可以空着,`fixes.py fixed` 前要填上 |
 | `fixed` | 修好的时间(UTC),由 `fixes.py fixed` 填;空着是还没修 |
 | `example` | 一个例子的 id |
 | `note` | 原因,以及受影响的模板是怎么筛出来的 |
