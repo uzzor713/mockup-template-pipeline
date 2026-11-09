@@ -6,6 +6,8 @@
 
 只传通过的,也就是批次汇总表 `batches/<批次>/report.csv` 里 `status` 为 `pass` 的(自动校验 15 项全过,不在跳过之列),并且在抽查页 `review.html` 看过。没过、出错、跳过的不传,修好重跑通过后再传。
 
+已经在测试站模板墙上的,`inbox.py` 不再当新模板整理;重跑过、要换文件的见[八、改已经发布的模板](#八改已经发布的模板)。
+
 ## 二、整理
 
 ```bash
@@ -88,6 +90,18 @@ pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templ
 
 ## 八、改已经发布的模板
 
-改了已发布模板的任何文件(包括只改 `template.json` 里的 Logo 框),`template.json` 的 `version` 都要加 1 再传到收件箱:发布后的公开文件按版本放在 `v<版本>/` 下、缓存一年不过期,脚本发现同版本的源文件变了会拒绝(「已发布过,这些文件变了但版本号没升」)。新版本发在新目录,旧版本目录留着,模板墙按库里的版本换地址。版本号以测试站模板墙为准(`mockup.listTemplates` 返回的 `coverImage` 里的 `v<版本>`),没上过墙的保持原样。
+改了已发布模板的任何文件(包括只改 `template.json` 里的 Logo 框),`template.json` 的 `version` 都要加 1 再传到收件箱:发布后的公开文件按版本放在 `v<版本>/` 下、缓存一年不过期,脚本发现同版本的源文件变了会拒绝(「已发布过,这些文件变了但版本号没升」)。新版本发在新目录,旧版本目录留着,模板墙按库里的版本换地址。
 
-核对时用接口拉模板墙(`https://vorla.drfans.com/api/trpc/mockup.listTemplates`,分页参数 `{"json":{"page":1,"pageSize":48}}`)看总数、版本和 `materials.regions` 里的 Logo 框;直接请求 `assets.vorla.ai` 上的图要带浏览器的 User-Agent,不带会被 CDN 拦成 403。
+重跑过的模板用 `--update` 整理,版本号由脚本按模板墙写:
+
+```bash
+.venv/bin/python -I scripts/inbox.py batches/<批次> inbox/update-<日期> --update --only 重跑过的.txt
+```
+
+- 拉测试站模板墙,上过墙的 `version` 写成墙上的版本(`coverImage` 里的 `v<版本>`)加 1,没上过的保持原样。
+- 列 OSS 收件箱(约 1 分钟),按这个 id 在收件箱里现在的目录放:输出目录下的相对路径和收件箱里一样,只放 `template.json` 和它列的文件,展示图、白模图、`manifest.csv` 不动。
+- 收件箱里还没有的列出来,按新模板不带 `--update` 整理;同一个 id 在收件箱里有两个目录的也列出来,发布脚本会两份都挡掉,先删掉多的一份。
+- 小品类和测试库里不一样的列出来(预设改过小品类时会有):发布后测试库跟着改,同步正式库时也会改。
+- 最后打出两条命令:整个输出目录传到收件箱根目录,盖在原处;再用发布脚本 `--apply --batch mockup-template-inbox/ --only` 发这几个。前缀给收件箱根目录,哪个日期目录里的都找得到;不加 `--files-only`,测试库里的那一行和文件一起更新。
+
+核对时 `scripts/wall.py` 打出模板墙的总数和各版本的个数,给一个路径时每个模板一行存成 CSV(id、版本、显示名、小品类、标签、最后发布的时间);加 `--prod` 拉正式站(读正式库)。接口是 `https://vorla.drfans.com/api/trpc/mockup.listTemplates`,分页参数 `{"json":{"page":1,"pageSize":48}}`,`materials.regions` 里是各区域的 Logo 框;直接请求 `assets.vorla.ai` 上的图要带浏览器的 User-Agent,不带会被 CDN 拦成 403。

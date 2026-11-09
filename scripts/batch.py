@@ -1,7 +1,7 @@
 """
 批量出模板:每张源图按品类预设(presets/<预设>.json)生成配置,依次跑分割、本征分解、法线、几何、
 pipeline.py 和 preview.py,最后汇总结果。
-用法:.venv/bin/python -I scripts/batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--dry-run] [--jobs N] [--local N] [--force] [--no-preview]
+用法:.venv/bin/python -I scripts/batch.py <按品类分好的文件夹 | 清单.csv> [--overrides 例外.csv 或文件夹 ...] [--only id,... | id 清单.txt] [--dry-run] [--jobs N] [--local N] [--force] [--no-preview]
       .venv/bin/python -I scripts/batch.py <按品类分好的文件夹> --pack 例外.csv   # 把这几张打包给调参数的人
 
 按品类分好的文件夹:每个子文件夹是一个品类,文件夹名是预设名或预设里 folders 列的别名,里面(含更深的子文件夹)
@@ -33,12 +33,18 @@ pipeline.py 和 preview.py,最后汇总结果。
 结果都在 batches/<文件夹名或清单文件名>/:specs/ 是生成的配置,logs/ 是每个模板的运行日志,report.csv 是汇总,
 review.html 是抽查页(按品类分页,见 review.py)。--dry-run 只生成配置、列出各品类的张数,不跑。改了清单重跑同一条命令,只重算受影响的模板和步骤:
 改遮挡物只重跑分割和之后两步,三个模型脚本只看源图(按文件内容)和裁切;改 MODEL_BACKEND 全部重跑。--force 全部重跑。
+改了某一步的代码、同样的配置算出的结果会变时,把下面 STEPS 里这一步的版本号加 1:之后跑到的模板重算这一步和排在它后面的本机步骤,
+别的步骤照样跳过(改本机的三步不会重跑前面花钱的四步)。
+--only 只跑这几个 id(逗号隔开,或一行一个 id 的文件,# 开头的行不算),例外清单照样整份带上;汇总表和抽查页里其他模板保留上次的结果。
 --no-preview 不出预览(只用来抽查,上传用不到),这次没出的下次不带它跑时补上。
+每个模板的 work/<id>/steps.json 记下各步上次的比较值、跑完的时间(ran,UTC)、没变跳过时核对的时间(checked)和所在的批次(batch),
+修复进度表(fixes.py)按它认哪些模板重跑过。
 """
 import argparse
 import contextlib
 import csv
 import hashlib
+import itertools
 import json
 import re
 import subprocess
@@ -62,20 +68,25 @@ REVIEW_EVERY = 60  # 抽查页最多隔这么多秒更新一次,跑完再写一�
 IMAGE_SUFFIXES = {'.png', '.jpg', '.jpeg', '.webp'}
 SIZE = (2048, 2560)  # 竖版模板的尺寸,横版宽高对调:vorla 后端按这个尺寸收模板,源图裁好后不是这个尺寸的缩放过去
 LATER = {'size'}  # 后加的配置字段,没写时不算进下面的比较,加字段之前做过的模板不用重跑
-# 每一步和它用到的配置字段(另加源图的内容和 MODEL_BACKEND;源图路径不算,挪了文件夹不重跑):都没变、前一次成功过就跳过;
-# None 表示用到整份配置。商品的 logo 设置只有 USES_LOGO 里的步骤算进比较,改了只重出 Logo 框和预览
+# 每一步、它用到的配置字段(另加源图的内容和 MODEL_BACKEND;源图路径不算,挪了文件夹不重跑)和代码版本:都没变、前一次成功过就跳过;
+# None 表示用到整份配置。商品的 logo 设置只有 USES_LOGO 里的步骤算进比较,改了只重出 Logo 框和预览。
+# 代码版本:改了这一步的脚本、同样的配置算出的结果会变时加 1(只是整理代码、结果不变的不加);0 不算进比较,有版本号之前做过的模板不用重跑
 USES_LOGO = {'logo.py', 'preview.py'}
+# 商品设置里不算进分割比较的:print 分割不读,只给 pipeline.py;alternatives 只在主说法分不出时换着试,上次分成功的加了也一样
+# (上次失败的没记比较值,照样重跑;上次放低阈值才分出的,加了备选说法可能改用备选说法,要重分单独跑 run_segment.py)。
+# 早先的比较值含这两项,含和不含都算对得上,不为这个重跑、重新计费
+SEGMENT_IGNORES = ('alternatives', 'print')
 # 在本机算的步骤:每个峰值约 2GB 内存、一两核,同一时间至多 --local 个模板在跑,其余排队;前四步大半时间在等 Replicate,不限。
 # pipeline.py 里问 Gemini、分单只(logo.py)也占着名额,几秒到一分钟
 LOCAL_STEPS = {'pipeline.py', 'logo.py', 'preview.py'}
 STEPS = [
-    ('run_segment.py', ['crop', 'size', 'occluders', 'products']),
-    ('intrinsic.py', ['crop', 'size']),
-    ('normals.py', ['crop', 'size']),
-    ('geometry.py', ['crop', 'size']),
-    ('pipeline.py', None),
-    ('logo.py', None),
-    ('preview.py', None),
+    ('run_segment.py', ['crop', 'size', 'occluders', 'products'], 0),
+    ('intrinsic.py', ['crop', 'size'], 0),
+    ('normals.py', ['crop', 'size'], 0),
+    ('geometry.py', ['crop', 'size'], 0),
+    ('pipeline.py', None, 0),
+    ('logo.py', None, 0),
+    ('preview.py', None, 0),
 ]
 
 
@@ -141,6 +152,23 @@ def pack(root, rows, issues):
 def read_csv(path):
     with open(path, newline='', encoding='utf-8-sig') as f:
         return list(csv.DictReader(f))
+
+
+def row_id(row):
+    return row.get('id', '').strip() or template_id(row['source'].strip())
+
+
+def only_ids(value):
+    """--only:逗号隔开的 id,或一行一个 id 的文件(# 开头的行不算)"""
+    path = Path(value).expanduser()
+    lines = path.read_text().splitlines() if path.is_file() else value.split(',')
+    return {line.strip() for line in lines if line.strip() and not line.strip().startswith('#')}
+
+
+def shown(path):
+    """仓库里的路径写成相对仓库根目录的,其余写绝对路径"""
+    path = Path(path).expanduser().resolve()
+    return str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)
 
 
 def crop_box(width, height, preset):
@@ -228,40 +256,77 @@ def make_spec(row):
     return spec
 
 
-def digest(spec, fields, photo_sha, logo=False):
+def digest(spec, fields, photo_sha, logo=False, version=0):
     if not logo:
         spec = {**spec, 'products': [{k: v for k, v in item.items() if k != 'logo'} for item in spec['products']]}
     part = {k: v for k, v in spec.items() if k not in ('photo', 'fetch')} if fields is None else {k: spec.get(k) for k in fields if k in spec or k not in LATER}
-    return hashlib.sha1(json.dumps([part, photo_sha, config.backend()], sort_keys=True).encode()).hexdigest()
+    return hashlib.sha1(json.dumps([part, photo_sha, config.backend(), *([version] if version else [])], sort_keys=True).encode()).hexdigest()
 
 
-def run(spec_path, log_path, force, skip=()):
+def keys(spec, script, fields, photo_sha, version):
+    """这一步的比较值:第一个是这次跑完记下的;分割另算早先各件商品含 SEGMENT_IGNORES 里任几项时的,对上了也不重跑"""
+    if script != 'run_segment.py':
+        return [digest(spec, fields, photo_sha, script in USES_LOGO, version)]
+    present = [(i, k) for i, item in enumerate(spec['products']) for k in SEGMENT_IGNORES if k in item]
+    accepted = []
+    for n in range(len(present) + 1):
+        for kept in itertools.combinations(present, n):
+            products = [{k: v for k, v in item.items() if k not in SEGMENT_IGNORES or (i, k) in kept}
+                        for i, item in enumerate(spec['products'])]
+            accepted.append(digest({**spec, 'products': products}, fields, photo_sha, version=version))
+    return accepted
+
+
+def load_state(spec, force):
+    path = ROOT / 'work' / spec['id'] / 'steps.json'
+    return path, ({} if force or not path.exists() else json.loads(path.read_text()))
+
+
+def pending(spec, state, skip=()):
+    """这次要跑的步骤和各自的比较值:比较值变了的,以及前面有一步要跑时之后用到整份配置的(读前面各步的结果)"""
+    photo_sha = sha256(ROOT / spec['photo'])
+    steps, rerun = [], False
+    for script, fields, version in STEPS:
+        if script in skip:
+            continue
+        accepted = keys(spec, script, fields, photo_sha, version)
+        if state.get(script) in accepted and not (rerun and fields is None):
+            continue
+        rerun = True
+        steps.append((script, accepted[0]))
+    return steps
+
+
+def run(spec_path, log_path, force, batch, skip=()):
     """跑一个模板,返回 (状态, 说明, 秒数);skip 里的步骤这次不跑,也不记下"""
     spec = config.load(spec_path)
-    state_path = config.folder(spec, 'work') / 'steps.json'
-    state = {} if force or not state_path.exists() else json.loads(state_path.read_text())
-    photo_sha = sha256(ROOT / spec['photo'])
+    config.folder(spec, 'work')
+    state_path, state = load_state(spec, force)
+    ran = state.setdefault('ran', {})
     t0 = time.time()
-    rerun = False  # 前面有一步重跑过,用到整份配置的步骤(读前面各步的结果)也要重跑
+    steps = pending(spec, state, skip)
+    # 没变、这次跳过的步骤记下核对的时间:修复前就试跑过的模板,修好后跑重跑命令时也算重跑过
+    now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    todo = {script for script, _ in steps}
+    state['checked'] = {**state.get('checked', {}),
+                        **{script: now for script, _, _ in STEPS if script in state and script not in todo and script not in skip}}
+    state_path.write_text(json.dumps(state, indent=2))
     with open(log_path, 'a') as log:
-        for script, fields in STEPS:
-            if script in skip:
-                continue
-            key = digest(spec, fields, photo_sha, script in USES_LOGO)
-            if state.get(script) == key and not (rerun and fields is None):
-                continue
-            rerun = True
+        for script, key in steps:
             with local_slots if script in LOCAL_STEPS else contextlib.nullcontext():
                 log.write(f'\n==== {time.strftime("%F %T")} {script}\n')
                 log.flush()
                 result = subprocess.run([sys.executable, '-I', str(Path(__file__).parent / script), str(spec_path)],
                                         cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+            state['batch'] = batch
             if result.returncode != 0:
                 state.pop(script, None)
+                ran.pop(script, None)
                 state_path.write_text(json.dumps(state, indent=2))
                 lines = Path(log_path).read_text().strip().splitlines()
                 return 'error', f'{script}: {lines[-1] if lines else result.returncode}', time.time() - t0
             state[script] = key
+            ran[script] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
             state_path.write_text(json.dumps(state, indent=2))
     checks = json.loads((ROOT / 'output' / spec['id'] / 'checks.json').read_text())
     failed = [name for name, ok in checks.items() if not ok]
@@ -272,6 +337,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('input', help='按品类分好的文件夹,或清单 CSV')
 parser.add_argument('--overrides', action='append', default=[], help='例外清单 CSV 或放例外清单的文件夹,可写多次')
 parser.add_argument('--pack', help='把这份例外清单里的源图、分割叠图和蒙版示意打成 zip,不跑')
+parser.add_argument('--only', help='只跑这几个 id:逗号隔开,或一行一个 id 的文件;汇总表和抽查页里其他模板保留上次的结果')
 parser.add_argument('--dry-run', action='store_true', help='只生成配置、列出各品类的张数,不跑')
 parser.add_argument('--jobs', type=int, default=1, help='同时跑几个模板;MODEL_BACKEND=local 时每个峰值约 6–7GB 内存')
 parser.add_argument('--local', type=int, default=2, help='同一时间至多几个模板跑本机计算的步骤(pipeline.py、logo.py、preview.py,各约 2GB)')
@@ -301,16 +367,27 @@ for item in args.overrides:
         by_id[change['id'].strip()].update({k: v for k, v in change.items() if k != 'id' and v and v.strip()})
 skipped = [row for row in rows if row.get('skip', '').strip() not in ('', '0')]
 rows = [row for row in rows if row not in skipped]
+listed = rows
+if args.only:
+    wanted = only_ids(args.only)
+    unknown = wanted - {row_id(row) for row in rows + skipped}
+    if unknown:
+        raise SystemExit(f'--only 里的 id 不在这一批:{", ".join(sorted(unknown))}')
+    rows = [row for row in rows if row_id(row) in wanted]
+    skipped = [row for row in skipped if row_id(row) in wanted]
 if skipped:
     print(f"例外清单里跳过 {len(skipped)} 张:{', '.join(row.get('id') or row['source'] for row in skipped)}")
 folder = ROOT / 'batches' / (source.name if source.is_dir() else source.stem)
 (folder / 'specs').mkdir(parents=True, exist_ok=True)
 (folder / 'logs').mkdir(exist_ok=True)
+# 这一批的输入和例外清单,fixes.py 按它写重跑的命令
+(folder / 'command.json').write_text(json.dumps({'input': shown(source), 'overrides': [shown(item) for item in args.overrides]},
+                                                ensure_ascii=False, indent=2) + '\n')
 if source.is_dir():
     with open(folder / 'list.csv', 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, fieldnames=['source', 'preset', 'id', 'occluders', 'crop'], extrasaction='ignore')
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(listed)
 
 with ThreadPoolExecutor(8) as pool:
     specs = list(pool.map(make_spec, rows))
@@ -329,17 +406,28 @@ print(f'{len(paths)} 个模板,配置在 {folder.relative_to(ROOT)}/specs/')
 if args.dry_run:
     for name in sorted({r['preset'] for r in rows}):
         print(f"  {name}: {sum(r['preset'] == name for r in rows)} 张")
+    skip = {'preview.py'} if args.no_preview else ()
+    with ThreadPoolExecutor(8) as pool:
+        todo = list(pool.map(lambda spec: [script for script, _ in pending(spec, load_state(spec, args.force)[1], skip)], specs))
+    print('真跑时要跑的步骤(前四步走 MODEL_BACKEND,replicate 时按次计费):'
+          + (','.join(f'{script} {sum(script in steps for steps in todo)} 个' for script, _, _ in STEPS
+                      if any(script in steps for steps in todo)) or '都不用跑'))
     raise SystemExit
 
+REPORT = ['id', 'category', 'source', 'status', 'note', 'seconds']
 results = []
 lock = threading.Lock()  # 几个模板同时跑完时,结果和抽查页一个个写
 last_review = 0.0
+# --only 时这次没跑的模板沿用上次汇总表里的结果
+done = {row_id(row) for row in rows + skipped}
+kept = [{**r, 'source': r.get('source', '')} for r in read_csv(folder / 'report.csv') if r['id'] not in done] \
+    if args.only and (folder / 'report.csv').exists() else []
 
 
 def one(path):
     global last_review
     spec = config.load(path)
-    status, note, seconds = run(path, folder / 'logs' / f"{spec['id']}.log", args.force, {'preview.py'} if args.no_preview else ())
+    status, note, seconds = run(path, folder / 'logs' / f"{spec['id']}.log", args.force, folder.name, {'preview.py'} if args.no_preview else ())
     review.thumbnails(folder, spec['id'])
     with lock:
         # 只挂节日 / 渠道的横轴模板 category 为 null,抽查页和汇总按标签的页面分组
@@ -348,18 +436,23 @@ def one(path):
                         'status': status, 'note': note, 'seconds': round(seconds)})
         print(f"[{len(results)}/{len(paths)}] {status:5} {seconds:6.0f}s  {spec['id']}" + (f'  {note}' if note else ''), flush=True)
         if time.time() - last_review > REVIEW_EVERY:
-            review.write(folder, results)
+            review.write(folder, reviewed())
             last_review = time.time()
+
+
+def reviewed():
+    """抽查页列这次和沿用的结果,跳过的不进抽查页"""
+    return [r for r in kept if r['status'] != 'skip'] + results
 
 
 with ThreadPoolExecutor(args.jobs) as pool:
     list(pool.map(one, paths))
-review.write(folder, results)
+review.write(folder, reviewed())
 
 with open(folder / 'report.csv', 'w', newline='', encoding='utf-8-sig') as f:
-    writer = csv.DictWriter(f, fieldnames=['id', 'category', 'status', 'note', 'seconds'], extrasaction='ignore')
+    writer = csv.DictWriter(f, fieldnames=REPORT, extrasaction='ignore')
     writer.writeheader()
-    writer.writerows(sorted(results + [{'id': row.get('id') or template_id(row['source']), 'category': row['preset'], 'status': 'skip',
-                                        'note': row.get('note', '')} for row in skipped], key=lambda r: r['id']))
+    writer.writerows(sorted(kept + results + [{'id': row_id(row), 'category': row['preset'], 'source': Path(row['source'].strip()).name,
+                                               'status': 'skip', 'note': row.get('note', '')} for row in skipped], key=lambda r: r['id']))
 print(' · '.join(f'{s} {sum(r["status"] == s for r in results)}' for s in ('pass', 'fail', 'error')) + (f' · skip {len(skipped)}' if skipped else ''))
 print(f'汇总 {(folder / "report.csv").relative_to(ROOT)},抽查页 {(folder / "review.html").relative_to(ROOT)}')
