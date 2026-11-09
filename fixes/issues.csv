@@ -3,7 +3,7 @@ overexposed,白色过曝,pipeline.py,,oversized-hoodie-029,"浅色、彩色的�
 white-gray,深色商品换白发灰,pipeline.py,,tracksuit-012,"深色照片只把亮部对齐白布料,明暗反差原样保留,换成白色时大半身体发灰。按本机产出筛:照片中位亮度 <0.35、白色渲染中位亮度 <0.75(sRGB)"
 flat-bow,平面商品上设计稿被弯,pipeline.py,,sticker-blank-sticker-033,"纸品、卡片、盒面这类平的商品,流向图把设计稿的横竖线弯了框宽或框高的 2% 以上。按本机产出筛,不含摊开的双页(归 spread)"
 cylinder-flat,圆柱商品上设计稿不跟弧度,pipeline.py,,candle-018,"杯子、罐、瓶、蜡烛的大曲面层只有压缩拉伸,俯视、仰视时横线弯不成弧,看着像贴在平面上。按小品类全收,含模板墙上本机没有的"
-box-face,可印区并进了别的面,run_segment.py,,square-box-008,"朝向相近又连成一片的几个面并成了一块可印区,Logo 框落在交界上。其他例子还没筛"
+box-face,可印区并进了别的面,run_segment.py,2026-11-09T15:14:26Z,square-box-008,"朝向相近又连成一片的几个面并成了一块可印区,Logo 框落在交界上。按模板在例外清单的 parts 写不印的部分:蜡烛杯写 rim of the jar(杯口填满后连杯内一起去掉),敞开的盒子写 open box(只留盒盖)。其他例子还没筛"
 spread,摊开的双页当成一页,run_segment.py,,magazine-ad-002,"摊开的杂志、书只有一件商品铺满两页,设计稿横跨中缝;要新加左右两页各一个区域的预设。按 id 前缀全收"
 bookmark,书签认成书封,run_segment.py,2026-11-09T08:27:10Z,etsy-016,"书签压在书封上的图套了书本类预设,选中的是书封;要新加书签预设"
 pants-logo,裤子的 Logo 放在裆部,logo.py,2026-11-09T07:46:38Z,shorts-004,"短裤和运动套装的裤子没写 Logo 规则,框按整条裤子居中;补上运动裤那样只放一条腿的规则。按小品类全收"
