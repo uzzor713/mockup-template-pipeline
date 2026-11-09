@@ -32,6 +32,7 @@ WHITE_ALBEDO = 0.87  # 白布料在本征分解里的固有色亮度(白 T 恤�
 DARK_PHOTO = 0.1  # 商品实心部分照片亮度(线性)的中位数低于它算深色商品(sRGB 约 0.35)
 DARK_BRIGHT = 0.9  # 深色商品抬亮时对齐的亮部百分位
 DARK_TEXTURE = 0.5  # 深色商品的纹理(对数)保留这么多
+DARK_CONTRAST = 0.25  # 深色商品的明暗起伏(对数)保留这么多:压到四分之一后选白色的亮度和浅色商品相当
 WHITE_CAP = 0.95  # 选白色时每件商品实心部分 WHITE_CAP_AT 分位的亮度(线性)至多这么亮,更亮的整件压暗:截成纯白的约 5–7%,和正常照片相当
 WHITE_CAP_AT = 90
 GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(白 T 恤上约为白色亮度的 3%)
@@ -341,11 +342,14 @@ for product in products:
         # 深色照片里噪点占的比例大,抬亮后会显成颗粒:纹理减弱
         texture = texture ** DARK_TEXTURE
     diffuse = WHITE_ALBEDO * blur(luma(s * layers['shading'])) * texture
-    # 深色商品照片里光照和固有色分不开,拟合的光照比例 s 不可信:保留明暗起伏,亮部对齐到白布料在正常光下的亮度。
+    # 深色商品照片里光照和固有色分不开,拟合的光照比例 s 不可信:明暗起伏(对数)压到 DARK_CONTRAST,亮部对齐到白布料在正常光下的亮度。
     # 算出的光照常偏暗;固有色接近 0 时(黑色保温杯)s 又会被拟合到几十倍,明暗偏亮十倍,浅色全截成纯色,所以偏亮偏暗都对齐。
+    # 深色照片拆出的光照起伏比浅色的大得多,原样保留时选白色大半发灰(实心部分中位亮度 sRGB 约 0.45–0.65,浅色商品约 0.83)。
     # 反光强的深色商品照片全被残差解释,s 会是 0 或负数,所以按光照层本身的起伏缩放,不乘 s
     if dark:
-        light = blur(luma(layers['shading'])) * texture
+        lit = blur(luma(layers['shading']))
+        lit = (lit / max(float(np.percentile(lit[solid], DARK_BRIGHT * 100)), 1e-4)) ** DARK_CONTRAST
+        light = lit * texture
         diffuse = light * WHITE_ALBEDO / max(float(np.percentile(light[solid], DARK_BRIGHT * 100)), 1e-4)
     sheen = luma(max(r, 0) * layers['residual']) * texture
     layered.append((product, solid, diffuse, sheen))
@@ -475,7 +479,7 @@ template = {
     'shadeGain': shade_gain,
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
-    'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'darkPhoto': DARK_PHOTO, 'darkBright': DARK_BRIGHT, 'darkTexture': DARK_TEXTURE,
+    'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'darkPhoto': DARK_PHOTO, 'darkBright': DARK_BRIGHT, 'darkTexture': DARK_TEXTURE, 'darkContrast': DARK_CONTRAST,
                  'whiteCap': WHITE_CAP, 'whiteCapAt': WHITE_CAP_AT, 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
