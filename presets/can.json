@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Can",
       "text": "can",
+      "surface": "cylinder",
       "parts": [
         {
           "text": "can lid"

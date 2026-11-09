@@ -11,6 +11,7 @@
       "key": "left",
       "name": "Left Mug",
       "text": "mug",
+      "surface": "cylinder",
       "parts": [
         {
           "text": "mug handle"
@@ -23,6 +24,7 @@
       "key": "right",
       "name": "Right Mug",
       "text": "mug",
+      "surface": "cylinder",
       "parts": [
         {
           "text": "mug handle"

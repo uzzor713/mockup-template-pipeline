@@ -7,6 +7,7 @@
       "key": "main",
       "name": "Label",
       "text": "candle label",
+      "surface": "cylinder",
       "alternatives": [
         "candle jar",
         "candle"

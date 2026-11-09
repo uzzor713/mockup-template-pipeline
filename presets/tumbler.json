@@ -11,6 +11,7 @@
       "key": "main",
       "name": "Tumbler",
       "text": "tumbler",
+      "surface": "cylinder",
       "alternatives": [
         "cup",
         "paper cup"

@@ -11,6 +11,7 @@
       "key": "left",
       "name": "Left Can",
       "text": "can",
+      "surface": "cylinder",
       "parts": [
         {
           "text": "can lid"
@@ -23,6 +24,7 @@
       "key": "right",
       "name": "Right Can",
       "text": "can",
+      "surface": "cylinder",
       "parts": [
         {
           "text": "can lid"

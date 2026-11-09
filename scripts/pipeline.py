@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image
 from pymatting import estimate_foreground_ml
 from scipy import ndimage, sparse
+from scipy.optimize import least_squares
 from scipy.sparse.linalg import spsolve
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
@@ -57,6 +58,13 @@ SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多�
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 PLANE_INSET = 7  # surface: plane:可印区往里收这么多像素再拟合平面
 PLANE_BEND = 0.05  # surface: plane:可印区 3D 点离拟合平面的距离 90% 分位不到可印区边长(面积开方)的这么多才按平面贴。平的约 1–2%;贴在罐子、杯子上的圆贴纸约 6–12%,三折页、拿在手里的报纸约 5–15%
+CYL_WIDE = 0.85  # surface: cylinder:先拿宽度到最宽(90% 分位)这么多的最长一段拟合左右轮廓,瓶颈、瓶肩、圆底不算
+CYL_ROWS = 0.4  # surface: cylinder:左右轮廓挨着背景的行各至少占这么多、落在直线上的一段至少占可印区高度的这么多才按圆柱
+CYL_TILT = 25  # surface: cylinder:轴偏离竖直超过这么多度不按圆柱
+CYL_ARC = 0.6  # surface: cylinder:量上下沿的弧时只用中间这么宽(× 那一圈的半宽),两边陡,锯齿影响大
+CYL_RING = 0.7  # surface: cylinder:量到弧的那一圈半宽不到身子的这么多(瓶颈、瓶肩)不算;罐口收窄的一圈约 0.85
+CYL_DK = 0.15  # surface: cylinder:下沿减上沿的扁度至少是按焦距算的这么多份(实测 0.35–1.0),对不上的那头量到的是别的东西(杯座、手)
+PERSPECTIVE = 0.7  # surface: cylinder:只量到一头的弧或量不出弧时,纬线扁度随高度的变化按焦距算的视线角留这么多份
 SMOOTH = 2.0  # 二值轮廓的平滑半径(px),台阶越长要越大
 GAP_RATIO = 0.004  # 商品和遮挡物之间的缝,两边都在这么远(× 宽度)以内的算遮挡物
 FLOW_BLEND = 4  # 流向图商品外铺成边上的值,离守住范围的格子这么多格以外完全换成模糊过的值(格)
@@ -312,6 +320,252 @@ def plane_flow(points, intrinsics, product, printable, small_size):
     return flow, f"按平面({','.join(notes)})"
 
 
+def robust_line(y, x):
+    """x = p[0]·y + p[1] 的稳健拟合(离线远的点降权),返回系数和残差的稳健标准差"""
+    p = np.polyfit(y, x, 1)
+    for _ in range(4):
+        r = x - np.polyval(p, y)
+        s = 1.4826 * np.median(np.abs(r - np.median(r))) + 0.5
+        p = np.polyfit(y, x, 1, w=np.sqrt(1 / np.maximum(1, np.abs(r) / (2 * s))))
+    return p, 1.4826 * np.median(np.abs(x - np.polyval(p, y)))
+
+
+def longest_run(mask, gap, near=None):
+    """一维布尔序列里最长的一段(中间断开不超过 gap 的算连着)的下标;给了 near 时取包含它的那段"""
+    labels, count = ndimage.label(ndimage.binary_closing(mask, gap) | mask)
+    if not count:
+        return np.arange(len(mask))
+    pick = labels[near] if near is not None and labels[near] > 0 else 1 + int(np.argmax(np.bincount(labels)[1:]))
+    return np.nonzero(labels == pick)[0]
+
+
+def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size):
+    """罐、杯、瓶、蜡烛这类竖着的回转体(配置写 surface: cylinder):按照片里左右轮廓的两条直线和上下沿的弧算出每一圈纬线,
+    设计稿按 (转角, 沿母线的长度) 贴上去,俯视、仰视时横线跟着纬线弯成弧,侧面压缩。
+    surface_flow 只记每格拉伸多少、不记方向,横线弯不成弧。
+    parts 是不印的部件(盖子、瓶盖),blocked 是遮挡物和上层商品:挨着它们的轮廓不是商品自己的边。
+    长度单位和 surface_flow 相同(可印区中心那一圈的像素),可印区中心处只压缩、不转。
+    返回 (位移, 说明);轮廓不像竖着的圆柱、圆台的,位移为 None,照旧按曲面算"""
+    body = (product > 0.5) & ~parts
+    inside = printable > 0.5
+    if inside.sum() < 500:
+        return None, '可印区太小,按曲面'
+    wall = blocked.copy()
+    wall[:2], wall[-2:], wall[:, :2], wall[:, -2:] = True, True, True, True
+    wall = grow(wall, 3)
+    part_near = grow(parts, 3)
+    ys, xs = np.nonzero(inside)
+    center = np.array([xs.mean(), ys.mean()])
+    # 转到轴竖直的坐标系 (x', y') 量轮廓,按量出的轴再转一次
+    angle = 0.0
+    for _ in range(2):
+        M = cv2.getRotationMatrix2D(tuple(center), -angle, 1.0)
+        turn = lambda mask, border=0: cv2.warpAffine(mask.astype(np.uint8), M, (W, H), flags=cv2.INTER_NEAREST, borderValue=border) > 0
+        rb, rw, rpn, ri = largest(turn(body)), turn(wall, 1), turn(part_near), turn(inside)
+        iy = np.nonzero(ri.any(1))[0]
+        y0, y1 = iy[0], iy[-1]
+        rows = np.arange(y0, y1 + 1)
+        rows = rows[rb[rows].any(1)]
+        left = np.array([np.argmax(rb[y]) for y in rows])
+        right = np.array([W - 1 - np.argmax(rb[y][::-1]) for y in rows])
+        # 挨着背景的轮廓才是商品自己的边
+        free_l = np.array([not rw[y, max(x - 4, 0):x].any() and not rpn[y, max(x - 4, 0):x + 1].any() for y, x in zip(rows, left)])
+        free_r = np.array([not rw[y, x + 1:x + 5].any() and not rpn[y, x:x + 5].any() for y, x in zip(rows, right)])
+        # 先拿够宽的最长一段拟合左右两条线,再接上落在线上的行(被挡住的行也算):瓶颈、瓶肩、圆底不算,圆台窄的那头算
+        gap = np.ones(max(3, len(rows) // 12), bool)
+        run = longest_run(right - left >= CYL_WIDE * np.percentile(right - left, 90), gap)
+        for extend in (True, False):
+            trim = max(1, int(0.05 * len(run)))
+            fit = run[trim:len(run) - trim] if len(run) > 2 * trim + 10 else run
+            ok_l, ok_r = free_l[fit], free_r[fit]
+            if ok_l.mean() < CYL_ROWS or ok_r.mean() < CYL_ROWS:
+                return None, f'左右轮廓挨着背景的行不够(左 {ok_l.mean():.0%}、右 {ok_r.mean():.0%}),按曲面'
+            pl, sl = robust_line(rows[fit][ok_l].astype(float), left[fit][ok_l].astype(float))
+            pr, sr = robust_line(rows[fit][ok_r].astype(float), right[fit][ok_r].astype(float))
+            if extend:
+                tol = max(3.0, 0.03 * np.polyval((pr - pl) / 2, rows[run].mean()))
+                on = ((np.abs(left - np.polyval(pl, rows)) < tol) | ~free_l) & ((np.abs(right - np.polyval(pr, rows)) < tol) | ~free_r)
+                run = longest_run(on, gap, near=run[len(run) // 2])
+        if rows[run[-1]] - rows[run[0]] < CYL_ROWS * (y1 - y0):
+            return None, f'直的一段只占可印区高度的 {(rows[run[-1]] - rows[run[0]]) / max(y1 - y0, 1):.0%},按曲面'
+        tilt = np.degrees(np.arctan((pl[0] + pr[0]) / 2))
+        angle += tilt
+        if abs(tilt) < 0.3:
+            break
+    if abs(angle) > CYL_TILT:
+        return None, f'轴歪了 {angle:.0f}°,按曲面'
+    c_line, a_line = (pl + pr) / 2, (pr - pl) / 2  # 轴的 x' 和半宽,都是 y' 的一次函数
+    if max(sl, sr) > max(2.0, 0.03 * np.polyval(a_line, (y0 + y1) / 2)):
+        return None, f'左右轮廓不直(残差 {max(sl, sr):.1f}px),按曲面'
+
+    def half_width(y):
+        """第 y' 行商品最左到最右的一半(罐口里面没分进商品的也算)"""
+        span = np.flatnonzero(rb[int(np.clip(round(y), 0, H - 1))])
+        return (span[-1] - span[0]) / 2 if len(span) else 0.0
+
+    def arc(side):
+        """上沿 / 下沿中间一段量弧 y' = yc + s·√(1 − u²),u = (x' − 轴) / r,返回 (yc, 扁度 s/r, 挨着部件的占比);量不准的返回 None。
+        r 从那头的半宽起,弧往里几行的半宽比它窄就换成那个半宽再量:罐口收窄的一圈量的是它自己;
+        瓶颈、瓶肩量出来的那一圈不到身子的 CYL_RING,不算"""
+        profile = np.where(rb.any(0), np.argmax(rb, 0) if side == 'top' else H - 1 - np.argmax(rb[::-1], 0), -1)
+        out = -1 if side == 'top' else 1
+        yc = float(np.median(profile[profile >= 0]))
+        r = float(np.polyval(a_line, yc))
+        for _ in range(4):
+            cx = np.polyval(c_line, yc)
+            cols = np.arange(int(cx - CYL_ARC * r), int(cx + CYL_ARC * r) + 1)
+            cols = cols[(cols >= 0) & (cols < W)]
+            yy = profile[cols]
+            good = (yy >= 0) & np.array([0 <= y + 4 * out < H and not rw[min(y, y + 4 * out):max(y, y + 4 * out) + 1, x].any() for x, y in zip(cols, yy)])
+            if good.mean() < 0.7:
+                return None
+            cols, yy = cols[good], yy[good].astype(float)
+
+            def residual(p, r=r):
+                u = np.clip((cols - np.polyval(c_line, p[0])) / r, -1, 1)
+                return p[0] + p[1] * np.sqrt(1 - u * u) - yy
+            fit = least_squares(residual, [yy.mean(), 0.0], bounds=([-np.inf, -r], [np.inf, r]), loss='soft_l1', f_scale=2)
+            yc, s = float(fit.x[0]), float(fit.x[1])
+            # 弧最里面那点再往里一小段的半宽,轮廓有锯齿,取最宽的一行
+            inner = (max if side == 'top' else min)(yc, yc + s)
+            w = max(half_width(inner - d * out) for d in range(3, 4 + int(0.05 * r)))
+            if w >= 0.93 * r:
+                break
+            r = w
+            if r < CYL_RING * np.polyval(a_line, yc):
+                break
+        if r < CYL_RING * np.polyval(a_line, yc) or abs(w - r) > 0.15 * r:
+            return None
+        if 1.4826 * np.median(np.abs(residual(fit.x))) > max(2.0, 0.015 * r):
+            return None
+        touching = np.mean([rpn[int(y) + 2 * out, x] for x, y in zip(cols, yy) if 0 <= int(y) + 2 * out < H])
+        return yc, s / r, float(touching)
+
+    top, bottom = arc('top'), arc('bottom')
+    f = intrinsics[1, 1]
+    p_y = (M @ np.array([intrinsics[0, 2], intrinsics[1, 2], 1]))[1]  # 主点的 y'
+
+    def k_model(phi, y):
+        """镜头俯仰 φ 时纬线椭圆的扁度(短轴 / 长轴,俯视为正)。视线角按 PERSPECTIVE 份算:
+        MoGe 估的焦距偏短,两头都量到弧的,上下扁度的差约为按焦距算的 0.4–0.8"""
+        return np.sin(phi + PERSPECTIVE * np.arctan((y - p_y) / f))
+
+    def phi_of(k, y):
+        return np.arcsin(np.clip(k, -0.99, 0.99)) - PERSPECTIVE * np.arctan((y - p_y) / f)
+
+    # 法线给出的镜头俯仰:可印区中间一片侧面的法线绕 x' 轴的倾角,用来挑弧的方向、量不出弧时用
+    band = [(x, y) for y in np.linspace(y0 + 0.25 * (y1 - y0), y1 - 0.25 * (y1 - y0), 9)
+            for x in np.polyval(c_line, y) + np.polyval(a_line, y) * np.linspace(-0.3, 0.3, 9)]
+    src = (cv2.invertAffineTransform(M) @ np.array([[x, y, 1] for x, y in band]).T).round().astype(int)
+    n = normals[np.clip(src[1], 0, H - 1), np.clip(src[0], 0, W - 1)]
+    phi_n = float(np.median(np.arctan2(-(M[:, :2] @ n[:, :2].T)[1], n[:, 2])))
+
+    def candidates(a, side):
+        """弧的扁度可能是哪几个,可能的排前面。商品自己的轮廓上沿只会往上鼓、下沿只会往下鼓,俯视(上沿是后半圈)、
+        仰视(上沿是前半圈)都一样,只量得出大小,按法线的俯仰挑;挨着部件的边(标签边、罐盖接缝)和反着弯的是前半圈,扁度就是量到的"""
+        yc, k, touching = a
+        if touching > 0.5 or (k > 0 if side == 'top' else k < 0):
+            return [k]
+        return sorted([abs(k), -abs(k)], key=lambda c: abs(c - k_model(phi_n, yc)) + 0.03 * (c < 0))
+
+    def dk_full(kt):
+        """上沿扁度为 kt 时,按焦距算(视线角全算)的下沿减上沿"""
+        return float(np.sin(np.arcsin(np.clip(kt, -0.99, 0.99)) - np.arctan((top[0] - p_y) / f) + np.arctan((bottom[0] - p_y) / f)) - kt)
+
+    if top and bottom:
+        # 越往下纬线越扁(俯视越多):下沿减上沿至少是按焦距算的 CYL_DK 份,对不上的那头多半量到的是别的东西(杯座、手),
+        # 只留挨着部件的那头;都不挨着的按曲面
+        pairs = [(kt, kb) for kt in candidates(top, 'top') for kb in candidates(bottom, 'bottom') if kb - kt >= CYL_DK * dk_full(kt) - 0.03]
+        if not pairs:
+            keep = [a for a in (top, bottom) if a[2] > 0.5]
+            if not keep:
+                return None, '上下沿的弧对不上,按曲面'
+            top, bottom = (keep[0], None) if keep[0] is top else (None, keep[0])
+    notes = []
+    if top and bottom:
+        kt, kb = pairs[0]
+        slope = (kb - kt) / max(bottom[0] - top[0], 1)
+        k_at = lambda y: np.clip(kt + slope * (y - top[0]), -0.8, 0.8)
+        notes.append(f'上沿 {kt:+.2f}、下沿 {kb:+.2f}')
+    elif top or bottom:
+        a, side = (top, 'top') if top else (bottom, 'bottom')
+        k0 = candidates(a, side)[0]
+        phi = phi_of(k0, a[0])
+        k_at = lambda y: np.clip(k_model(phi, y), -0.8, 0.8)
+        notes.append(f"只量到{'上沿' if top else '下沿'} {k0:+.2f},另一头按焦距")
+    else:
+        k_at = lambda y: np.clip(k_model(phi_n, y), -0.8, 0.8)
+        notes.append(f'量不出弧,按法线俯仰 {np.degrees(phi_n):+.0f}°')
+
+    # 设计稿坐标:横向 = 参考半宽 × 转角,纵向 = 沿前面那条母线的长度(按扁度还原俯视造成的缩短、按半宽还原近大远小),
+    # 都换算成可印区中心那一圈的像素
+    yc_ref = solve_latitude(np.array([center[0]]), np.array([center[1]]), c_line, a_line, k_at)[0]
+    a_ref = np.polyval(a_line, yc_ref)
+    grid_y = np.linspace(y0 - 0.6 * (y1 - y0), y1 + 0.6 * (y1 - y0), 2001)
+    front = grid_y + k_at(grid_y) * np.polyval(a_line, grid_y)
+    v_table = np.cumsum(np.gradient(front) * a_ref / np.maximum(np.polyval(a_line, grid_y), 1) / np.sqrt(1 - k_at(grid_y) ** 2))
+    v_table -= np.interp(yc_ref, grid_y, v_table)
+    gy, gx = (np.mgrid[0:small_size[1], 0:small_size[0]] * DISP_SCALE + (DISP_SCALE - 1) / 2).astype(np.float64)
+    pts = np.stack([gx.ravel(), gy.ravel(), np.ones(gx.size)], 0)  # 缩小后每格中心的模板像素坐标,和双线性放大对齐
+    rx, ry = M @ pts
+    product_cells = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0
+    region = cv2.dilate(product_cells.astype(np.uint8), np.ones((9, 9), np.uint8)) > 0  # 算位移的格子,再往外铺最近值
+    guard = cv2.dilate(product_cells.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0  # 和存图时一样,按这些格子定 8 位的范围
+    sel = region.ravel()
+    back = cv2.invertAffineTransform(M)[:, :2]
+    cells = cv2.resize(printable, small_size, interpolation=cv2.INTER_AREA) > 0.5
+    _, (iy, ix) = ndimage.distance_transform_edt(~region, return_indices=True)
+
+    def design(cap):
+        """每格的位移(设计稿坐标 − 像素坐标)。横向压缩到 cap 倍处(sinθ = s_c)以外,
+        转角按 x' 线性延长、纬线沿切线延长:侧面压缩、纵向挤压都不再变大"""
+        s_cap = lambda yc: np.sqrt(np.maximum(1 - (a_ref / (np.maximum(np.polyval(a_line, yc), 1) * cap)) ** 2, 0))
+        yc = solve_latitude(rx[sel], ry[sel], c_line, a_line, k_at, s_cap)
+        u = (rx[sel] - np.polyval(c_line, yc)) / np.maximum(np.polyval(a_line, yc), 1)
+        s_c = s_cap(yc)
+        U = a_ref * (np.arcsin(np.clip(u, -s_c, s_c)) + np.sign(u) * np.maximum(np.abs(u) - s_c, 0) / np.maximum(np.sqrt(1 - s_c ** 2), 1e-6))
+        V = np.interp(yc, grid_y, v_table)
+        flow = np.zeros(region.shape + (2,), np.float32)
+        flow[region] = (back @ np.stack([U, V]) + center[:, None] - pts[:2, sel]).T
+        flow -= flow[cells].mean(axis=0)
+        flow[~region] = 0
+        return flow[iy, ix]
+
+    # 和 plane_flow 一样,可印区里存成 8 位后超出校验范围的面积至多 STRETCH_OUTLIER 的一半;超了先少压侧面
+    for cap in (SURFACE_RANGE[1], 1.8, 1.6, 1.4):
+        flow = design(cap)
+        under, over = stored_beyond(flow, guard, inside)
+        if under + over <= STRETCH_OUTLIER / 2:
+            break
+    else:
+        return None, f'可印区 {under:.1%} 前进量不到 {STRETCH_RANGE[0]}、{over:.1%} 超过 {STRETCH_RANGE[1]},按曲面'
+    notes.insert(0, f'轴 {angle:+.1f}°、半宽 {a_ref:.0f}px')
+    if cap < SURFACE_RANGE[1]:
+        notes.append(f'侧面压缩截到 {cap}')
+    return flow, f"按圆柱({','.join(notes)})"
+
+
+def solve_latitude(x, y, c_line, a_line, k_at, s_cap=None, iters=40):
+    """旋转后的 (x', y') 落在哪一圈纬线上:y' = yc + k(yc)·a(yc)·h(u),u = (x' − c(yc)) / a(yc),二分求 yc。
+    s_cap(yc) 给出时 |u| 超过它的部分沿切线延长,侧面的纬线不竖起来"""
+    lo, hi = y - 2000.0, y + 2000.0
+    for _ in range(iters):
+        mid = (lo + hi) / 2
+        a = np.maximum(np.polyval(a_line, mid), 1)
+        u = (x - np.polyval(c_line, mid)) / a
+        above = mid + k_at(mid) * a * front_h(u, None if s_cap is None else s_cap(mid)) > y
+        hi, lo = np.where(above, mid, hi), np.where(above, lo, mid)
+    return (lo + hi) / 2
+
+
+def front_h(u, s_c=None):
+    """纬线椭圆前半圈的高度 √(1 − u²)(以短半轴为 1);|u| 超过 s_c 后沿切线延长"""
+    if s_c is None:
+        return np.sqrt(np.maximum(1 - u * u, 0))
+    c_c = np.sqrt(1 - s_c ** 2)
+    return np.where(np.abs(u) <= s_c, np.sqrt(np.maximum(1 - u * u, 0)), c_c - s_c / np.maximum(c_c, 1e-6) * (np.abs(u) - s_c))
+
+
 def extend_outside(flow, inside):
     """inside 以外的格子换成离它最近的 inside 格的值,离 inside FLOW_BLEND 格以外渐变成模糊过的值。
     渲染端整体减掉设计稿中心处的位移;商品外的位移若还在变,中心拖出商品时这份变得比拖动还快,设计稿会反着往商品里跑。
@@ -393,9 +647,9 @@ restored = source_alpha < 1
 read_alpha = lambda name: np.asarray(Image.open(WORK / name)).astype(np.float32) / 65535
 read_mask = lambda name: np.asarray(Image.open(WORK / name)) > 127
 occluders = read_alpha('occluders.png') > 0.5
-# 法线(normals.py)只给 print.face 挑正对的那一面用,先模糊去掉纹理的起伏
+# 法线(normals.py)给 print.face 挑正对的那一面、surface: cylinder 定镜头俯仰用,先模糊去掉纹理的起伏
 normals = cv2.GaussianBlur(cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR) * 2 - 1, (0, 0), SIGMA_RATIO * W)
-products, prints = [], []
+products, prints, part_masks, blocks = [], [], [], []  # 后两个给 surface: cylinder 认商品自己的轮廓
 above, above_bin = np.zeros((H, W), np.float32), np.zeros((H, W), bool)  # 上层商品的覆盖度之和、二值范围
 for item in spec['products']:
     segmented = read_alpha(f"{item['id']}-alpha.png")
@@ -405,7 +659,9 @@ for item in spec['products']:
     _, (iy, ix) = ndimage.distance_transform_edt(above_bin, return_indices=True)
     product = quantize(np.minimum(alpha[iy, ix], 1 - above))
     products.append(product)
-    prints.append(quantize(print_area(product, read_mask(f"{item['id']}-parts.png"), occluders | above_bin, item.get('print', {}))))
+    part_masks.append(read_mask(f"{item['id']}-parts.png"))
+    blocks.append(occluders | above_bin)
+    prints.append(quantize(print_area(product, part_masks[-1], blocks[-1], item.get('print', {}))))
     if item.get('print', {}).get('face') and (prints[-1] > 0.5).any():
         prints[-1] = main_face(prints[-1], normals)
     above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
@@ -511,14 +767,20 @@ small_size = (W // DISP_SCALE, H // DISP_SCALE)
 to_px = W * W / DISP_SCALE  # 系数 × to_px:缩小后每格的坡度 → 模板像素位移
 low, high = STRETCH_RANGE[0] + CAP_MARGIN[0], STRETCH_RANGE[1] - CAP_MARGIN[1]
 carriers = [carrier(product, printable) for product, printable in zip(products, prints)]
-# 配置写 surface: plane 的先按平面贴,真弯的、透视太陡的照旧按曲面
+# 配置写 surface: plane 的先按平面贴,surface: cylinder 的先按圆柱贴;真弯的、透视太陡的、轮廓不像圆柱的照旧按曲面
 surfaces, fits = [], []
-for item, product, printable in zip(spec['products'], carriers, prints):
-    flat, note = plane_flow(points, intrinsics, product, printable, small_size) if item.get('surface') == 'plane' else (None, '')
+for item, product, printable, parts, blocked in zip(spec['products'], carriers, prints, part_masks, blocks):
+    kind = item.get('surface')
+    if kind == 'plane':
+        shaped, note = plane_flow(points, intrinsics, product, printable, small_size)
+    elif kind == 'cylinder':
+        shaped, note = cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size)
+    else:
+        shaped, note = None, ''
     if note:
         print(f"{item['id']} 大曲面层:{note}")
-    surfaces.append(surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) if flat is None else flat)
-    fits.append('curved' if flat is None else 'plane')
+    surfaces.append(surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) if shaped is None else shaped)
+    fits.append('curved' if shaped is None else kind)
 # 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分的 SLACK_SHARE:
 # 整级只在两格取整刚好相反时才出现,扣满一级时大曲面层 200px 以上的商品上下限只剩约 1.0–1.9,褶皱几乎全被减掉
 slack = SLACK_SHARE * 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
@@ -596,7 +858,7 @@ template = {
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
                  'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE),
-                 'surfaceFit': fits, 'planeBend': PLANE_BEND},
+                 'surfaceFit': fits, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
