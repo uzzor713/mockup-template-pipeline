@@ -5,6 +5,7 @@ inbox.py 按测试站给已经发布过的模板升版本,fixes.py 按两边看�
 用法:.venv/bin/python -I scripts/wall.py [--prod] [存成.csv]   # 打出总数和各版本的个数,给了路径时每个模板一行存下来
 """
 import csv
+import http.client
 import json
 import re
 import sys
@@ -26,7 +27,7 @@ def page(number, site='test'):
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 return json.load(response)['result']['data']['json']
-        except (OSError, ValueError, KeyError):
+        except (OSError, ValueError, KeyError, http.client.HTTPException):  # HTTPException:响应读到一半断了(IncompleteRead)
             if attempt == 2:
                 raise
             time.sleep(5)

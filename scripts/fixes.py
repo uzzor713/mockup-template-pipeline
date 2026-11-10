@@ -14,7 +14,7 @@
       .venv/bin/python -I scripts/fixes.py fixed <问题>         # 修好了:fixed 写成现在
       .venv/bin/python -I scripts/fixes.py rerun               # 该重跑的按批次写进 fixes/plan/rerun-<批次>.txt,打出命令
       .venv/bin/python -I scripts/fixes.py publish             # 重跑过、通过了、还没入测试库的按批次写进 fixes/plan/publish-<批次>.txt,打出命令
-      .venv/bin/python -I scripts/fixes.py sync                # 进了测试库、正式库还是旧版本的,写一份给管正式库的人的总结
+      .venv/bin/python -I scripts/fixes.py sync                # 进了测试库、正式库还是旧版本的,写一份给管正式库的人的总结(用 ossutil 列收件箱,约 1 分钟)
 
 模板归哪一批:steps.json 记下的 batch(batch.py 跑过一步就记);更早的取 batches/*/logs/<id>.log 最后写过的那一批。
 重跑的命令按 batches/<批次>/command.json(batch.py 每次运行时写);没有的按 sources/<批次>.csv、batches/<批次>.csv、
@@ -30,6 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
+import oss_inbox
 import wall
 
 ROOT = config.ROOT
@@ -42,7 +43,7 @@ ISSUE_FIELDS = ['issue', 'title', 'step', 'fixed', 'example', 'note']
 HELD = {'不在本机': 'not-local', '不知道归哪一批': 'no-batch', '源图不在': 'no-photo'}
 # 同步总结里「改了什么」:库里这一行两边不一样的字段
 ROW_FIELDS = {'name': '显示名', 'tags': '标签', 'logos': 'Logo 框'}
-PUBLISH = 'pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templates-publish.ts --batch mockup-template-inbox/'
+PUBLISH = 'pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templates-publish.ts'
 
 
 def read(name):
@@ -272,6 +273,23 @@ def sync(ledger):
             changed.append(f"小品类 {prod['category'] or '无'} → {test['category'] or '无'}")
         rows.append(f"| {key} | v{prod['version']} | v{test['version']} | "
                     f"{'、'.join(changed)} | {'、'.join(ledger.issues[i]['title'] for i in issues)} |")
+    # 发布脚本按 --batch 前缀扫收件箱:同一个 id 扫到几个目录时几份都挡掉,这些从新目录所在的那一层单独发
+    found = oss_inbox.inbox_dirs()
+    lost = [key for key in ready if key not in found]
+    if lost:
+        raise SystemExit(f'OSS 收件箱里没有这 {len(lost)} 个的目录,发布脚本发不了:{", ".join(lost)}')
+    groups = defaultdict(list)
+    for key in ready:
+        groups[oss_inbox.prefix(found[key])].append(key)
+    commands = ['export DATABASE_URL=<正式库>']
+    for batch, ids in sorted(groups.items()):
+        if len(groups) > 1:
+            commands += ['', f'# {len(ids)} 个,' + (f'只扫 {batch}' if batch else '扫整个收件箱')]
+        commands += [f"IDS={','.join(ids)}",
+                     f'{PUBLISH} --batch mockup-template-inbox/{batch} --only $IDS            # 只检查,不写库',
+                     f'{PUBLISH} --batch mockup-template-inbox/{batch} --only $IDS --apply    # 写正式库']
+    doubled = sum(len(ids) for batch, ids in groups.items() if batch)
+    passes = '、'.join(f'{len(ids)}' for _, ids in sorted(groups.items()))
     (PLAN / 'sync.txt').write_text(''.join(f'{key}\n' for key in ready))
     path = PLAN / f'sync-{time.strftime("%Y%m%d")}.md'
     path.write_text('\n'.join([
@@ -286,16 +304,17 @@ def sync(ledger):
         '',
         '## 怎么同步',
         '',
-        '在 vorla 仓库的 `apps/web` 下运行模板发布脚本,`DATABASE_URL` 指正式库:',
+        '在 vorla 仓库的 `apps/web` 下运行模板发布脚本,`DATABASE_URL` 指正式库'
+        + (f'。分 {len(groups)} 组跑:{doubled} 个在 OSS 收件箱里还另有一份不全的旧目录,整个收件箱一起扫时'
+           '发布脚本报「同名目录出现多次」、两份都不发,这几个从新目录所在的那一层扫:' if doubled else ':'),
         '',
         '```bash',
-        'export DATABASE_URL=<正式库>',
-        f"IDS={','.join(ready)}",
-        f'{PUBLISH} --only $IDS            # 只检查,不写库',
-        f'{PUBLISH} --only $IDS --apply    # 写正式库',
+        *commands,
         '```',
         '',
-        '- 只检查的报告里,每个模板的版本应和下表「测试库」一列一致;`--apply` 时文件都记为 unchanged,只写库。',
+        f'- 只检查时应全部通过,通过的个数依次是 {passes},不通过 0。`--only` 里的 id 在扫的范围里找不到时不报错、直接不算,'
+        '要对一下个数;个别报「读取失败」的多是网络超时,再跑一次。',
+        '- `--apply` 时模板文件都已经发过,发布结果应全是 unchanged,只写库。',
         '- 写的是这几行的显示名、封面、宽高比、小品类、标签和 `mockup_materials`;正式库已有的行发布时间不变,模板在墙上的位置不动'
         + (',新模板的发布时间是写库的时间。' if new else '。'),
         '- 不用脚本的话,按 slug 从测试库的 `template` 表把这几列复制过来也一样' + (',新模板整行复制。' if new else '。'),

@@ -21,10 +21,8 @@ import csv
 import json
 import re
 import shutil
-import subprocess
 import sys
-from collections import defaultdict
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -32,11 +30,11 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).parent))  # -I 运行时脚本所在目录不在 sys.path 里
 import config
 import wall
+from oss_inbox import INBOX, complete, inbox_dirs
 
 ROOT = config.ROOT
 COVER_QUALITY = 85  # 和 pipeline.py 写 cover.webp 时一样
 BLANK_SUFFIX = '-blank-2x'
-INBOX = 'oss://vorla-assets/mockup-template-inbox/'
 
 
 def template_files(template):
@@ -71,23 +69,6 @@ def only_ids(value):
     return {line.strip() for line in lines if line.strip() and not line.strip().startswith('#')}
 
 
-def inbox_dirs():
-    """OSS 收件箱里有 template.json 的目录:{id: [(相对收件箱根目录的目录, 目录里的文件名)]}"""
-    ossutil = shutil.which('ossutil') or str(Path.home() / 'bin' / 'ossutil')
-    listing = subprocess.run([ossutil, 'ls', INBOX], capture_output=True, text=True, check=True).stdout
-    files = defaultdict(set)
-    for line in listing.splitlines():
-        name = line.split()[-1] if line.strip() else ''
-        if name.startswith(INBOX) and not name.endswith('/'):
-            path = PurePosixPath(name.removeprefix(INBOX))
-            files[str(path.parent)].add(path.name)
-    found = defaultdict(list)
-    for folder, names in sorted(files.items()):
-        if 'template.json' in names:
-            found[PurePosixPath(folder).name].append((folder, names))
-    return found
-
-
 def update(specs):
     """重跑过的模板换上新的模板文件,按收件箱里原来的目录放"""
     found = inbox_dirs()
@@ -99,7 +80,7 @@ def update(specs):
             continue
         places = found[spec['id']]
         # 同一个 id 有两个目录时发布脚本两份都挡掉;先放进有展示图和白模图的那份,另一份要删
-        folder, _ = max(places, key=lambda place: {'cover.webp', 'white.png'} <= place[1])
+        folder = complete(places)
         if len(places) > 1:
             doubled.append(f"{spec['id']}({' / '.join(place for place, _ in places)})")
         source = ROOT / 'output' / spec['id']
