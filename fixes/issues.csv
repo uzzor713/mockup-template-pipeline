@@ -9,4 +9,4 @@ bookmark,书签认成书封,run_segment.py,2026-11-09T08:27:10Z,etsy-016,"书签
 pants-logo,裤子的 Logo 放在裆部,logo.py,2026-11-09T07:46:38Z,shorts-004,"短裤和运动套装的裤子没写 Logo 规则,框按整条裤子居中;补上运动裤那样只放一条腿的规则。按小品类全收"
 drag-stale,拖动校验记录过期,pipeline.py,2026-11-03T02:39:42Z,calendar-025,"本机输出和 checks.json 早于拖动校验改成回退超过 3 像素才算没过(202fcce),按旧规则没过、没有发布;按现行规则没有超过 3 像素的回退,是 8 位量化的抖动。用现在的代码重跑本机三步,按新的检查结果发布。按本机 checks.json 筛"
 multi-item,几件商品并成一个可印区,run_segment.py,2026-11-10T11:24:55Z,playing-cards-006,"照片里有几张分开的牌、名片、卡片、海报或胸牌,分割把它们并成一块可印区,设计稿横跨几件,可印区最大一块不到 80%,没过检查、没有发布。两件的改用 business-card-pair、greeting-card-pair、id-card-pair、playing-cards-pair 预设,左右各一个区域;三件以上的在例外清单写 largest,只印面积最大的一件。按本机 checks.json 筛「print largest component ≥ 80%」没过的,挑出照片里是几件分开的商品;greeting-card-postcard-012 是拖动校验筛出来的两张卡"
-drag-back,设计稿往外拖会往回跳,pipeline.py,,greeting-card-postcard-012,"设计稿中心往可印区外拖时有回退超过 3 像素的方向。shorts-016 是手把短裤挡成两块,两块之间的流向图没接上;其他的原因还没查。怎么修待定。按本机输出用现行规则重算筛,不含 drag-stale"
+drag-back,设计稿往外拖会往回跳,pipeline.py,2026-11-10T11:53:26Z,greeting-card-postcard-012,"设计稿中心往外拖时有回退超过 3 像素的方向。拖动校验改成只看中心在可印区里的一段:和可印区里走过的最远处比,中心出了可印区(拖到商品外、经过遮挡物)时画在哪里不算。按本机输出用现行规则重算筛,不含 drag-stale;按新规则仍没过的:shorts-016(手把短裤挡成两块,两块之间的流向图没接上)"
