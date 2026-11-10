@@ -57,6 +57,7 @@ SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
 SURFACE_KEEP_MIN = 0.3  # 大曲面层存成 8 位后超出校验范围时,位移至多收到这么多份
+CSS_MEAN, CSS_P99 = 2, 14  # base-css 叠在白色、纯黑上和线性光结果的差(0–255),商品区内平均、99% 分位的上限
 PLANE_INSET = 7  # surface: plane:可印区往里收这么多像素再拟合平面
 PLANE_BEND = 0.05  # surface: plane:可印区 3D 点离拟合平面的距离 90% 分位不到可印区边长(面积开方)的这么多才按平面贴。平的约 1–2%;贴在罐子、杯子上的圆贴纸约 6–12%,三折页、拿在手里的报纸约 5–15%
 CYL_WIDE = 0.85  # surface: cylinder:先拿宽度到最宽(90% 分位)这么多的最长一段拟合左右轮廓,瓶颈、瓶肩、圆底不算
@@ -755,9 +756,33 @@ Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.
 shipped = np.asarray(Image.open(OUT / 'base.webp').convert('RGBA')).astype(np.float32) / 255
 on_white = to_srgb(shade_gain * (1 - shipped[..., 3:]) + to_linear(shipped[..., :3]) * shipped[..., 3:])
 on_black = to_srgb(to_linear(shipped[..., :3]) * shipped[..., 3:])
-css_alpha = np.clip(1 - (on_white - on_black).mean(axis=2, keepdims=True), 1 / 255, 1)
-css_base = np.dstack([np.clip(on_black / css_alpha, 0, 1), css_alpha])
-Image.fromarray(np.round(css_base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base-css.webp', quality=85, alpha_quality=100)
+
+
+def css_ends(css, inside):
+    """CSS 底图按 sRGB 普通叠在白色、纯黑上,和线性光的结果比,商品区内的平均差和 99% 分位(0–255)。
+    一个透明度管不了三个通道各自的差,背后颜色带色的边缘、发丝处会差得多一些,只占极少数像素"""
+    a, rgb = css[..., 3:], css[..., :3]
+    inside = inside[..., None].repeat(3, axis=2)
+    diffs = [np.abs(over - target)[inside] * 255 for over, target in ((1 - a + rgb * a, on_white), (rgb * a, on_black))]
+    return [(float(d.mean()), float(np.percentile(d, 99))) for d in diffs]
+
+
+def save_css(css):
+    """存成 webp,返回读回来的样子"""
+    Image.fromarray(np.round(css * 255).astype(np.uint8), 'RGBA').save(OUT / 'base-css.webp', quality=85, alpha_quality=100)
+    return np.asarray(Image.open(OUT / 'base-css.webp').convert('RGBA')).astype(np.float32) / 255
+
+
+spread = on_white - on_black   # 每个通道要的 1 − 透明度
+css_alpha = np.clip(1 - spread.mean(axis=2, keepdims=True), 1 / 255, 1)
+css_split = not all(mean <= CSS_MEAN and p99 <= CSS_P99
+                    for mean, p99 in css_ends(save_css(np.dstack([np.clip(on_black / css_alpha, 0, 1), css_alpha])), coverage > 0))
+if css_split:
+    # 边缘带色多的(挂绳、滑板)三个通道要的透明度差得远,黑底照原样、差全落在白底上会超出校验。
+    # 改取三个通道的中点作透明度,白底多出的差一半挪到黑底,两边各差至多三个通道之差的四分之一
+    css_alpha = np.clip(1 - (spread.max(axis=2, keepdims=True) + spread.min(axis=2, keepdims=True)) / 2, 1 / 255, 1)
+    save_css(np.dstack([np.clip((on_black - (1 - css_alpha - spread) / 2) / css_alpha, 0, 1), css_alpha]))
+    print('base-css: 白底、黑底的差各留一半')
 
 # ---- 4. 流向图:每件商品两张,R / G = x / y 方向的位移,1/4 尺寸
 # - 大曲面(固定):按 MoGe-2 的 3D 坐标,设计稿像贴在曲面上,侧面压缩、近处略放大;
@@ -891,7 +916,8 @@ template = {
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
                  'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE),
-                 'surfaceFit': fits, 'surfaceKeep': keeps, 'surfaceKeepMin': SURFACE_KEEP_MIN, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE},
+                 'surfaceFit': fits, 'surfaceKeep': keeps, 'surfaceKeepMin': SURFACE_KEEP_MIN, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE,
+                 'baseCssSplit': css_split},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
@@ -948,15 +974,6 @@ def drag_never_back(surface, fold, printable):
     return True
 
 
-def css_ends(css):
-    """CSS 底图按 sRGB 普通叠在白色、纯黑上,和线性光的结果比,商品区内的平均差和 99% 分位(0–255)。
-    一个透明度管不了三个通道各自的差,背后颜色带色的边缘、发丝处会差得多一些,只占极少数像素"""
-    a, rgb = css[..., 3:], css[..., :3]
-    inside = union[..., None].repeat(3, axis=2)
-    diffs = [np.abs(over - target)[inside] * 255 for over, target in ((1 - a + rgb * a, on_white), (rgb * a, on_black))]
-    return [(float(d.mean()), float(np.percentile(d, 99))) for d in diffs]
-
-
 def within_stretch(surface, fold, printable):
     """Warping 0–100% 时可印区内(设计稿只画在这里)各方向每像素前进量超出范围的面积不到 STRETCH_OUTLIER"""
     inside = printable > 0.5
@@ -997,7 +1014,7 @@ checks = {
     'base matches formula (≤ 2/255)': bool(np.abs(base_out[..., 3] - alpha).max() <= 2 / 255 + 1e-6),
     # 防换算写错;webp 有损压缩(质量 85)和边缘本身就会差几个色阶,明暗倍数大的商品平均差到 1 以上,
     # 边缘带色多的(挂绳、酒瓶、滑板)99% 分位到 13–14,公式错了会差几十
-    'base-css matches on white / black (mean ≤ 2, 99% ≤ 14 of 255)': all(mean <= 2 and p99 <= 14 for mean, p99 in css_ends(css_out)),
+    f'base-css matches on white / black (mean ≤ {CSS_MEAN}, 99% ≤ {CSS_P99} of 255)': all(mean <= CSS_MEAN and p99 <= CSS_P99 for mean, p99 in css_ends(css_out, union)),
     'base-css sizes equal': css_out.shape == base_out.shape,
     'design centre dragged outward never runs back inside print': all(drag_never_back(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
@@ -1018,6 +1035,6 @@ for index, item in enumerate(spec['products']):
         rgba = np.asarray(Image.open(config.ROOT / ref['file']).convert('RGBA')).astype(np.float32) / 255
         theirs = rgba[..., 3] < 1 if ref.get('transparent') else luma(rgba[..., :3]) * rgba[..., 3] > 0.5
         print(f"IoU vs reference {kind}-{index + 1}: {((ours > 0.5) & theirs).sum() / ((ours > 0.5) | theirs).sum():.3f}")
-print('base-css vs linear on white / black (mean, 99%, of 255): ' + ' / '.join(f'{m:.2f}, {q:.1f}' for m, q in css_ends(css_out)))
+print('base-css vs linear on white / black (mean, 99%, of 255): ' + ' / '.join(f'{m:.2f}, {q:.1f}' for m, q in css_ends(css_out, union)))
 for f in sorted(OUT.iterdir()):
     print(f'{f.stat().st_size / 1024:8.1f} KB  {f.name}')
