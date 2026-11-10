@@ -260,24 +260,26 @@ def sync(ledger):
     for key in ready:
         test, prod = ledger.wall[key], ledger.prod.get(key)
         issues = sorted(table[key])
+        if prod is None:
+            # 正式库还没有的:管正式库的人没见过旧样子,修的问题对他没有意义,写小品类(新出现在哪一页)
+            new += 1
+            rows.append(f"| {key} | 没有 | v{test['version']} | 新模板,小品类 {test['category'] or '无'} | — |")
+            continue
         by_issue.update(issues)
         changed = ['图片'] if any(ledger.issues[i]['step'] != 'logo.py' for i in issues) else []
-        if prod is None:
-            new += 1
-        else:
-            changed += [label for field, label in ROW_FIELDS.items() if test[field] != prod[field]]
-            if test['category'] != prod['category']:
-                changed.append(f"小品类 {prod['category'] or '无'} → {test['category'] or '无'}")
-        before = f"v{prod['version']}" if prod else '没有'
-        rows.append(f"| {key} | {before} | v{test['version']} | "
+        changed += [label for field, label in ROW_FIELDS.items() if test[field] != prod[field]]
+        if test['category'] != prod['category']:
+            changed.append(f"小品类 {prod['category'] or '无'} → {test['category'] or '无'}")
+        rows.append(f"| {key} | v{prod['version']} | v{test['version']} | "
                     f"{'、'.join(changed)} | {'、'.join(ledger.issues[i]['title'] for i in issues)} |")
     (PLAN / 'sync.txt').write_text(''.join(f'{key}\n' for key in ready))
     path = PLAN / f'sync-{time.strftime("%Y%m%d")}.md'
     path.write_text('\n'.join([
         '# Mockup 模板同步到正式库',
         '',
-        f"{time.strftime('%Y-%m-%d')} · {len(ready)} 个模板在测试库更新到了新版本,正式库还是旧版本,要同步过去"
-        + (f';其中 {new} 个正式库还没有,同步后会新出现在模板墙上。' if new else '。'),
+        f"{time.strftime('%Y-%m-%d')} · {len(ready)} 个模板要从测试库同步到正式库:"
+        f"{len(ready) - new} 个在测试库更新到了新版本,正式库还是旧版本"
+        + (f';{new} 个正式库还没有,同步后会新出现在模板墙上。' if new else '。'),
         '',
         '模板文件两边共用 OSS 同一个 bucket,新版本已经发在 `mockup-templates/<id>/v<版本>/` 下,不用再传。'
         '要改的只有正式库 `template` 表里这几行(按 slug)。',
@@ -294,10 +296,11 @@ def sync(ledger):
         '```',
         '',
         '- 只检查的报告里,每个模板的版本应和下表「测试库」一列一致;`--apply` 时文件都记为 unchanged,只写库。',
-        '- 写的是这几行的显示名、封面、宽高比、小品类、标签和 `mockup_materials`;发布时间不变,模板在墙上的位置不动。',
-        '- 不用脚本的话,按 slug 从测试库的 `template` 表把这几列复制过来也一样。',
+        '- 写的是这几行的显示名、封面、宽高比、小品类、标签和 `mockup_materials`;正式库已有的行发布时间不变,模板在墙上的位置不动'
+        + (',新模板的发布时间是写库的时间。' if new else '。'),
+        '- 不用脚本的话,按 slug 从测试库的 `template` 表把这几列复制过来也一样' + (',新模板整行复制。' if new else '。'),
         '',
-        '## 按问题',
+        '## 更新的模板按问题' if new else '## 按问题',
         '',
         '| 问题 | 模板数 |',
         '| --- | --- |',
