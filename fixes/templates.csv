@@ -236,7 +236,6 @@ printful-021,cylinder-flat,2026-11-09,
 printful-024,cylinder-flat,2026-11-09,
 printful-028,cylinder-flat,2026-11-09,
 printful-033,cylinder-flat,2026-11-09,
-shopify-002,cylinder-flat,2026-11-09,
 shopify-005,cylinder-flat,2026-11-09,
 shopify-009,cylinder-flat,2026-11-09,
 shopify-018,cylinder-flat,2026-11-09,
@@ -662,13 +661,11 @@ sticker-circle-sticker-012,flat-bow,2026-11-09,区域 1 线弯了框的 3.7%
 sticker-circle-sticker-015,flat-bow,2026-11-09,区域 1 线弯了框的 2.1%
 sticker-circle-sticker-016,flat-bow,2026-11-09,区域 1 线弯了框的 2.4%
 sticker-circle-sticker-020,flat-bow,2026-11-09,区域 1 线弯了框的 2.7%
-sticker-circle-sticker-024,flat-bow,2026-11-09,区域 1 线弯了框的 2.5%
 sticker-circle-sticker-026,flat-bow,2026-11-09,区域 1 线弯了框的 2.2%
 sticker-circle-sticker-030,flat-bow,2026-11-09,区域 1 线弯了框的 3.5%
 sticker-circle-sticker-035,flat-bow,2026-11-09,区域 1 线弯了框的 2.1%
 sticker-circle-sticker-039,flat-bow,2026-11-09,区域 1 线弯了框的 2.5%
 sticker-laptop-sticker-009,flat-bow,2026-11-09,区域 1 线弯了框的 6.7%
-sticker-laptop-sticker-015,flat-bow,2026-11-09,区域 1 线弯了框的 9.6%
 sticker-laptop-sticker-026,flat-bow,2026-11-09,区域 1 线弯了框的 2.0%
 sticker-laptop-sticker-032,flat-bow,2026-11-09,区域 1 线弯了框的 3.5%
 sticker-laptop-sticker-038,flat-bow,2026-11-09,区域 1 线弯了框的 7.3%
@@ -1301,7 +1298,6 @@ soda-can-003,white-gray,2026-11-09,区域 1 白色中位亮度 0.477
 soda-can-020,white-gray,2026-11-09,区域 1 白色中位亮度 0.490
 soda-can-031,white-gray,2026-11-09,区域 1 白色中位亮度 0.488
 soda-can-039,white-gray,2026-11-09,区域 1 白色中位亮度 0.679
-sticker-blank-sticker-032,white-gray,2026-11-09,区域 1 白色中位亮度 0.627
 sticker-bumper-sticker-001,white-gray,2026-11-09,区域 1 白色中位亮度 0.723
 supplement-bottle-007,white-gray,2026-11-09,区域 1 白色中位亮度 0.582
 supplement-bottle-029,white-gray,2026-11-09,区域 1 白色中位亮度 0.349
@@ -1381,7 +1377,7 @@ greeting-card-postcard-032,multi-item,2026-11-09,"立着的卡和平放的卡,78
 id-card-name-badge-034,multi-item,2026-11-09,"胸前一张、挂绳上一张,76% / 24%"
 playing-cards-006,multi-item,2026-11-09,"桌上散开的四张,最大一块 27%"
 playing-cards-008,multi-item,2026-11-09,"两只手各拿一张,54% / 46%"
-playing-cards-010,multi-item,2026-11-09,"牌堆顶上一张和左下角的牌,66% / 34%"
+playing-cards-010,multi-item,2026-11-09,"牌堆顶上一张和左下角的牌,66% / 34%;只印牌堆顶上一张"
 playing-cards-011,multi-item,2026-11-09,"一摞和一张,50% / 50%"
 playing-cards-012,multi-item,2026-11-09,"两只手各拿一张,50% / 50%"
 playing-cards-013,multi-item,2026-11-09,"排成一排的七张,最大一块 19%"
@@ -1391,11 +1387,11 @@ playing-cards-018,multi-item,2026-11-09,"两只手各拿一张,52% / 48%"
 playing-cards-027,multi-item,2026-11-09,"一张和一摞,53% / 47%"
 playing-cards-037,multi-item,2026-11-09,"架子上并排两张,52% / 48%"
 playing-cards-039,multi-item,2026-11-09,"两只手各拿一摞,50% / 50%"
-playing-cards-040,multi-item,2026-11-09,"牌盒上一张和右边的牌,58% / 42%"
+playing-cards-040,multi-item,2026-11-09,"牌盒上一张和右边的牌,58% / 42%;只印牌盒上一张"
 poster-wall-poster-002,multi-item,2026-11-09,"墙上三张海报,49% / 26% / 25%"
 greeting-card-postcard-012,multi-item,2026-11-10,"后面一张在写字、前面一张平放;前面那张占可印区八成以上,最大一块的检查没标出来,拖动校验没过"
 greeting-card-postcard-012,drag-back,2026-11-09,"可印区里回跳 227 px,72 个方向里 16 个"
-halloween-015,drag-back,2026-11-09,"毯子,可印区里回跳 130 px"
+halloween-015,drag-back,2026-11-09,"印在了格子毯上,可印区里回跳 130 px;改成印在珐琅杯上"
 shorts-016,drag-back,2026-11-09,"可印区里回跳 117 px,72 个方向里 15 个;测试库 v2 带着这个问题发布"
 poster-street-poster-012,drag-back,2026-11-09,可印区里回跳 85 px
 greeting-card-postcard-032,drag-back,2026-11-09,可印区里回跳 64 px
