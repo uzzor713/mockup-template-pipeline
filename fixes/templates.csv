@@ -3,8 +3,6 @@ easter-033,bookmark,2026-11-09,"书签压在书封上,大概率同 etsy-016"
 etsy-016,bookmark,2026-11-09,"选中了下面的书封,书签当成遮挡物"
 candle-018,box-face,2026-11-09,可印区带上了杯口和内壁
 square-box-008,box-face,2026-11-09,盒身正面、盒内后壁、盒盖并成一块可印区
-06-luma-pump-bottle,cylinder-flat,2026-11-09,
-amazon-001,cylinder-flat,2026-11-09,
 amazon-003,cylinder-flat,2026-11-09,
 amazon-008,cylinder-flat,2026-11-09,
 amazon-015,cylinder-flat,2026-11-09,
@@ -924,10 +922,6 @@ magazine-spread-037,spread,2026-11-09,
 magazine-spread-038,spread,2026-11-09,
 magazine-spread-039,spread,2026-11-09,
 magazine-spread-040,spread,2026-11-09,
-01-slow-days-tee,white-gray,2026-11-09,区域 1 白色中位亮度 0.747
-07-local,white-gray,2026-11-09,区域 1 白色中位亮度 0.741
-07-north-coffee-pouch,white-gray,2026-11-09,区域 1 白色中位亮度 0.745
-07-replicate,white-gray,2026-11-09,区域 1 白色中位亮度 0.740
 album-cover-002,white-gray,2026-11-09,区域 1 白色中位亮度 0.716
 amazon-003,white-gray,2026-11-09,区域 1 白色中位亮度 0.447
 amazon-031,white-gray,2026-11-09,区域 1 白色中位亮度 0.466
@@ -1113,7 +1107,6 @@ cd-sleeve-003,white-gray,2026-11-09,区域 1 白色中位亮度 0.728
 christmas-003,white-gray,2026-11-09,区域 1 白色中位亮度 0.615
 christmas-007,white-gray,2026-11-09,区域 1 白色中位亮度 0.719
 coffee-bag-015,white-gray,2026-11-09,区域 1 白色中位亮度 0.728
-coffee-bag-07-north-coffee-pouch,white-gray,2026-11-09,区域 1 白色中位亮度 0.737
 coffee-pouch-001,white-gray,2026-11-09,区域 1 白色中位亮度 0.648
 coffee-pouch-006,white-gray,2026-11-09,区域 1 白色中位亮度 0.614
 coffee-pouch-028,white-gray,2026-11-09,区域 1 白色中位亮度 0.700
@@ -1277,8 +1270,6 @@ poster-canvas-poster-014,white-gray,2026-11-09,区域 1 白色中位亮度 0.736
 poster-canvas-poster-026,white-gray,2026-11-09,区域 1 白色中位亮度 0.679
 poster-movie-poster-003,white-gray,2026-11-09,区域 1 白色中位亮度 0.744
 poster-movie-poster-009,white-gray,2026-11-09,区域 1 白色中位亮度 0.723
-poster-movie-poster-013,white-gray,2026-11-09,区域 1 白色中位亮度 0.486
-poster-movie-poster-023,white-gray,2026-11-09,区域 1 白色中位亮度 0.341
 printful-003,white-gray,2026-11-09,区域 1 白色中位亮度 0.518
 printful-021,white-gray,2026-11-09,区域 1 白色中位亮度 0.615
 printful-023,white-gray,2026-11-09,区域 1 白色中位亮度 0.649
@@ -1402,6 +1393,7 @@ playing-cards-037,multi-item,2026-11-09,"架子上并排两张,52% / 48%"
 playing-cards-039,multi-item,2026-11-09,"两只手各拿一摞,50% / 50%"
 playing-cards-040,multi-item,2026-11-09,"牌盒上一张和右边的牌,58% / 42%"
 poster-wall-poster-002,multi-item,2026-11-09,"墙上三张海报,49% / 26% / 25%"
+greeting-card-postcard-012,multi-item,2026-11-10,"后面一张在写字、前面一张平放;前面那张占可印区八成以上,最大一块的检查没标出来,拖动校验没过"
 greeting-card-postcard-012,drag-back,2026-11-09,"可印区里回跳 227 px,72 个方向里 16 个"
 halloween-015,drag-back,2026-11-09,"毯子,可印区里回跳 130 px"
 shorts-016,drag-back,2026-11-09,"可印区里回跳 117 px,72 个方向里 15 个;测试库 v2 带着这个问题发布"
