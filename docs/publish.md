@@ -102,7 +102,7 @@ pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templ
 - 列 OSS 收件箱(约 1 分钟),按这个 id 在收件箱里现在的目录放:输出目录下的相对路径和收件箱里一样,只放 `template.json` 和它列的文件,展示图、白模图、`manifest.csv` 不动。
 - 收件箱里还没有的列出来,按新模板不带 `--update` 整理;同一个 id 在收件箱里有两个目录的也列出来,发布脚本会两份都挡掉,先删掉多的一份。
 - 小品类和测试库里不一样的列出来(预设改过小品类时会有):发布后测试库跟着改,同步正式库时也会改。
-- 最后打出两条命令:整个输出目录传到收件箱根目录,盖在原处;再用发布脚本 `--apply --batch mockup-template-inbox/ --only` 发这几个。前缀给收件箱根目录,哪个日期目录里的都找得到;不加 `--files-only`,测试库里的那一行和文件一起更新。
+- 最后打出两条命令:整个输出目录传到收件箱根目录,盖在原处(`ossutil cp -r -f ... < /dev/null`:不加 `-f` 时同名文件逐个问是否覆盖,并从标准输入读回答,写在脚本里会把后面的命令当成回答读掉,文件跳过不传);再用发布脚本 `--apply --batch mockup-template-inbox/ --only` 发这几个。前缀给收件箱根目录,哪个日期目录里的都找得到;不加 `--files-only`,测试库里的那一行和文件一起更新。
 
 [修复进度表](fixes.md)的 `fixes.py publish` 按批次挑出该发布的,打出这条命令。
 

@@ -125,7 +125,8 @@ def update(specs):
     if recategorized:
         print(f'小品类和测试库里不一样的 {len(recategorized)} 个,发布后测试库跟着改,同步正式库时也会改:\n  ' + '\n  '.join(recategorized))
     if done:
-        print(f'传:ossutil cp -r {args.out}/ {INBOX} -j 16')
+        # 盖在原处时 ossutil 逐个问是否覆盖、从标准输入读回答,-f 直接覆盖,< /dev/null 防止它吃掉脚本里后面的命令
+        print(f'传:ossutil cp -r -f {args.out}/ {INBOX} -j 16 < /dev/null')
         # 收件箱根目录作前缀,哪个日期目录里的都找得到;不加 --files-only,文件和测试库的那一行一起更新
         print(f'发布(vorla/apps/web):pnpm --filter @vorla/web exec tsx --conditions=react-server scripts/mockup-templates-publish.ts '
               f'--apply --batch {INBOX.removeprefix("oss://vorla-assets/")} --only {",".join(done)}')
