@@ -12,7 +12,9 @@ SAM 3 走 Replicate,会把源图上传过去;给了 remote 时抠图也走 Repli
   文字提示分出几个实例时(如书架上的书、背景里路人的包),交给 Gemini 看编号叠图挑出要展示的那几个;
   可选的 alternatives 是备选说法,text 一个实例都分不出时按顺序换着试;所有说法在 SAM 3 默认阈值下都分不出时,
   依次放低阈值(THRESHOLDS)再把各个说法试一遍,低阈值下哪怕只分出一个实例也交给 Gemini 确认;
-  可选的 instance 只取挑剩的实例里从左往右第几个(从 0 数),同一张图里的两件同类商品(正反两面、两只杯子)各成一件。
+  可选的 instance 只取挑剩的实例里从左往右第几个(从 0 数),同一张图里的两件同类商品(正反两面、两只杯子)各成一件;
+  挑出的比要的多时只数面积最大的那几个。
+  可选的 largest 只取挑剩的实例里面积最大的一个,几件同类商品分开摆、只印一件时用(散开的几张牌、墙上几张海报)。
   上层商品的蒙版吞了下层的(同色的整套运动服分成一个实例)时,从上层减掉下层。
 """
 import io, json, re, zipfile
@@ -216,7 +218,7 @@ def prompted(models, photo, prompts):
 def product_mask(models, photo, item, what, found, need=1):
     """一件商品的蒙版。text 分出几个实例时由 Gemini 挑出要展示的那几个;挑出的不到 need 个(两件同类商品的预设要 2 个)、或 Gemini 说一个都不是时,
     按顺序换 alternatives 里的说法,用第一个挑得出的;所有说法都挑不出时放低阈值再试一遍,低阈值下只分出一个实例
-    也要 Gemini 确认(低阈值容易分到别的东西上);写了 instance 的只取挑剩的里从左往右第几个;
+    也要 Gemini 确认(低阈值容易分到别的东西上);写了 instance 的只取挑剩的里面积最大的几个中从左往右第几个,写了 largest 的只取面积最大的一个;
     found 存每个提示词挑好的实例,同一张图里两件同类商品只分、只挑一次"""
     if 'text' not in item:
         return prompted(models, photo, [item])
@@ -235,12 +237,18 @@ def product_mask(models, photo, item, what, found, need=1):
                 if text != item['text'] or threshold != THRESHOLDS[0]:
                     print(f"「{item['text']}」在阈值 {THRESHOLDS[0]} 分不出,用「{text}」在阈值 {threshold} 分出")
                 break
+        # 按从左数第几个取时只数面积最大的 need 个:压在手下露出一角的纸边、旁边散着的几张牌也会被挑出来,
+        # 按左右数会把要的那件挤到后面
+        if 'instance' in item and len(masks) > need:
+            masks = sorted(masks, key=np.count_nonzero)[-need:]
         found[item['text']] = sorted(masks, key=lambda m: np.nonzero(m)[1].mean())
     masks = found[item['text']]
     if 'instance' in item:
         if item['instance'] >= len(masks):
             raise ValueError(f"「{item['text']}」只挑出 {len(masks)} 个实例,没有从左数第 {item['instance'] + 1} 个")
         masks = [masks[item['instance']]]
+    if item.get('largest') and masks:
+        masks = [max(masks, key=np.count_nonzero)]
     return np.logical_or.reduce(masks) if masks else np.zeros(photo.shape[:2], bool)
 
 

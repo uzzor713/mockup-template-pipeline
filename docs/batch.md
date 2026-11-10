@@ -69,16 +69,19 @@ poster-017,其他,画框也被改色,,,,,,1
 
 | 列 | 内容 |
 | --- | --- |
-| `product` | 商品提示词 * |
-| `parts` | 不可印部件提示词,`;` 隔开,写 `-` 表示没有 * |
+| `product` | 商品提示词 \*\* |
+| `parts` | 不可印部件提示词,`;` 隔开,写 `-` 表示没有 \*\* |
 | `occluders`、`crop`、`preset` | 同清单 CSV 的列 |
 | `logo` | 默认 Logo 放法,填 `scripts/logo.py` 里 `PLACES` 的名字:`left-chest` 左胸、`chest` 胸口正中。Gemini 判断前襟判错时用 * |
 | `solid` | 填 `1`:蒙版里的洞全补上。SAM 在画布、盒子、唱片这类空白面上漏掉大块时用 |
 | `hull` | 填 `1`:蒙版换成最大一块的凸包。轮廓是凸的、缺口开在轮廓上补不成洞时用(唱片被纸套切掉一块、立着的台历) |
+| `largest` | 填 `1`:分出的实例里只取面积最大的一个。几件同类商品分开摆、只印一件时用(桌上散开的几张牌、墙上几张海报) |
 | `skip` | 填 `1`:不跑,也不进抽查页,`report.csv` 里记为 `skip` |
 | `issue`、`note` | 抽查页导出的问题类型和备注,只给人看 |
 
 \* 只能用在一件商品的预设上。
+
+\*\* 只能用在一件商品、或几件商品说法相同(左右两件)的预设上,几件一起改。
 
 > 每次运行都按源图和预设重新生成配置。改过的源图没带上它的例外清单,就会回到预设的设置、重算一遍。所以例外清单要一直留着,放进一个文件夹,每次都 `--overrides 那个文件夹`。
 
@@ -114,6 +117,7 @@ poster-017,其他,画框也被改色,,,,,,1
 | `can-pair`、`coaster-pair`、`frame-pair`、`cap-pair`、`tube-pair` | 两罐、两个杯垫、两幅挂画、两顶帽子、两个纸筒并排,左右各一件 | 同单件的预设 |
 | `canvas-pair` | 两块无框画布挂墙(挂画页面),说法同 `canvas`,边上不往里收 | `frame` |
 | `open-book`、`magazine-spread` | 摊开的书、杂志(magazine-ad、magazine-spread 页面),左右两页各一个区域,说法 page | `book`、`magazine` |
+| `business-card-pair`、`greeting-card-pair`、`id-card-pair`、`playing-cards-pair` | 两张名片、贺卡、证件卡、扑克牌分开摆(并排、两只手各拿一张、一摞和一张),左右各一个区域。三张以上分开摆的用单件的预设,例外清单写 `largest`,只印最大的一张 | 同单件的预设 |
 | `cd-case` | CD 盒和封面卡(cd-case、cd-cover 页面) | `cd` |
 | `cd-sleeve` | CD 纸套 | `cd` |
 | `zip-hoodie` | 敞开的拉链卫衣,可印区按左右两片前襟连着算 | `hoodie` |

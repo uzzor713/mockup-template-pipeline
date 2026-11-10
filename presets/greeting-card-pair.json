@@ -1,0 +1,32 @@
+{
+  "category": "greeting-card",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "card-left",
+      "key": "left",
+      "name": "Left Card",
+      "text": "card",
+      "instance": 0,
+      "surface": "plane",
+      "logo": {
+        "fill": true
+      }
+    },
+    {
+      "id": "card-right",
+      "key": "right",
+      "name": "Right Card",
+      "text": "card",
+      "instance": 1,
+      "surface": "plane",
+      "logo": {
+        "fill": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "category": "playing-cards",
+  "occluders": [
+    {
+      "text": "hand"
+    }
+  ],
+  "products": [
+    {
+      "id": "card-left",
+      "key": "left",
+      "name": "Left Card",
+      "text": "playing card",
+      "instance": 0,
+      "surface": "plane",
+      "alternatives": [
+        "card"
+      ],
+      "logo": {
+        "fill": true
+      }
+    },
+    {
+      "id": "card-right",
+      "key": "right",
+      "name": "Right Card",
+      "text": "playing card",
+      "instance": 1,
+      "surface": "plane",
+      "alternatives": [
+        "card"
+      ],
+      "logo": {
+        "fill": true
+      }
+    }
+  ]
+}
