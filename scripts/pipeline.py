@@ -56,6 +56,7 @@ SLOPE_GAIN_MAX = 1.4e-3  # 坡度系数(位移 / 宽度 ÷ 起伏对(坐标 / �
 SURFACE_RATIO = 0.02  # 大曲面:度量的平滑半径 / 宽度
 SURFACE_RANGE = (0.7, 2.0)  # 大曲面每像素前进量的范围:近处至多放大到 1 / 0.7,侧面至多压缩 2 倍
 SURFACE_INSET = 4  # 商品边上几个像素的 3D 坐标混着背景,往里收这么多再算
+SURFACE_KEEP_MIN = 0.3  # 大曲面层存成 8 位后超出校验范围时,位移至多收到这么多份
 PLANE_INSET = 7  # surface: plane:可印区往里收这么多像素再拟合平面
 PLANE_BEND = 0.05  # surface: plane:可印区 3D 点离拟合平面的距离 90% 分位不到可印区边长(面积开方)的这么多才按平面贴。平的约 1–2%;贴在罐子、杯子上的圆贴纸约 6–12%,三折页、拿在手里的报纸约 5–15%
 CYL_WIDE = 0.85  # surface: cylinder:先拿宽度到最宽(90% 分位)这么多的最长一段拟合左右轮廓,瓶颈、瓶肩、圆底不算
@@ -219,11 +220,18 @@ def surface_flow(points, focal, product, small_size, sigma):
     return flow[iy, ix]
 
 
-def stored_beyond(flow, guard, inside):
-    """位移(每格 DISP_SCALE 像素)按 save_flows 存成 8 位、按编辑页双线性放大回模板尺寸后,
-    inside 里各方向每像素前进量低于、高于 STRETCH_RANGE 的面积占比"""
+def stored_limit(flow, guard):
+    """save_flows 存这张时 0 / 255 对应 ∓多少像素:先减去守住范围的格子里各方向最大、最小位移的中点,再取最大位移"""
     flow = flow - (flow[guard].max(axis=0) + flow[guard].min(axis=0)) / 2
-    limit = max(float(np.ceil(np.abs(flow[guard]).max() * 10)) / 10, 0.1)
+    return max(float(np.ceil(np.abs(flow[guard]).max() * 10)) / 10, 0.1)
+
+
+def stored_beyond(flow, guard, inside, limit=None):
+    """位移(每格 DISP_SCALE 像素)按 save_flows 存成 8 位、按编辑页双线性放大回模板尺寸后,
+    inside 里各方向每像素前进量低于、高于 STRETCH_RANGE 的面积占比。
+    limit:存图时的范围,几件商品存在一张图里时按位移最大的那件定;不给就按这张自己的"""
+    limit = limit or stored_limit(flow, guard)
+    flow = flow - (flow[guard].max(axis=0) + flow[guard].min(axis=0)) / 2
     stored = np.round((0.5 + np.clip(flow, -limit, limit) / (2 * limit)) * 255) / 255
     full = cv2.resize(((stored - 0.5) * 2 * limit).astype(np.float32), (W, H), interpolation=cv2.INTER_LINEAR)
     smin, smax = stretch_range(*jacobian(full[..., 0], full[..., 1], 1))
@@ -781,10 +789,37 @@ for item, product, printable, parts, blocked in zip(spec['products'], carriers, 
         print(f"{item['id']} 大曲面层:{note}")
     surfaces.append(surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) if shaped is None else shaped)
     fits.append('curved' if shaped is None else kind)
+# 存图时按这些格子定 8 位的范围:沾到商品的格子再往外两格,双线性放大时商品边上的像素会插到外面一格
+guards = [cv2.dilate((cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0).astype(np.uint8),
+                     np.ones((5, 5), np.uint8)).astype(bool) for product in carriers]
+# 和平面、圆柱一样,可印区里存成 8 位后超出校验范围的面积至多 STRETCH_OUTLIER 的一半(另一半留给褶皱层)。
+# 按曲面算的之前没量过:位移幅度 200px 以上的(摊开的书页、毯子、裤腿)一级就有 1.6px 以上,放大回来相邻格的前进量差到 0.4,
+# 压缩到 0.8 上下的地方就出现一圈圈不到 0.5 的细条纹。几件商品存在一张图里时范围按位移最大的那件定,
+# 平放、透视很陡的那张撑大了范围,立着的那张按自己的范围量是过的,存进去也会出条纹。
+# 超了就把大曲面层整体往不变形收,位移依次乘 0.9、0.8…至多收到 SURFACE_KEEP_MIN:按自己的范围也超的收自己,
+# 只是范围被撑大的收位移最大的那件。侧面压缩、近处放大、透视跟着减弱,一级对应的位移也跟着变小
+keeps = [1.0] * len(surfaces)
+measured = [index for index, printable in enumerate(prints) if (printable > 0.5).any()]
+shaped_surfaces = list(surfaces)
+while True:
+    limits = [stored_limit(flow, guard) for flow, guard in zip(surfaces, guards)]
+    beyond = {index: sum(stored_beyond(surfaces[index], guards[index], prints[index] > 0.5, max(limits))) for index in measured}
+    weaken = {index if sum(stored_beyond(surfaces[index], guards[index], prints[index] > 0.5)) > STRETCH_OUTLIER / 2 else int(np.argmax(limits))
+              for index in measured if beyond[index] > STRETCH_OUTLIER / 2}
+    weaken = [index for index in weaken if keeps[index] > SURFACE_KEEP_MIN + 1e-6]
+    if not weaken:
+        break
+    for index in weaken:
+        keeps[index] = round(keeps[index] - 0.1, 1)
+        surfaces[index] = shaped_surfaces[index] * keeps[index]
+for index, keep in enumerate(keeps):
+    if keep < 1:
+        still = f',可印区还有 {beyond[index]:.1%} 超出' if beyond.get(index, 0) > STRETCH_OUTLIER / 2 else ''
+        print(f"{spec['products'][index]['id']} 大曲面层:存成 8 位后超出校验范围,位移收到 {keep:.0%}{still}")
 # 大曲面的 8 位量化让相邻格的位移差至多多出一级,两层叠起来减弱时再扣掉这部分的 SLACK_SHARE:
 # 整级只在两格取整刚好相反时才出现,扣满一级时大曲面层 200px 以上的商品上下限只剩约 1.0–1.9,褶皱几乎全被减掉
 slack = SLACK_SHARE * 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
-folds, guards, gains = [], [], []
+folds, gains = [], []
 for index, (product, printable) in enumerate(zip(carriers, prints)):
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
@@ -794,8 +829,7 @@ for index, (product, printable) in enumerate(zip(carriers, prints)):
     height = cv2.resize(blurred[iy, ix], small_size, interpolation=cv2.INTER_AREA)
     gy, gx = np.gradient(cv2.GaussianBlur(height, (0, 0), SLOPE_BLUR))
     # 沾到商品的格子再往外两格都守住范围:双线性放大时商品边上的像素会插到外面一格
-    touched = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0
-    guarded = cv2.dilate(touched.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    guarded = guards[index]
     cells = cv2.resize(printable if (printable > 0.5).any() else product, small_size, interpolation=cv2.INTER_AREA) > 0.5
     gain = min(SLOPE_GAIN_MAX, float(np.percentile(max_gain(gx, gy, low, high)[cells], CAP_AREA * 100)) / to_px)
     gains.append(gain)
@@ -804,7 +838,6 @@ for index, (product, printable) in enumerate(zip(carriers, prints)):
     # 守住范围的格子原样留着(商品边上的像素插值要用到它们),从它们往外铺
     surfaces[index] = extend_outside(surfaces[index], guarded)
     folds.append(extend_outside(np.dstack([ox, oy]).astype(np.float32), guarded))
-    guards.append(guarded)
 
 
 def save_flows(flows, prefix):
@@ -858,7 +891,7 @@ template = {
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
                  'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE),
-                 'surfaceFit': fits, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE},
+                 'surfaceFit': fits, 'surfaceKeep': keeps, 'surfaceKeepMin': SURFACE_KEEP_MIN, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))
 
