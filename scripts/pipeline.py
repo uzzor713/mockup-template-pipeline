@@ -67,6 +67,8 @@ SURFACE_KEEP_MIN = 0.3  # 大曲面层存成 8 位后超出校验范围时,位�
 CSS_MEAN, CSS_P99 = 2, 14  # base-css 叠在白色、纯黑上和线性光结果的差(0–255),商品区内平均、99% 分位的上限
 PLANE_INSET = 7  # surface: plane:可印区往里收这么多像素再拟合平面
 PLANE_BEND = 0.05  # surface: plane:可印区 3D 点离拟合平面的距离 90% 分位不到可印区边长(面积开方)的这么多才按平面贴。平的约 1–2%;贴在罐子、杯子上的圆贴纸约 6–12%,三折页、拿在手里的报纸约 5–15%
+PLANE_BOW = 0.005  # 校验时按平面贴的可印区里,屏幕上的直线段映到设计稿后离两端连线最远处占长度的中位数至多这么多:本机 321 个按平面贴的区域中位 0.09%、最大 0.36%(8 位量化的抖动),不记方向的 surface_flow 贴同样的平面 0.7–2.4%
+BOW_LINES = 200  # 上面这项量多少条线段
 CYL_WIDE = 0.85  # surface: cylinder:先拿宽度到最宽(90% 分位)这么多的最长一段拟合左右轮廓,瓶颈、瓶肩、圆底不算
 CYL_ROWS = 0.4  # surface: cylinder:左右轮廓挨着背景的行各至少占这么多、落在直线上的一段至少占可印区高度的这么多才按圆柱
 CYL_TILT = 25  # surface: cylinder:轴偏离竖直超过这么多度不按圆柱
@@ -652,12 +654,20 @@ def save_mask(coverage, name):
     Image.fromarray(rgba, 'RGBA').save(OUT / name, optimize=True)
 
 
+def free(*names):
+    """整幅的中间结果用完就放掉。一幅 20–60MB,三层分解 180MB,都留到最后时一个进程要占 3GB 多,同时能跑几个受内存限制。
+    只在一部分模板上才有的名字(深色、布料、不是圆柱的才算)没有就跳过"""
+    for name in names:
+        globals().pop(name, None)
+
+
 # ---- 1. 源图
 photo, source_alpha = config.photo(spec)
 H, W = photo.shape[:2]
 Image.fromarray(np.round(photo * 255).astype(np.uint8)).save(OUT / 'cover.webp', quality=85)
 # 源图里透明度不到 1 的像素不是原始照片(如从竞品底图还原的商品区),第 3 步换背景色时要用
 restored = source_alpha < 1
+free('source_alpha')
 
 # ---- 2. 分割(run_segment.py 的结果),商品由上层到下层
 read_alpha = lambda name: np.asarray(Image.open(WORK / name)).astype(np.float32) / 65535
@@ -688,6 +698,7 @@ blank = [item['id'] for item, printable in zip(spec['products'], prints) if not 
 if blank:
     raise SystemExit(f"可印区是空的:{', '.join(blank)}(分出的商品太小,或被部件、内缩扣光了)")
 coverage = np.minimum(sum(products), 1)
+free('segmented', 'alpha', 'above', 'above_bin', 'ix', 'iy', '_')
 
 # ---- 3. 底图
 # 编辑页在线性光下合成:结果 = 明暗倍数 × 商品颜色 × (1 − alpha) + 底图 × alpha。
@@ -728,6 +739,7 @@ for product in products:
         diffuse = light * WHITE_ALBEDO / max(float(np.percentile(light[solid], DARK_BRIGHT * 100)), 1e-4)
     sheen = luma(max(r, 0) * layers['residual']) * texture
     layered.append((product, solid, diffuse, sheen, texture, dark))
+free('layers', 'I', 'terms', 'weight', 'inside', 'lit', 'light')
 # 一张图里的几件商品是同一种料子(正背面、上衣和裤子、一对杯子),照片里一件迎光一件背光、深色各自抬亮后亮度也不同,
 # 选同一个颜色时会一深一浅:按实心部分 明暗 + 光泽 的中位数整体缩放到最亮的那件,起伏不变。
 # 缩放后每件的亮部不超过 WHITE_CAP:浅色、彩色商品的固有色估低时光照偏亮,迎光的那件被提亮时也会,选白色大片截成纯白
@@ -768,6 +780,7 @@ for index, ((product, solid, diffuse, sheen, texture, dark), own) in enumerate(z
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
     for total, layer in ((shade, diffuse), (gloss, sheen)):
         total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
+free('layered', 'solid', 'diffuse', 'sheen', 'texture', 'lit', 'softer', 'total', 'layer')
 shade, gloss = (np.where(coverage > 0, x / np.maximum(coverage, 1e-6), 0) for x in (shade, gloss))
 gloss = np.clip(gloss, 0, 1)
 shade, gloss = shade + (1 - GLOSS_KEEP) * gloss, GLOSS_KEEP * gloss
@@ -786,12 +799,14 @@ premultiplied = (1 - coverage)[..., None] * to_linear(background) + (coverage * 
 rgb = to_srgb(premultiplied / np.maximum(alpha, 1e-6)[..., None])
 base = np.dstack([rgb, alpha])
 Image.fromarray(np.round(base * 255).astype(np.uint8), 'RGBA').save(OUT / 'base.webp', quality=85, alpha_quality=100)
+free('photo', 'photo_linear', 'restored', 'dirty', 'behind', 'background', 'premultiplied', 'rgb', 'base', 'shade', 'gloss', '_')
 
 # 模板墙的 CSS 叠图用的底图:浏览器只能按 sRGB 值普通叠加,由落盘的 base 换算,选白色、纯黑时和线性光结果一致,中间颜色按 sRGB 插值
 # 整张不透明时 webp 不存透明度通道,读回来要补上
 shipped = np.asarray(Image.open(OUT / 'base.webp').convert('RGBA')).astype(np.float32) / 255
 on_white = to_srgb(shade_gain * (1 - shipped[..., 3:]) + to_linear(shipped[..., :3]) * shipped[..., 3:])
 on_black = to_srgb(to_linear(shipped[..., :3]) * shipped[..., 3:])
+free('shipped')
 
 
 def css_ends(css, inside):
@@ -819,12 +834,14 @@ if css_split:
     css_alpha = np.clip(1 - (spread.max(axis=2, keepdims=True) + spread.min(axis=2, keepdims=True)) / 2, 1 / 255, 1)
     save_css(np.dstack([np.clip((on_black - (1 - css_alpha - spread) / 2) / css_alpha, 0, 1), css_alpha]))
     print('base-css: 白底、黑底的差各留一半')
+free('spread', 'css_alpha', 'coverage')
 
 # ---- 4. 流向图:每件商品两张,R / G = x / y 方向的位移,1/4 尺寸
 # - 大曲面(固定):按 MoGe-2 的 3D 坐标,设计稿像贴在曲面上,侧面压缩、近处略放大;
 # - 褶皱(Warping 100% 时):起伏取法线的 z 分量(表面正对镜头的程度),位移沿它的坡度,褶皱横着就上下压缩、
 #   竖着就左右压缩,和照片的光线方向无关;系数按每件商品自己的褶皱定,Warping 0–100% 时两层合起来超限的地方
-#   局部减弱褶皱这层,深褶处不翻折。
+#   局部减弱褶皱这层,深褶处不翻折。配置写 surface: cylinder 的(罐、瓶、杯、蜡烛)是硬的,褶皱层不位移:
+#   法线 z 分量在它们身上的坡度是圆柱面本身转向侧面,大曲面层已经算过,再加一遍侧面多压、横线的弧被拉平。
 # 位移会沿曲面累积,渲染端减去设计稿中心处的位移,中心不动;设计稿中心可以拖出商品,商品外按 extend_outside 铺平。
 # 交界两侧的起伏不连续,每件商品单独一张、各自向外延伸,缩小和插值时才不混在一起
 facing = cv2.resize(read_layer('normals.png'), (W, H), interpolation=cv2.INTER_LINEAR)[..., 2] * 2 - 1
@@ -850,6 +867,7 @@ for item, product, printable, parts, blocked in zip(spec['products'], carriers, 
         print(f"{item['id']} 大曲面层:{note}")
     surfaces.append(surface_flow(points, focal, product, small_size, SURFACE_RATIO * W) if shaped is None else shaped)
     fits.append('curved' if shaped is None else kind)
+free('points', 'normals')
 # 存图时按这些格子定 8 位的范围:沾到商品的格子再往外两格,双线性放大时商品边上的像素会插到外面一格
 guards = [cv2.dilate((cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0).astype(np.uint8),
                      np.ones((5, 5), np.uint8)).astype(bool) for product in carriers]
@@ -881,7 +899,12 @@ for index, keep in enumerate(keeps):
 # 整级只在两格取整刚好相反时才出现,扣满一级时大曲面层 200px 以上的商品上下限只剩约 1.0–1.9,褶皱几乎全被减掉
 slack = SLACK_SHARE * 2 * max(np.abs(surface).max() for surface in surfaces) / 255 / DISP_SCALE
 folds, gains = [], []
-for index, (product, printable) in enumerate(zip(carriers, prints)):
+for index, (item, product, printable) in enumerate(zip(spec['products'], carriers, prints)):
+    if item.get('surface') == 'cylinder':
+        gains.append(0.0)
+        surfaces[index] = extend_outside(surfaces[index], guards[index])
+        folds.append(np.zeros((small_size[1], small_size[0], 2), np.float32))
+        continue
     inside = product > 0.5
     weight = cv2.GaussianBlur(inside.astype(np.float32), (0, 0), sigma)
     blurred = cv2.GaussianBlur(facing * inside, (0, 0), sigma) / np.maximum(weight, 1e-6)
@@ -899,14 +922,15 @@ for index, (product, printable) in enumerate(zip(carriers, prints)):
     # 守住范围的格子原样留着(商品边上的像素插值要用到它们),从它们往外铺
     surfaces[index] = extend_outside(surfaces[index], guarded)
     folds.append(extend_outside(np.dstack([ox, oy]).astype(np.float32), guarded))
+free('facing', 'carriers', 'weight', 'blurred', 'inside', 'ix', 'iy', '_')
 
 
 def save_flows(flows, prefix):
     """通道值 0 / 255 对应 ∓range 像素,按守住范围的格子里的最大位移定,8 位精度用满;更外面的格子用不到,截掉。
     每张先整体减去守住范围的格子里各方向最大、最小位移的中点:渲染端减去设计稿中心处的位移,整体平移不改变结果,
-    范围小了每一级对应的位移就小,直线上的台阶跟着变小"""
+    范围小了每一级对应的位移就小,直线上的台阶跟着变小。每件商品都不位移时(褶皱层,全是圆柱)范围记 0.1"""
     flows = [flow - (flow[g].max(axis=0) + flow[g].min(axis=0)) / 2 for flow, g in zip(flows, guards)]
-    range_px = round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1)
+    range_px = max(0.1, round(float(np.ceil(max(np.abs(f[g]).max() for f, g in zip(flows, guards)) * 10)) / 10, 1))
     for index, flow in enumerate(flows, start=1):
         rgb = np.dstack([0.5 + np.clip(flow, -range_px, range_px) / (2 * range_px), np.full(flow.shape[:2], 0.5, np.float32)])
         Image.fromarray(np.round(rgb * 255).astype(np.uint8), 'RGB').save(OUT / f'{prefix}-{index}.png', optimize=True)
@@ -968,8 +992,8 @@ css_out = read('base-css.webp', 'RGBA')
 numbers = range(1, len(products) + 1)
 s = [read(f'surface-{i}.png') for i in numbers]
 f = [read(f'folds-{i}.png') for i in numbers]
-p = [read(f'product-{i}.png')[..., 3] for i in numbers]
-q = [read(f'print-{i}.png')[..., 3] for i in numbers]
+p = [read(f'product-{i}.png')[..., 3].copy() for i in numbers]  # 只留透明度这一层,不带着整张 RGBA
+q = [read(f'print-{i}.png')[..., 3].copy() for i in numbers]
 union = np.any([pp > 0 for pp in p], axis=0)
 
 
@@ -1022,6 +1046,29 @@ def within_stretch(surface, fold, printable):
     return True
 
 
+def lines_stay_straight(surface, printable):
+    """按平面贴的:可印区里屏幕上的直线段映到设计稿后还是直的。线段两端和整段都在可印区、长过可印区边长(面积开方)的一半,
+    取 BOW_LINES 条(随机数固定,每次取的一样),量设计稿上离两端连线最远处占长度多少,中位数至多 PLANE_BOW。
+    单应把直线映成直线,落盘的图只多出 8 位量化的抖动;只记拉伸、不记方向的贴法会把斜着拍的平面上的直线弯成弧。
+    可印区太细、取不够线段的不量"""
+    flow = (surface[..., :2] - 0.5) * 2 * surface_range
+    cells = cv2.erode((cv2.resize(printable, small_size, interpolation=cv2.INTER_AREA) > 0.5).astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+    ys, xs = np.nonzero(cells)
+    if not ys.size:
+        return True
+    along, bows = np.linspace(0, 1, 64), []
+    for i, j in np.random.default_rng(0).integers(ys.size, size=(BOW_LINES * 40, 2)):
+        px, py = xs[i] + (xs[j] - xs[i]) * along, ys[i] + (ys[j] - ys[i]) * along
+        if np.hypot(xs[j] - xs[i], ys[j] - ys[i]) < 0.5 * np.sqrt(ys.size) or not cells[py.round().astype(int), px.round().astype(int)].all():
+            continue
+        dx, dy = (p * DISP_SCALE + ndimage.map_coordinates(flow[..., c], [py, px], order=1) for c, p in ((0, px), (1, py)))
+        chord = np.array([dx[-1] - dx[0], dy[-1] - dy[0]])
+        bows.append(np.abs((dy - dy[0]) * chord[0] - (dx - dx[0]) * chord[1]).max() / max(float(chord @ chord), 1e-9))
+        if len(bows) == BOW_LINES:
+            break
+    return len(bows) < BOW_LINES // 4 or float(np.median(bows)) <= PLANE_BOW
+
+
 def joined_share(printable, product, rule):
     """可印区最大一块占的比例。遮挡物(如交握的手)横穿可印区时,设计稿在它下面照样铺着,隔开的两边算一块。
     print.bridge:敞开的拉链外套,可印区本来就是左右两片前襟,中间的拉链、内搭当遮挡物:
@@ -1055,6 +1102,9 @@ checks = {
     'base-css sizes equal': css_out.shape == base_out.shape,
     'design centre dragged outward never runs back inside print': all(drag_never_back(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
     f'stretch {STRETCH_RANGE[0]}–{STRETCH_RANGE[1]} at Warping 0–100% (outside ≤ {STRETCH_OUTLIER:.1%})': all(within_stretch(ss, ff, qq) for ss, ff, qq in zip(s, f, q)),
+    # 下面两项查各模型算出来的东西用得对:按平面贴的保住了 3D 坐标的方向,直线还直;圆柱的转向只由大曲面层算,褶皱层不位移
+    f'plane fits keep straight lines straight (median bow ≤ {PLANE_BOW:.1%})': all(lines_stay_straight(ss, qq) for ss, qq, fit in zip(s, q, fits) if fit == 'plane'),
+    'cylinders have no folds displacement': all(bool((ff[..., :2] == 128 / 255).all()) for ff, item in zip(f, spec['products']) if item.get('surface') == 'cylinder'),
     f'products ≥ {PRODUCT_MIN:.1%} of frame': all((pp > 0.5).mean() >= PRODUCT_MIN for pp in p),
     'prints not empty': all((qq > 0.5).any() for qq in q),
     'print largest component ≥ 80%': all(joined_share(qq, pp, item.get('print', {})) >= 0.8 for pp, qq, item in zip(p, q, spec['products'])),

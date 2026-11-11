@@ -51,7 +51,7 @@
 
 ## 流程
 
-1. **修**:改代码、预设或例外清单,拿几个例子小批试过,再 `fixes.py fixed <问题>`。只改了代码、配置没变的,同时把 `scripts/batch.py` 里 `STEPS` 那一步的版本号加 1(见 [batch.md](batch.md#结果和重跑)),不然重跑时会跳过这一步。
+1. **修**:改代码、预设或例外清单,拿几个例子小批试过,再 `fixes.py fixed <问题>`。改了 `pipeline.py` 这类本机步骤的代码,先跑 `scripts/regress.py`:固定的 14 个模板(按平面贴、平面退回曲面、按圆柱贴、圆柱退回曲面、布料)用提交里的代码和现在的代码各跑一遍,列出每个模板哪些文件变了、自动校验过没过。改动只该碰某一类商品时,别的类一个文件都不该变;`template.json` 里 `pipeline.surfaceFit` 变了,说明贴法换了。它在临时目录里跑,不动 `work/`、`output/`,不调模型、不花钱,约 7 分钟。只改了代码、配置没变的,同时把 `scripts/batch.py` 里 `STEPS` 那一步的版本号加 1(见 [batch.md](batch.md#结果和重跑)),不然重跑时会跳过这一步。
 2. **重跑**:`fixes.py rerun` 挑出所有问题都修好、还有没重跑的模板。还有别的问题没修好的先不跑,等齐了一起跑。
    - 按模板所属的批次写进 `fixes/plan/rerun-<批次>.txt`,打出 `batch.py ... --only` 命令。批次取 `steps.json` 里的 `batch`;更早的取 `batches/*/logs/<id>.log` 最后写过的那一批。
    - 命令里的输入和例外清单取自 `batches/<批次>/command.json`;没有的按 `sources/<批次>.csv`、`batches/<批次>.csv`、`sources/<批次>/` 和 `sources/<批次>-overrides` 猜,打出来时标明。

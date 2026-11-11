@@ -78,6 +78,7 @@ SPEC=batches/<批次>/specs/<id>.json
 | `pipeline.py` | 改色范围、可印区域、底图、流向图、`template.json`、自动校验 |
 | `logo.py` | 默认 Logo 框 |
 | `preview.py` | 只读模板文件合成预览 |
+| `regress.py` | 改了本机步骤的代码后,拿固定的一组模板对照改前改后:哪些文件变了、自动校验过没过 |
 | `segment.py`、`remote.py`、`config.py` | 分割函数、Replicate 调用、配置和密钥读取,各脚本共用 |
 
 试验脚本在 `experiments/`,结果写到 `work/<id>/experiments/`:
@@ -104,7 +105,7 @@ SPEC=batches/<批次>/specs/<id>.json
 | `surface-n.png` | 大曲面层流向图,固定叠上 |
 | `folds-n.png` | 褶皱层流向图,乘 Warping |
 | `template.json` | 品类、标签、文件名、部件名、默认 Logo 框、合成方式、位移幅度 |
-| `checks.json` | 自动校验结果(15 项) |
+| `checks.json` | 自动校验结果(17 项) |
 
 - 流向图:R / G = x / y 方向的位移,中灰不位移,0 / 255 对应 ∓`surfaceRangePx`(褶皱层 ∓`foldsRangePx`,为 Warping 100% 时的值);B 未用;1/4 尺寸,使用时双线性放大。
 - 放进 vorla 的 lab 页或编辑页看效果时,选 `output/<id>/` 里的全部文件:lab 按文件名认图,位移幅度只在 `template.json` 里。
