@@ -36,6 +36,13 @@ DARK_TEXTURE = 0.5  # 深色商品的纹理(对数)保留这么多
 DARK_CONTRAST = 0.25  # 深色商品的明暗起伏(对数)保留这么多:压到四分之一后选白色的亮度和浅色商品相当
 WHITE_CAP = 0.95  # 选白色时每件商品实心部分 WHITE_CAP_AT 分位的亮度(线性)至多这么亮,更亮的整件压暗:截成纯白的约 5–7%,和正常照片相当
 WHITE_CAP_AT = 90
+# 浅色照片做的布料商品照样保留照片的明暗,强光下亮处接近纯白、暗处很深,选白色显得银灰发亮、不像棉布;
+# 深色照片的明暗已按 DARK_CONTRAST 压过,选白色更柔和。所以浅色布料的大块明暗收到深色布料的水平:
+# 跨度 = 选白色时实心部分在 3 倍纹理半径内平均后亮度(对数)的 p90 − p10,本机深色布料 942 个的 80% 分位约 0.92
+FABRIC = {'t-shirt', 'hoodie', 'cap', 'jersey', 'sweatpants', 'sweatshirt', 'jacket', 'socks', 'tracksuit', 'silk-scarf', 'jeans', 'blanket',
+          'beanie', 'apron', 'crop-top', 'pillow', 'bucket-hat', 'tote-bag', 'polo-shirt', 'bandana', 'shorts', 'tank-top', 'cloth-napkin'}
+FABRIC_SPREAD = 0.917  # 浅色布料选白色时大块明暗的跨度至多这么大,超出的把光照起伏(对数)按中位数收,纹理、光泽不动
+FABRIC_CONTRAST_MIN = 0.5  # 光照起伏至少保留这么多:照片里明暗特别大的(侧光短裤、T 恤)收到跨度上限会整件压成平的中灰
 GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(白 T 恤上约为白色亮度的 3%)
 SHADE_HEADROOM = 99.9  # 明暗倍数让商品区这个百分位以内的明暗都放得下,更亮的极少数截掉:倍数越大,8 位 alpha 里明暗的精度越低
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
@@ -720,15 +727,44 @@ for product in products:
         light = lit * texture
         diffuse = light * WHITE_ALBEDO / max(float(np.percentile(light[solid], DARK_BRIGHT * 100)), 1e-4)
     sheen = luma(max(r, 0) * layers['residual']) * texture
-    layered.append((product, solid, diffuse, sheen))
+    layered.append((product, solid, diffuse, sheen, texture, dark))
 # 一张图里的几件商品是同一种料子(正背面、上衣和裤子、一对杯子),照片里一件迎光一件背光、深色各自抬亮后亮度也不同,
 # 选同一个颜色时会一深一浅:按实心部分 明暗 + 光泽 的中位数整体缩放到最亮的那件,起伏不变。
 # 缩放后每件的亮部不超过 WHITE_CAP:浅色、彩色商品的固有色估低时光照偏亮,迎光的那件被提亮时也会,选白色大片截成纯白
-level = [float(np.median((diffuse + sheen)[solid])) for _, solid, diffuse, sheen in layered]
-for (product, solid, diffuse, sheen), own in zip(layered, level):
+level = [float(np.median((diffuse + sheen)[solid])) for _, solid, diffuse, sheen, _, _ in layered]
+
+
+def look_spread(white, solid):
+    """选白色时实心部分大块明暗的跨度:3 倍纹理半径内平均后亮度(对数)的 p90 − p10"""
+    weight = solid.astype(np.float32)
+    mean = cv2.GaussianBlur(white * weight, (0, 0), 3 * radius) / np.maximum(cv2.GaussianBlur(weight, (0, 0), 3 * radius), 1e-6)
+    values = np.log(np.maximum(mean[solid], 1e-4))
+    return float(np.percentile(values, 90) - np.percentile(values, 10))
+
+
+contrasts = []
+for index, ((product, solid, diffuse, sheen, texture, dark), own) in enumerate(zip(layered, level)):
     bright = float(np.percentile((diffuse + sheen)[solid], WHITE_CAP_AT))
     k = min(max(level) / max(own, 1e-6), WHITE_CAP / max(bright, 1e-6))
     diffuse, sheen = diffuse * k, sheen * k
+    # 浅色布料明暗收到 FABRIC_SPREAD:光照(去掉纹理)按实心部分中位数在对数里乘 C,明暗 + 光泽的中位数对回原值,中间调不变、亮部收、暗部提。
+    # 放在亮部封顶之后:放在之前,封顶按收过的亮部整件提亮。光泽、纹理不随 C 变,跨度不和 C 成正比,反复按比例调几次
+    contrast = 1.0
+    if spec['category'] in FABRIC and not dark and (spread := look_spread(diffuse + sheen, solid)) > FABRIC_SPREAD:
+        lit = diffuse / np.maximum(texture, 1e-6)
+        middle = float(np.median(lit[solid]))
+        before = float(np.median((diffuse + sheen)[solid]))
+        start = spread
+        for _ in range(6):
+            contrast = max(FABRIC_CONTRAST_MIN, contrast * FABRIC_SPREAD / spread)
+            softer = middle * (np.maximum(lit, 1e-6) / middle) ** contrast * texture
+            spread = look_spread(softer + sheen, solid)
+            if contrast == FABRIC_CONTRAST_MIN or abs(spread - FABRIC_SPREAD) < 0.005:
+                break
+        gain = before / max(float(np.median((softer + sheen)[solid])), 1e-6)
+        diffuse, sheen = softer * gain, sheen * gain
+        print(f"{spec['products'][index]['id']} 明暗跨度 {start:.2f} 收到 {spread:.2f}(光照起伏保留 {contrast:.2f})")
+    contrasts.append(round(contrast, 3))
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
     for total, layer in ((shade, diffuse), (gloss, sheen)):
         total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
@@ -911,7 +947,8 @@ template = {
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
     'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'darkPhoto': DARK_PHOTO, 'darkBright': DARK_BRIGHT, 'darkTexture': DARK_TEXTURE, 'darkContrast': DARK_CONTRAST,
-                 'whiteCap': WHITE_CAP, 'whiteCapAt': WHITE_CAP_AT, 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
+                 'whiteCap': WHITE_CAP, 'whiteCapAt': WHITE_CAP_AT, 'fabricSpread': FABRIC_SPREAD, 'fabricContrastMin': FABRIC_CONTRAST_MIN, 'fabricContrast': contrasts,
+                 'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
