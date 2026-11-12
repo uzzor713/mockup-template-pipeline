@@ -1392,7 +1392,7 @@ poster-wall-poster-002,multi-item,2026-11-09,"墙上三张海报,49% / 26% / 25%
 greeting-card-postcard-012,multi-item,2026-11-10,"后面一张在写字、前面一张平放;前面那张占可印区八成以上,最大一块的检查没标出来,拖动校验没过"
 greeting-card-postcard-012,drag-back,2026-11-09,"可印区里回跳 227 px,72 个方向里 16 个"
 halloween-015,drag-back,2026-11-09,"印在了格子毯上,可印区里回跳 130 px;改成印在珐琅杯上"
-shorts-016,drag-back,2026-11-09,"可印区里回跳 117 px,72 个方向里 15 个;明暗收柔重跑后回跳 82 px,72 个方向里 4 个(往左上越过手腕、进到另一条裤腿那一小块时);测试库 v2–v4 带着这个问题发布"
+shorts-016,drag-back,2026-11-09,"可印区里回跳 117 px,72 个方向里 15 个;明暗收柔重跑后回跳 82 px,72 个方向里 4 个(往左上越过手腕、进到另一条裤腿那一小块时);测试库 v2–v4 带着这个问题发布,v5 由 drag-gap 接上两条裤腿之间的缝后修好"
 poster-street-poster-012,drag-back,2026-11-09,可印区里回跳 85 px
 greeting-card-postcard-032,drag-back,2026-11-09,可印区里回跳 64 px
 poster-street-poster-022,drag-back,2026-11-09,可印区里回跳 16 px
@@ -4277,3 +4277,24 @@ poster-movie-poster-009,plane-unfit,2026-11-12,"本机产出是有平面贴法�
 sticker-blank-sticker-020,sticker-target,2026-11-12,"贴纸是水壶上的白色椭圆,原来分到了右下角的地图册"
 sticker-laptop-sticker-026,sticker-target,2026-11-12,"去印花时三张贴纸一起去掉了,分到了桌上的底片"
 sticker-laptop-sticker-009,sticker-target,2026-11-12,"去印花时贴纸一起去掉了,分到了包花的牛皮纸"
+baggy-sweatpants-006,drag-gap,2026-11-12,拖过缝回退 44 px
+bandana-008,drag-gap,2026-11-12,拖过缝回退 10 px
+bandana-015,drag-gap,2026-11-12,拖过缝回退 20 px
+bandana-028,drag-gap,2026-11-12,拖过缝回退 4 px
+black-stone-washed-sweatpants-039,drag-gap,2026-11-12,拖过缝回退 20 px
+blanket-002,drag-gap,2026-11-12,拖过缝回退 17 px
+candle-033,drag-gap,2026-11-12,拖过缝回退 24 px
+canvas-bag-002,drag-gap,2026-11-12,拖过缝回退 35 px
+christmas-007,drag-gap,2026-11-12,拖过缝回退 14 px
+kids-t-shirt-016,drag-gap,2026-11-12,拖过缝回退 12 px
+lanyard-017,drag-gap,2026-11-12,拖过缝回退 10 px
+lanyard-033,drag-gap,2026-11-12,拖过缝回退 8 px
+new-year-010,drag-gap,2026-11-12,拖过缝回退 22 px
+patch-003,drag-gap,2026-11-12,拖过缝回退 109 px
+shorts-016,drag-gap,2026-11-12,拖过缝回退 146 px
+skateboard-deck-040,drag-gap,2026-11-12,拖过缝回退 14 px
+zip-up-hoodie-010,drag-gap,2026-11-12,拖过缝回退 57 px
+zip-up-hoodie-020,drag-gap,2026-11-12,拖过缝回退 41 px
+zip-up-hoodie-026,drag-gap,2026-11-12,拖过缝回退 33 px
+zip-up-hoodie-030,drag-gap,2026-11-12,拖过缝回退 67 px
+zip-up-hoodie-040,drag-gap,2026-11-12,拖过缝回退 51 px
