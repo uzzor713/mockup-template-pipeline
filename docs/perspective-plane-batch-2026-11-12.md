@@ -2,8 +2,9 @@
 
 ## 发布状态
 
-- `poster-mdf-poster-018`（测试库 v2）、`canvas-020`（测试库 v4）先单独发布。
-- 其余修好的模板本机已重跑，待发布到测试库；正式库未改。
+- 2026-11-12 修复进度表 `plane-perspective` 的 104 个全部发布到测试库，同批发布的还有 `plane-unfit` 补的 4 个、贴纸 `sticker-target` 3 个。
+- `poster-canvas-poster-019`、`poster-mdf-poster-030`、`poster-street-poster-017` 原来拉伸检查没过、没上过墙，这次作为新模板放在收件箱 `2026-11-12/print/`。
+- 正式库未改，同步由 `fixes.py sync` 出总结交给管正式库的同事。
 
 ## 检测口径
 
