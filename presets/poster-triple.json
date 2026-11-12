@@ -1,0 +1,86 @@
+{
+  "category": "poster",
+  "occluders": [
+    {
+      "text": "plant",
+      "matteBand": 0.015
+    }
+  ],
+  "products": [
+    {
+      "id": "poster-left",
+      "key": "left",
+      "name": "Left Poster",
+      "text": "poster",
+      "surface": "plane",
+      "print": {
+        "inset": {
+          "top": 0.02,
+          "bottom": 0.02,
+          "left": 0.02,
+          "right": 0.02
+        }
+      },
+      "alternatives": [
+        "sheet of paper",
+        "board",
+        "panel"
+      ],
+      "logo": {
+        "fill": true
+      },
+      "hull": true,
+      "instance": 0
+    },
+    {
+      "id": "poster-center",
+      "key": "center",
+      "name": "Center Poster",
+      "text": "poster",
+      "surface": "plane",
+      "print": {
+        "inset": {
+          "top": 0.02,
+          "bottom": 0.02,
+          "left": 0.02,
+          "right": 0.02
+        }
+      },
+      "alternatives": [
+        "sheet of paper",
+        "board",
+        "panel"
+      ],
+      "logo": {
+        "fill": true
+      },
+      "hull": true,
+      "instance": 1
+    },
+    {
+      "id": "poster-right",
+      "key": "right",
+      "name": "Right Poster",
+      "text": "poster",
+      "surface": "plane",
+      "print": {
+        "inset": {
+          "top": 0.02,
+          "bottom": 0.02,
+          "left": 0.02,
+          "right": 0.02
+        }
+      },
+      "alternatives": [
+        "sheet of paper",
+        "board",
+        "panel"
+      ],
+      "logo": {
+        "fill": true
+      },
+      "hull": true,
+      "instance": 2
+    }
+  ]
+}

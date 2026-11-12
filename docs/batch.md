@@ -120,8 +120,9 @@ poster-017,其他,画框也被改色,,,,,,1
 | `socks-pair` | 一双袜子分开摆,左右各一件 | `socks` |
 | `can-pair`、`coaster-pair`、`frame-pair`、`cap-pair`、`tube-pair` | 两罐、两个杯垫、两幅挂画、两顶帽子、两个纸筒并排,左右各一件 | 同单件的预设 |
 | `canvas-pair` | 两块无框画布挂墙(挂画页面),说法同 `canvas`,边上不往里收 | `frame` |
+| `poster-triple` | 墙上并排挂三张海报,左中右各一个区域,说法同 `poster`。蒙版换成凸包(盆栽叶子挡住海报一角时 SAM 3 会把那一角挖掉),遮挡物 `plant` 的待求带同头发(`0.015`) | `poster` |
 | `open-book`、`magazine-spread` | 摊开的书、杂志(magazine-ad、magazine-spread 页面),左右两页各一个区域,说法 page | `book`、`magazine` |
-| `business-card-pair`、`greeting-card-pair`、`id-card-pair`、`playing-cards-pair` | 两张名片、贺卡、证件卡、扑克牌分开摆(并排、两只手各拿一张、一摞和一张),左右各一个区域。三张以上分开摆的用单件的预设,例外清单写 `largest`,只印最大的一张 | 同单件的预设 |
+| `business-card-pair`、`greeting-card-pair`、`id-card-pair`、`playing-cards-pair` | 两张名片、贺卡、证件卡、扑克牌分开摆(并排、两只手各拿一张、一摞和一张),左右各一个区域。三张以上分开摆的用单件的预设,例外清单写 `largest`,只印最大的一张(墙上并排的三张海报用 `poster-triple`) | 同单件的预设 |
 | `cd-case` | CD 盒和封面卡(cd-case、cd-cover 页面) | `cd` |
 | `cd-sleeve` | CD 纸套 | `cd` |
 | `zip-hoodie` | 敞开的拉链卫衣,可印区按左右两片前襟连着算 | `hoodie` |
