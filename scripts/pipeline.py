@@ -67,6 +67,7 @@ SURFACE_KEEP_MIN = 0.3  # 大曲面层存成 8 位后超出校验范围时,位�
 CSS_MEAN, CSS_P99 = 2, 14  # base-css 叠在白色、纯黑上和线性光结果的差(0–255),商品区内平均、99% 分位的上限
 PLANE_INSET = 7  # surface: plane:可印区往里收这么多像素再拟合平面
 PLANE_BEND = 0.05  # surface: plane:可印区 3D 点离拟合平面的距离 90% 分位不到可印区边长(面积开方)的这么多才按平面贴。平的约 1–2%;贴在罐子、杯子上的圆贴纸约 6–12%,三折页、拿在手里的报纸约 5–15%
+PLANE_QUAD_ERROR = 0.02  # 轮廓和四边形的面积差不到这么多时,用实际轮廓校准 MoGe 估出的透视
 PLANE_BOW = 0.005  # 校验时按平面贴的可印区里,屏幕上的直线段映到设计稿后离两端连线最远处占长度的中位数至多这么多:本机 321 个按平面贴的区域中位 0.09%、最大 0.36%(8 位量化的抖动),不记方向的 surface_flow 贴同样的平面 0.7–2.4%
 BOW_LINES = 200  # 上面这项量多少条线段
 CYL_WIDE = 0.85  # surface: cylinder:先拿宽度到最宽(90% 分位)这么多的最长一段拟合左右轮廓,瓶颈、瓶肩、圆底不算
@@ -248,7 +249,44 @@ def stored_beyond(flow, guard, inside, limit=None):
     return float((smin[inside] < STRETCH_RANGE[0]).mean()), float((smax[inside] > STRETCH_RANGE[1]).mean())
 
 
-def plane_flow(points, intrinsics, product, printable, small_size):
+def plane_outline(printable, center):
+    """清晰的近直立矩形:从照片里的四边形取得中心处的拉伸和透视梯度。"""
+    contours, _ = cv2.findContours((printable > 0.5).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+    contour = max(contours, key=cv2.contourArea)
+    quad = cv2.approxPolyDP(contour, 0.005 * cv2.arcLength(contour, True), True)[:, 0].astype(np.float64)
+    if len(quad) != 4 or not cv2.isContourConvex(quad.astype(np.float32)):
+        return None
+    area = cv2.contourArea(contour)
+    if area == 0 or abs(area - cv2.contourArea(quad.astype(np.float32))) / area > PLANE_QUAD_ERROR:
+        return None
+    ordered = quad[np.argsort(quad[:, 1])]
+    top, bottom = (pair[np.argsort(pair[:, 0])] for pair in (ordered[:2], ordered[2:]))
+    tl, tr, bl, br = *top, *bottom
+    width = (np.linalg.norm(tr - tl) + np.linalg.norm(br - bl)) / 2
+    height = (np.linalg.norm(bl - tl) + np.linalg.norm(br - tr)) / 2
+    if width < 100 or height < 100 or abs(tr[1] - tl[1]) > width / 4 or abs(br[1] - bl[1]) > width / 4 \
+            or abs(bl[0] - tl[0]) > height / 4 or abs(br[0] - tr[0]) > height / 4:
+        return None
+    target = np.array([[0, 0], [width, 0], [width, height], [0, height]], np.float32)
+    homography = cv2.getPerspectiveTransform(np.array([tl, tr, br, bl], np.float32), target)
+    cx, cy = center
+    at_center = homography @ np.array([cx, cy, 1.0])
+    if at_center[2] <= 0:
+        return None
+    tilt = homography[2, :2] / at_center[2]
+
+    def map_point(x, y):
+        mapped = homography @ np.array([x, y, 1.0])
+        return mapped[:2] / mapped[2]
+
+    jac = np.stack([map_point(cx + 0.5, cy) - map_point(cx - 0.5, cy),
+                    map_point(cx, cy + 0.5) - map_point(cx, cy - 0.5)], -1)
+    return jac, tilt
+
+
+def plane_flow(points, intrinsics, product, printable, small_size, outline_mask=None):
     """平的商品(配置写 surface: plane):可印区的 3D 坐标拟合一个平面,屏幕到平面是单应(透视变换),设计稿按它贴上去,直线还是直的。
     surface_flow 只记每格拉伸多少、不记方向,积分时斜着拍的平面也会被弯成弧。
     长度单位和 surface_flow 相同;可印区中心处只拉伸、不转,拉伸截到 SURFACE_RANGE。
@@ -289,6 +327,9 @@ def plane_flow(points, intrinsics, product, printable, small_size):
     tilt = np.array([normal[0] / fx, normal[1] / fy]) / facing
     jac = np.stack([on_plane(np.float64(cx + 0.5), np.float64(cy)) - on_plane(np.float64(cx - 0.5), np.float64(cy)),
                     on_plane(np.float64(cx), np.float64(cy + 0.5)) - on_plane(np.float64(cx), np.float64(cy - 0.5))], -1)
+    outline = plane_outline(printable if outline_mask is None else outline_mask, (cx, cy))
+    if outline is not None:
+        jac, tilt = outline
     # 设计稿坐标的差 = M Δ / (1 + α h·Δ),仍是单应,直线照样直。J = U S Vᵀ,M = V S' Vᵀ:中心处只拉伸不转,
     # S' 是 S 截到 SURFACE_RANGE;α 是透视留多少,1 时和照片里的平面一样近大远小
     _, s, vt = np.linalg.svd(jac)
@@ -331,6 +372,8 @@ def plane_flow(points, intrinsics, product, printable, small_size):
     if under + over > STRETCH_OUTLIER / 2:
         return None, f'透视太陡,可印区 {under:.1%} 前进量不到 {STRETCH_RANGE[0]}、{over:.1%} 超过 {STRETCH_RANGE[1]},按曲面'
     notes = [f'可印区离平面 {bend:.1%}', f'前进量 {spread.min():.2f}–{spread.max():.2f}']
+    if outline is not None:
+        notes.append('透视按商品轮廓校准' if outline_mask is not None else '透视按可印区轮廓校准')
     if perspective < 0.999:
         notes.append(f'透视留 {perspective:.0%}')
     if scale[0] < clipped[0] * 0.995:
@@ -688,6 +731,12 @@ for item in spec['products']:
     part_masks.append(read_mask(f"{item['id']}-parts.png"))
     blocks.append(occluders | above_bin)
     prints.append(quantize(print_area(product, part_masks[-1], blocks[-1], item.get('print', {}))))
+    if quad := item.get('print', {}).get('quad'):
+        if len(quad) != 4 or any(len(point) != 2 or not all(0 <= value <= 1 for value in point) for point in quad):
+            raise ValueError(f"{item['id']}:print.quad 必须是四个归一化坐标")
+        face = np.zeros((H, W), np.uint8)
+        cv2.fillConvexPoly(face, np.round(np.array(quad) * [W, H]).astype(np.int32), 1)
+        prints[-1] = quantize(np.minimum(prints[-1], soft(face > 0)))
     if item.get('print', {}).get('face') and (prints[-1] > 0.5).any():
         prints[-1] = main_face(prints[-1], normals)
     above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
@@ -858,7 +907,11 @@ surfaces, fits = [], []
 for item, product, printable, parts, blocked in zip(spec['products'], carriers, prints, part_masks, blocks):
     kind = item.get('surface')
     if kind == 'plane':
-        shaped, note = plane_flow(points, intrinsics, product, printable, small_size)
+        reference = item.get('planeOutline', 'print')
+        if reference not in ('print', 'product'):
+            raise ValueError(f"{item['id']}:planeOutline 必须是 print 或 product")
+        shaped, note = plane_flow(points, intrinsics, product, printable, small_size,
+                                  product if reference == 'product' else None)
     elif kind == 'cylinder':
         shaped, note = cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size)
     else:

@@ -76,16 +76,17 @@ USES_LOGO = {'logo.py', 'preview.py'}
 # 商品设置里不算进分割比较的:print、surface 分割不读,只给 pipeline.py;alternatives 只在主说法分不出时换着试,上次分成功的加了也一样
 # (上次失败的没记比较值,照样重跑;上次放低阈值才分出的,加了备选说法可能改用备选说法,要重分单独跑 run_segment.py)。
 # 早先的比较值含或不含这几项,都算对得上;含的 alternatives 只有现在的前几个(之后在末尾加过说法)也算。不为这些重跑、重新计费
-SEGMENT_IGNORES = ('alternatives', 'print', 'surface')
+SEGMENT_IGNORES = ('alternatives', 'print', 'surface', 'planeOutline')
 # 在本机算的步骤:每个峰值约 2GB 内存、一两核,同一时间至多 --local 个模板在跑,其余排队;前四步大半时间在等 Replicate,不限。
 # pipeline.py 里问 Gemini、分单只(logo.py)也占着名额,几秒到一分钟
 LOCAL_STEPS = {'pipeline.py', 'logo.py', 'preview.py'}
+PLANE_EXCEPTIONS = json.loads((ROOT / 'presets' / 'plane-exceptions.json').read_text())
 STEPS = [
     ('run_segment.py', ['crop', 'size', 'occluders', 'products'], 0),
     ('intrinsic.py', ['crop', 'size'], 0),
     ('normals.py', ['crop', 'size'], 0),
     ('geometry.py', ['crop', 'size'], 0),
-    ('pipeline.py', None, 7),
+    ('pipeline.py', None, 8),
     ('logo.py', None, 0),
     ('preview.py', None, 0),
 ]
@@ -259,6 +260,12 @@ def make_spec(row):
     if remote:
         spec['fetch'] = {photo: {'url': source, 'sha256': sha256(ROOT / photo)}}
     spec |= {'occluders': occluders, 'products': products}
+    for item in spec['products']:
+        exception = PLANE_EXCEPTIONS.get(spec['id'], {}).get(item['key'])
+        if exception:
+            item.update({key: value for key, value in exception.items() if key != 'print'})
+            if 'print' in exception:
+                item['print'] = {**item.get('print', {}), **exception['print']}
     return spec
 
 

@@ -85,6 +85,10 @@ poster-017,其他,画框也被改色,,,,,,1
 
 > 每次运行都按源图和预设重新生成配置。改过的源图没带上它的例外清单,就会回到预设的设置、重算一遍。所以例外清单要一直留着,放进一个文件夹,每次都 `--overrides 那个文件夹`。
 
+### 平面透视例外
+
+按平面贴的商品个别要改四角校准时,写在 `presets/plane-exceptions.json`:`{模板 id: {商品 key: 设置}}`,生成配置时并进那件商品,不论哪个批次、不用 `--overrides`。设置只有两种:`planeOutline: product`(改按商品外缘的四角),`print.quad`(可印区和手写的四边形取交集),见[模板配置](spec.md)。这两项不算进分割比较,改了只重跑 `pipeline.py` 往后的步骤。
+
 ## 预设
 
 `presets/<预设>.json`,字段同[模板配置](spec.md)的 `category`、`occluders`、`products`,另有:
