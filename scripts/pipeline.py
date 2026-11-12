@@ -43,6 +43,9 @@ FABRIC = {'t-shirt', 'hoodie', 'cap', 'jersey', 'sweatpants', 'sweatshirt', 'jac
           'beanie', 'apron', 'crop-top', 'pillow', 'bucket-hat', 'tote-bag', 'polo-shirt', 'bandana', 'shorts', 'tank-top', 'cloth-napkin'}
 FABRIC_SPREAD = 0.917  # 浅色布料选白色时大块明暗的跨度至多这么大,超出的把光照起伏(对数)按中位数收,纹理、光泽不动
 FABRIC_CONTRAST_MIN = 0.5  # 光照起伏至少保留这么多:照片里明暗特别大的(侧光短裤、T 恤)收到跨度上限会整件压成平的中灰
+WHITE_FLOOR = 0.75  # 布料、画框 / 画布选白色时实心部分 WHITE_CAP_AT 分位的亮度(线性)至少这么亮,暗的整件提亮:照片偏暗又不走深色那条路时整件发灰
+WHITE_FLOOR_KINDS = FABRIC | {'frame', 'canvas'}  # 纸品普遍在 0.72 上下、看着不灰,不提
+GLOSS_BASE = 0.03  # 每件商品叠加光泽(乘 GLOSS_KEEP 之后)的中位数至多这么多:光泽整片有底子时按加法叠在每种颜色上,黑色发灰、白色发雾,多出的底子并进明暗
 GLOSS_KEEP = 0.6  # 残差里只有这一份当光泽叠在颜色上,其余并入明暗:白色亮度不变,深色、纯色的暗通道和竞品对齐(白 T 恤上约为白色亮度的 3%)
 SHADE_HEADROOM = 99.9  # 明暗倍数让商品区这个百分位以内的明暗都放得下,更亮的极少数截掉:倍数越大,8 位 alpha 里明暗的精度越低
 TEXTURE_RATIO = 1 / 256  # 纹理半径 / 长边:照片里比它细的起伏算纹理,粗的算明暗
@@ -870,6 +873,18 @@ for index, ((product, solid, diffuse, sheen, texture, dark), own) in enumerate(z
         diffuse, sheen = softer * gain, sheen * gain
         print(f"{spec['products'][index]['id']} 明暗跨度 {start:.2f} 收到 {spread:.2f}(光照起伏保留 {contrast:.2f})")
     contrasts.append(round(contrast, 3))
+    # 白色下限放在亮部封顶、收明暗之后:整件按比例提,明暗起伏不变;深色照片已对齐到白布料的亮度,不再提
+    if spec['category'] in WHITE_FLOOR_KINDS and not dark:
+        bright = float(np.percentile((diffuse + sheen)[solid], WHITE_CAP_AT))
+        if bright < WHITE_FLOOR:
+            diffuse, sheen = diffuse * (WHITE_FLOOR / bright), sheen * (WHITE_FLOOR / bright)
+            print(f"{spec['products'][index]['id']} 白色 p{WHITE_CAP_AT} {bright:.2f} 提到 {WHITE_FLOOR}")
+    # 光泽的底子:实心部分中位数以上的才是高光。底子超过 GLOSS_BASE 的部分从光泽挪进明暗,选白色亮度不变,局部高光照旧
+    base_sheen = float(np.median(sheen[solid]))
+    if base_sheen > GLOSS_BASE / GLOSS_KEEP:
+        moved = np.minimum(sheen, base_sheen - GLOSS_BASE / GLOSS_KEEP)
+        diffuse, sheen = diffuse + moved, sheen - moved
+        print(f"{spec['products'][index]['id']} 光泽底子 {GLOSS_KEEP * base_sheen:.3f} 收到 {GLOSS_BASE}")
     # 边缘像素在照片里混着商品原色:取商品实心部分的值往外延伸,区外那份换成背景色
     for total, layer in ((shade, diffuse), (gloss, sheen)):
         total += product * np.where(solid, layer, local_mean(np.repeat(layer[..., None], 3, -1), solid.astype(np.float32), 2)[..., 0])
@@ -1092,7 +1107,7 @@ template = {
     'displacement': {'surfaceRangePx': surface_range, 'foldsRangePx': folds_range},
     'regions': regions,
     'pipeline': {'whiteAlbedo': WHITE_ALBEDO, 'darkPhoto': DARK_PHOTO, 'darkBright': DARK_BRIGHT, 'darkTexture': DARK_TEXTURE, 'darkContrast': DARK_CONTRAST,
-                 'whiteCap': WHITE_CAP, 'whiteCapAt': WHITE_CAP_AT, 'fabricSpread': FABRIC_SPREAD, 'fabricContrastMin': FABRIC_CONTRAST_MIN, 'fabricContrast': contrasts,
+                 'whiteCap': WHITE_CAP, 'whiteCapAt': WHITE_CAP_AT, 'fabricSpread': FABRIC_SPREAD, 'fabricContrastMin': FABRIC_CONTRAST_MIN, 'fabricContrast': contrasts, 'whiteFloor': WHITE_FLOOR, 'glossBase': GLOSS_BASE,
                  'glossKeep': GLOSS_KEEP, 'textureRadius': round(float(radius), 1), 'textureClip': list(TEXTURE_CLIP),
                  'blurSigma': round(float(sigma), 1),
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
