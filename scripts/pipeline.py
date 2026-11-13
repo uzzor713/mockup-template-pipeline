@@ -419,7 +419,7 @@ def longest_run(mask, gap, near=None):
     return np.nonzero(labels == pick)[0]
 
 
-def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size, gap):
+def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size, gap, front_rim=None):
     """罐、杯、瓶、蜡烛这类竖着的回转体(配置写 surface: cylinder):按照片里左右轮廓的两条直线和上下沿的弧算出每一圈纬线,
     设计稿按 (转角, 沿母线的长度) 贴上去,俯视、仰视时横线跟着纬线弯成弧,侧面压缩。
     surface_flow 只记每格拉伸多少、不记方向,横线弯不成弧。
@@ -542,6 +542,13 @@ def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small
         return yc, s / r, float(touching)
 
     top, bottom = arc('top'), arc('bottom')
+    if front_rim is not None:
+        # 盖住瓶口的泵头附近,商品外轮廓可能是后侧顶沿;正面可见的环线才是印花横线的参照。
+        y, k = front_rim['y'], front_rim['flattening']
+        if not (0 <= y <= 1 and -0.8 <= k <= 0.8):
+            raise ValueError('cylinderFrontRim 的 y 必须在 0–1、flattening 必须在 -0.8–0.8')
+        rim_y = float((M @ np.array([center[0], y * H, 1]))[1])
+        top = (rim_y, float(k), 1.0)
     f = intrinsics[1, 1]
     p_y = (M @ np.array([intrinsics[0, 2], intrinsics[1, 2], 1]))[1]  # 主点的 y'
 
@@ -582,6 +589,8 @@ def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small
                 return None, '上下沿的弧对不上,按曲面'
             top, bottom = (keep[0], None) if keep[0] is top else (None, keep[0])
     notes = [note] if note else []
+    if front_rim is not None:
+        notes.append('上沿用正面环线')
     if top and bottom:
         kt, kb = pairs[0]
         slope = (kb - kt) / max(bottom[0] - top[0], 1)
@@ -1087,7 +1096,8 @@ def build(bridges):
             shaped, note, turn = plane_flow(points, intrinsics, product, printable, small_size, gap,
                                             product if reference == 'product' else None)
         elif kind == 'cylinder':
-            (shaped, note), turn = cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size, gap), None
+            (shaped, note), turn = cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size, gap,
+                                                  item.get('cylinderFrontRim')), None
         else:
             shaped, note, turn = None, '', None
         if note:
