@@ -26,7 +26,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-TILT_MIN = 3  # 可印区是四边形(海报、卡片)时,倾角(度)小于它算摆正,框不转
+TILT_MIN = 3  # 可印区是四边形(海报、卡片)时,倾角(度)小于它算摆正,框不转;按平面贴的(plane)不取整,框跟着面的实际倾角转
 TILT_FREE = 10  # 可印区不是四边形(衣服等)时摆正的上限:人穿着站直时躯干轮廓不对称,会算出 3–9.4°;平放、搭着的歪 10° 以上的都是真歪
 ROUND_SHAPE = 0.93  # 可印区轮廓和拟合椭圆的重合度(交 / 并)高于它算圆形、椭圆形,看不出方向,框不转(圆贴纸中位数 0.99,衣服、海报、卡片至多 0.91)
 RECT_SHAPE = 0.85  # 写了 freeform 的,可印区面积占最小外接矩形低于它算异形,框不转(异形贴纸至多 0.82,圆角、被手指挡住一点的矩形贴纸 0.88 以上)
@@ -50,9 +50,10 @@ SPLIT_SHARE = 0.1  # split 分出的单只盖住可印区至少这么多才算�
 CHECK = 'logo center inside print'
 
 
-def tilt(inside, freeform=False):
+def tilt(inside, freeform=False, plane=False):
     """可印区摆放的倾角(度,屏幕上顺时针为正,±45° 内)。最大一块的轮廓能近似成四边形时(透视下的海报、卡片)取四条边方向的平均,
-    偏 TILT_MIN 以上就转;否则(衣服的躯干等)取最小外接矩形的方向,偏 TILT_FREE 以上才转。
+    偏 TILT_MIN 以上就转,按平面贴的(plane)多小都转:流向图在可印区中心只拉伸不转,设计稿跟着面转全靠框,
+    歪 1–3° 的盒子面吸成 0 时设计稿和面的边差 1–1.5°;否则(衣服的躯干等)取最小外接矩形的方向,偏 TILT_FREE 以上才转。
     方向按 90° 周期平均,横放、竖放都对齐到最近的那个。圆形、椭圆形看不出方向,为 0;freeform 时异形的也为 0"""
     contours, _ = cv2.findContours(inside.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     contour = max(contours, key=cv2.contourArea)
@@ -69,7 +70,8 @@ def tilt(inside, freeform=False):
     edges = np.roll(corners, -1, axis=0) - corners
     a = 4 * np.arctan2(edges[:, 1], edges[:, 0])
     angle = float(np.degrees(np.arctan2(np.sin(a).mean(), np.cos(a).mean())) / 4)
-    return 0.0 if abs(angle) < (TILT_MIN if len(quad) == 4 else TILT_FREE) else round(angle, 1)
+    floor = (0 if plane else TILT_MIN) if len(quad) == 4 else TILT_FREE
+    return 0.0 if abs(angle) < floor else round(angle, 1) + 0.0  # + 0.0:-0.0 记成 0.0
 
 
 def inscribed(across, along, size=INSCRIBED_SIZE):
@@ -104,7 +106,9 @@ def box(inside, settings):
     H, W = inside.shape
     if settings.get('within') is not None:
         inside = inside & settings['within']
-    rotation = tilt(inside, settings.get('freeform', False))
+    plane, turn = settings.get('plane', False), settings.get('turn')
+    # 按平面贴、透视按四角校准过的,pipeline.py 给出设计稿该跟着面转的角度(turn),直接用:斜得厉害的梯形四条边平均、放得下最大矩形的方向都会偏 2–5°
+    rotation = tilt(inside, settings.get('freeform', False), plane) if turn is None else turn
     ys, xs = np.nonzero(inside)
     c, s = np.cos(np.radians(rotation)), np.sin(np.radians(rotation))
     across, along = xs * c + ys * s, -xs * s + ys * c
@@ -138,8 +142,9 @@ def box(inside, settings):
 
             # 方向取放得下最大矩形的那个:透视下窄长的四边形两条短边斜得厉害,四条边平均的方向会偏;
             # 连成一块的看不出整体方向,框跟着最大的那张走。先粗找方向再细算
-            rotation = max(range(-45, 45), key=lambda angle: fit(angle, INSCRIBED_SIZE // 4)[0])
-            rotation = 0.0 if abs(rotation) < TILT_MIN else float(rotation)
+            if turn is None:
+                rotation = max(range(-45, 45), key=lambda angle: fit(angle, INSCRIBED_SIZE // 4)[0])
+                rotation = 0.0 if abs(rotation) < (0 if plane else TILT_MIN) else float(rotation)
             _, x, y, width, height = fit(rotation, INSCRIBED_SIZE)
     else:
         distance = cv2.distanceTransform(inside.astype(np.uint8), cv2.DIST_L2, 5)
@@ -291,7 +296,9 @@ if __name__ == '__main__':
     prints = [np.asarray(Image.open(out / region['print']).getchannel('A')).astype(np.float32) / 255 for region in template['regions']]
     cover = np.asarray(Image.open(out / 'cover.webp').convert('RGB'))
     settings = settle(spec, cover, [printable > 0.5 for printable in prints], config.folder(spec, 'work'))
-    logos = [box(printable > 0.5, s) for printable, s in zip(prints, settings)]
+    fits, turns = (template.get('pipeline', {}).get(key) or [] for key in ('surfaceFit', 'planeTurn'))
+    logos = [box(printable > 0.5, {**s, 'plane': index < len(fits) and fits[index] == 'plane', 'turn': turns[index] if index < len(turns) else None})
+             for index, (printable, s) in enumerate(zip(prints, settings))]
     for region, logo in zip(template['regions'], logos):
         region['logo'] = logo
     (out / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))

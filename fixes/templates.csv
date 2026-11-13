@@ -2137,7 +2137,7 @@ embroidered-hat-031,fabric-contrast,2026-11-11,明暗跨度 0.93
 embroidered-hat-037,fabric-contrast,2026-11-11,明暗跨度 1.19
 embroidered-hat-039,fabric-contrast,2026-11-11,明暗跨度 1.23
 etsy-001,fabric-contrast,2026-11-11,明暗跨度 1.38
-etsy-013,fabric-contrast,2026-11-11,明暗跨度 2.51;原来印在格子毯上,改成印在珐琅杯上
+etsy-013,fabric-contrast,2026-11-11,"明暗跨度 2.51;原来印在格子毯上,改成印在珐琅杯上"
 etsy-019,fabric-contrast,2026-11-11,明暗跨度 1.29
 etsy-037,fabric-contrast,2026-11-11,明暗跨度 1.12
 etsy-039,fabric-contrast,2026-11-11,明暗跨度 1.09
@@ -4916,3 +4916,1460 @@ candle-035,tone-feedback,2026-11-12,测试库 v3
 blanket-025,tone-feedback,2026-11-12,测试库 v2
 candle-006,tone-feedback,2026-11-12,测试库 v4
 wall-art-007,tone-feedback,2026-11-12,测试库 v2
+album-cover-002,plane-skew,2026-11-12,区域 1 Logo 框转角 11° → 12.8°
+album-cover-006,plane-skew,2026-11-12,区域 1 Logo 框转角 -6° → -5°
+album-cover-008,plane-skew,2026-11-12,区域 1 Logo 框转角 -13° → -15.6°
+album-cover-014,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -11.9°
+album-cover-016,plane-skew,2026-11-12,区域 1 Logo 框转角 9° → 11.4°
+album-cover-017,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+album-cover-019,plane-skew,2026-11-12,区域 1 Logo 框转角 15° → 16.9°
+album-cover-031,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1°
+album-cover-040,plane-skew,2026-11-12,区域 1 Logo 框转角 -10° → -13.5°
+amazon-027,plane-skew,2026-11-12,透视变了
+book-cover-005,plane-skew,2026-11-12,区域 1 Logo 框转角 -8° → -12.5°
+book-cover-011,plane-skew,2026-11-12,区域 1 Logo 框转角 -14° → -13.9°
+book-cover-014,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2.7°
+book-cover-015,plane-skew,2026-11-12,区域 1 Logo 框转角 -9° → -11.7°
+book-cover-018,plane-skew,2026-11-12,透视变了
+book-cover-021,plane-skew,2026-11-12,透视变了
+book-cover-022,plane-skew,2026-11-12,区域 1 Logo 框转角 -5° → -15.6°
+book-cover-025,plane-skew,2026-11-12,区域 1 Logo 框转角 -18° → -19.8°
+book-cover-030,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+book-cover-031,plane-skew,2026-11-12,区域 1 Logo 框转角 -10° → -18°
+book-cover-035,plane-skew,2026-11-12,区域 1 Logo 框转角 -13° → -17.2°
+book-cover-036,plane-skew,2026-11-12,区域 1 Logo 框转角 9° → 3.4°
+book-cover-037,plane-skew,2026-11-12,区域 1 Logo 框转角 -11° → -6.7°
+book-cover-038,plane-skew,2026-11-12,区域 1 Logo 框转角 -11° → -20.6°
+book-cover-039,plane-skew,2026-11-12,透视变了
+book-hardcover-book-002,plane-skew,2026-11-12,区域 1 Logo 框转角 -20° → -19.7°
+book-hardcover-book-003,plane-skew,2026-11-12,透视变了
+book-hardcover-book-008,plane-skew,2026-11-12,区域 1 Logo 框转角 -14° → -18.8°
+book-hardcover-book-009,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+book-hardcover-book-014,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+book-hardcover-book-018,plane-skew,2026-11-12,区域 1 Logo 框转角 -10° → -31.8°
+book-hardcover-book-021,plane-skew,2026-11-12,区域 1 Logo 框转角 -14° → -17.2°
+book-hardcover-book-025,plane-skew,2026-11-12,区域 1 Logo 框转角 -13° → -19.7°
+book-hardcover-book-029,plane-skew,2026-11-12,区域 1 Logo 框转角 -4° → -2.5°
+book-hardcover-book-031,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -5.3°
+book-hardcover-book-033,plane-skew,2026-11-12,透视变了
+book-hardcover-book-035,plane-skew,2026-11-12,区域 1 Logo 框转角 -9° → -13.8°
+book-hardcover-book-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+book-hardcover-book-039,plane-skew,2026-11-12,区域 1 Logo 框转角 -6° → -3.5°
+book-hardcover-book-040,plane-skew,2026-11-12,区域 1 Logo 框转角 -11° → -6.3°
+book-paperback-book-006,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+book-paperback-book-011,plane-skew,2026-11-12,区域 1 Logo 框转角 26° → 21.8°
+book-paperback-book-013,plane-skew,2026-11-12,区域 1 Logo 框转角 16° → 10°
+book-paperback-book-014,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -10.5°
+book-paperback-book-019,plane-skew,2026-11-12,区域 1 Logo 框转角 -24° → -18.7°
+book-paperback-book-021,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -7.5°
+book-paperback-book-025,plane-skew,2026-11-12,区域 1 Logo 框转角 -24° → -23.5°
+book-paperback-book-027,plane-skew,2026-11-12,区域 1 Logo 框转角 -27° → -28.6°
+book-paperback-book-031,plane-skew,2026-11-12,区域 1 Logo 框转角 -13° → -12.7°
+book-paperback-book-032,plane-skew,2026-11-12,区域 1 Logo 框转角 3.9° → 3.8°
+book-paperback-book-033,plane-skew,2026-11-12,透视变了
+book-paperback-book-034,plane-skew,2026-11-12,区域 1 Logo 框转角 -18° → -18.3°
+book-paperback-book-036,plane-skew,2026-11-12,透视变了
+book-paperback-book-037,plane-skew,2026-11-12,区域 1 Logo 框转角 5° → 4.8°
+book-paperback-book-038,plane-skew,2026-11-12,区域 1 Logo 框转角 -12° → -12.4°
+book-paperback-book-039,plane-skew,2026-11-12,透视变了
+book-paperback-book-040,plane-skew,2026-11-12,区域 1 Logo 框转角 13° → 12.2°
+book-square-book-004,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -2.1°
+book-square-book-005,plane-skew,2026-11-12,区域 1 Logo 框转角 8° → 9.2°
+book-square-book-025,plane-skew,2026-11-12,区域 1 Logo 框转角 4.5° → 4.3°
+book-square-book-029,plane-skew,2026-11-12,透视变了
+book-square-book-035,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -9.3°
+book-square-book-036,plane-skew,2026-11-12,透视变了
+book-square-book-037,plane-skew,2026-11-12,透视变了
+brochure-trifold-brochure-004,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.4°
+brochure-trifold-brochure-006,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+brochure-trifold-brochure-008,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+brochure-trifold-brochure-009,plane-skew,2026-11-12,区域 1 Logo 框转角 4.7° → 4.8°
+brochure-trifold-brochure-010,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+brochure-trifold-brochure-012,plane-skew,2026-11-12,透视变了
+brochure-trifold-brochure-014,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+brochure-trifold-brochure-017,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+brochure-trifold-brochure-020,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+brochure-trifold-brochure-023,plane-skew,2026-11-12,透视变了
+brochure-trifold-brochure-024,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+brochure-trifold-brochure-028,plane-skew,2026-11-12,区域 1 Logo 框转角 4° → 2.5°
+brochure-trifold-brochure-030,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+brochure-trifold-brochure-032,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2.6°
+brochure-trifold-brochure-038,plane-skew,2026-11-12,区域 1 Logo 框转角 7° → 7.1°
+business-card-007,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+business-card-009,plane-skew,2026-11-12,区域 1 Logo 框转角 16° → 18.6°
+business-card-010,plane-skew,2026-11-12,区域 1 Logo 框转角 -19° → -21.7°
+business-card-015,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+business-card-017,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+business-card-021,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+business-card-031,plane-skew,2026-11-12,区域 2 Logo 框转角 -13° → -15.6°
+business-card-035,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+calendar-001,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+calendar-002,plane-skew,2026-11-12,透视变了
+calendar-004,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+calendar-005,plane-skew,2026-11-12,透视变了
+calendar-007,plane-skew,2026-11-12,透视变了
+calendar-008,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+calendar-010,plane-skew,2026-11-12,透视变了
+calendar-013,plane-skew,2026-11-12,透视变了
+calendar-014,plane-skew,2026-11-12,透视变了
+calendar-015,plane-skew,2026-11-12,透视变了
+calendar-016,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+calendar-019,plane-skew,2026-11-12,区域 1 Logo 框转角 4.1° → 4°
+calendar-020,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+calendar-022,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+calendar-026,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+calendar-027,plane-skew,2026-11-12,透视变了
+calendar-030,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+calendar-031,plane-skew,2026-11-12,透视变了
+calendar-032,plane-skew,2026-11-12,区域 1 Logo 框转角 3° → 2.8°
+calendar-034,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+calendar-035,plane-skew,2026-11-12,透视变了
+calendar-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+calendar-038,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+canvas-025,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+cd-case-002,plane-skew,2026-11-12,区域 1 Logo 框转角 -12.2° → -12.3°
+cd-case-004,plane-skew,2026-11-12,区域 1 Logo 框转角 10.4° → 10.5°
+cd-case-010,plane-skew,2026-11-12,区域 1 Logo 框转角 -11.4° → -11.5°
+cd-case-013,plane-skew,2026-11-12,透视变了
+cd-case-022,plane-skew,2026-11-12,透视变了
+cd-case-023,plane-skew,2026-11-12,透视变了
+cd-case-025,plane-skew,2026-11-12,透视变了
+cd-case-027,plane-skew,2026-11-12,透视变了
+cd-case-028,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.7°
+cd-case-029,plane-skew,2026-11-12,区域 1 Logo 框转角 6.9° → 6.8°
+cd-case-030,plane-skew,2026-11-12,透视变了
+cd-case-033,plane-skew,2026-11-12,透视变了
+cd-case-035,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+cd-case-039,plane-skew,2026-11-12,透视变了
+cd-cover-003,plane-skew,2026-11-12,透视变了
+cd-cover-004,plane-skew,2026-11-12,透视变了
+cd-cover-017,plane-skew,2026-11-12,区域 1 Logo 框转角 4.5° → 4.6°
+cd-cover-020,plane-skew,2026-11-12,透视变了
+cd-cover-027,plane-skew,2026-11-12,透视变了
+cd-cover-034,plane-skew,2026-11-12,透视变了
+cd-cover-039,plane-skew,2026-11-12,区域 1 Logo 框转角 -10.8° → -10.9°
+cd-sleeve-002,plane-skew,2026-11-12,区域 1 Logo 框转角 13.2° → 13.3°
+cd-sleeve-006,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+cd-sleeve-009,plane-skew,2026-11-12,透视变了
+cd-sleeve-019,plane-skew,2026-11-12,透视变了
+cd-sleeve-022,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+cd-sleeve-023,plane-skew,2026-11-12,透视变了
+cd-sleeve-028,plane-skew,2026-11-12,区域 1 Logo 框转角 -17° → -17.1°
+cd-sleeve-030,plane-skew,2026-11-12,透视变了
+cd-sleeve-034,plane-skew,2026-11-12,区域 1 Logo 框转角 13.4° → 13.5°
+cd-sleeve-038,plane-skew,2026-11-12,透视变了
+cereal-box-005,plane-skew,2026-11-12,透视变了
+cereal-box-006,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+cereal-box-009,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.4°
+cereal-box-010,plane-skew,2026-11-12,区域 1 Logo 框转角 -6.4° → -6.5°
+cereal-box-013,plane-skew,2026-11-12,区域 1 Logo 框转角 14.6° → 14.7°
+cereal-box-015,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+cereal-box-020,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+cereal-box-025,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+cereal-box-032,plane-skew,2026-11-12,透视变了
+cereal-box-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+cereal-box-039,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1°
+cereal-box-040,plane-skew,2026-11-12,区域 1 Logo 框转角 -3.3° → -3.5°
+christmas-012,plane-skew,2026-11-12,区域 1 Logo 框转角 12.3° → 12.4°
+etsy-038,plane-skew,2026-11-12,区域 1 Logo 框转角 -11° → -11.1°
+flyer-005,plane-skew,2026-11-12,区域 1 Logo 框转角 12° → 17.1°
+flyer-006,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+flyer-007,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+flyer-014,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+flyer-016,plane-skew,2026-11-12,透视变了
+flyer-019,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+flyer-020,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+flyer-022,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+flyer-024,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+flyer-028,plane-skew,2026-11-12,区域 1 Logo 框转角 -11° → -20.6°
+flyer-032,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+flyer-034,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+flyer-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+flyer-039,plane-skew,2026-11-12,区域 1 Logo 框转角 -4.5° → -4.4°
+flyer-040,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+greeting-card-postcard-005,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+greeting-card-postcard-007,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+greeting-card-postcard-012,plane-skew,2026-11-12,区域 2 Logo 框转角 4° → 6.5°
+greeting-card-postcard-013,plane-skew,2026-11-12,透视变了
+greeting-card-postcard-017,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -8.6°
+greeting-card-postcard-019,plane-skew,2026-11-12,区域 2 Logo 框转角 10° → 11.7°
+greeting-card-postcard-029,plane-skew,2026-11-12,区域 1 Logo 框转角 -6° → -4.2°
+halloween-036,plane-skew,2026-11-12,透视变了
+id-card-id-badge-006,plane-skew,2026-11-12,透视变了
+id-card-id-badge-011,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+magazine-ad-004,plane-skew,2026-11-12,区域 1 Logo 框转角 8° → 10.4°
+magazine-ad-039,plane-skew,2026-11-12,区域 1 Logo 框转角 6° → 7.8°
+magazine-cover-002,plane-skew,2026-11-12,透视变了
+magazine-cover-005,plane-skew,2026-11-12,透视变了
+magazine-cover-006,plane-skew,2026-11-12,区域 1 Logo 框转角 -8° → -6.4°
+magazine-cover-009,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+magazine-cover-011,plane-skew,2026-11-12,区域 1 Logo 框转角 -25° → -25.7°
+magazine-cover-013,plane-skew,2026-11-12,区域 1 Logo 框转角 7° → 6.7°
+magazine-cover-021,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+magazine-cover-022,plane-skew,2026-11-12,区域 1 Logo 框转角 -8° → -9.9°
+magazine-cover-024,plane-skew,2026-11-12,透视变了
+magazine-cover-025,plane-skew,2026-11-12,区域 1 Logo 框转角 -11° → -11.9°
+magazine-cover-030,plane-skew,2026-11-12,区域 1 Logo 框转角 6° → 6.4°
+magazine-cover-037,plane-skew,2026-11-12,区域 1 Logo 框转角 12° → 10.2°
+magazine-newspaper-010,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+magazine-newspaper-015,plane-skew,2026-11-12,区域 1 Logo 框转角 7.8° → 8°
+magazine-newspaper-016,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+magazine-newspaper-021,plane-skew,2026-11-12,透视变了
+magazine-newspaper-032,plane-skew,2026-11-12,区域 1 Logo 框转角 -4° → -6.4°
+magazine-newspaper-ad-005,plane-skew,2026-11-12,区域 1 Logo 框转角 -5° → -7.5°
+magazine-newspaper-ad-007,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -2.8°
+magazine-newspaper-ad-016,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+magazine-newspaper-ad-017,plane-skew,2026-11-12,透视变了
+magazine-newspaper-ad-021,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2°
+magazine-newspaper-ad-022,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+magazine-newspaper-ad-026,plane-skew,2026-11-12,区域 1 Logo 框转角 -4° → -7.6°
+magazine-newspaper-ad-027,plane-skew,2026-11-12,透视变了
+magazine-newspaper-ad-034,plane-skew,2026-11-12,区域 1 Logo 框转角 9.4° → 9.5°
+mailer-box-002,plane-skew,2026-11-12,区域 1 Logo 框转角 -5.8° → -5.7°
+mailer-box-011,plane-skew,2026-11-12,区域 1 Logo 框转角 11.5° → 11.8°
+mailer-box-014,plane-skew,2026-11-12,区域 1 Logo 框转角 10.5° → 10.6°
+mailer-box-016,plane-skew,2026-11-12,区域 1 Logo 框转角 16.4° → 16.7°
+mailer-box-018,plane-skew,2026-11-12,透视变了
+mailer-box-019,plane-skew,2026-11-12,透视变了
+mailer-box-022,plane-skew,2026-11-12,区域 1 Logo 框转角 20.2° → 20.4°
+mailer-box-028,plane-skew,2026-11-12,透视变了
+mailer-box-029,plane-skew,2026-11-12,区域 1 Logo 框转角 -12.9° → -13°
+mailer-box-036,plane-skew,2026-11-12,区域 1 Logo 框转角 -10.8° → -10.9°
+mailer-box-039,plane-skew,2026-11-12,透视变了
+menu-001,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+menu-002,plane-skew,2026-11-12,区域 1 Logo 框转角 9.1° → 9.2°
+menu-004,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+menu-005,plane-skew,2026-11-12,透视变了
+menu-008,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -5.7°
+menu-009,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+menu-012,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+menu-015,plane-skew,2026-11-12,区域 1 Logo 框转角 3° → 4.3°
+menu-018,plane-skew,2026-11-12,区域 1 Logo 框转角 -5° → -6.8°
+menu-019,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+menu-021,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+menu-023,plane-skew,2026-11-12,区域 1 Logo 框转角 3° → 2.9°
+menu-025,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+menu-030,plane-skew,2026-11-12,透视变了
+menu-032,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -2.6°
+menu-035,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+menu-038,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -7.5°
+new-year-009,plane-skew,2026-11-12,区域 1 Logo 框转角 15° → 15.4°
+new-year-028,plane-skew,2026-11-12,区域 1 Logo 框转角 18.8° → 19.1°
+new-year-037,plane-skew,2026-11-12,区域 1 Logo 框转角 -10° → -13.4°
+notebook-leather-notebook-002,plane-skew,2026-11-12,区域 1 Logo 框转角 11.4° → 11.3°
+notebook-leather-notebook-005,plane-skew,2026-11-12,透视变了
+notebook-leather-notebook-011,plane-skew,2026-11-12,区域 1 Logo 框转角 12° → 12.5°
+notebook-leather-notebook-012,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+notebook-leather-notebook-015,plane-skew,2026-11-12,透视变了
+notebook-leather-notebook-022,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+notebook-leather-notebook-027,plane-skew,2026-11-12,透视变了
+notebook-leather-notebook-031,plane-skew,2026-11-12,透视变了
+notebook-leather-notebook-033,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+notebook-spiral-notebook-002,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+notebook-spiral-notebook-006,plane-skew,2026-11-12,区域 1 Logo 框转角 -3.3° → -3.1°
+notebook-spiral-notebook-007,plane-skew,2026-11-12,区域 1 Logo 框转角 9° → 13.6°
+notebook-spiral-notebook-013,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -5.3°
+notebook-spiral-notebook-014,plane-skew,2026-11-12,区域 1 Logo 框转角 6.5° → 6.6°
+notebook-spiral-notebook-017,plane-skew,2026-11-12,区域 1 Logo 框转角 -7.4° → -7.3°
+notebook-spiral-notebook-022,plane-skew,2026-11-12,区域 1 Logo 框转角 -9° → -13.8°
+notebook-spiral-notebook-035,plane-skew,2026-11-12,透视变了
+notebook-spiral-notebook-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+notebook-spiral-notebook-037,plane-skew,2026-11-12,透视变了
+picture-frame-001,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+picture-frame-003,plane-skew,2026-11-12,透视变了
+picture-frame-020,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+picture-frame-022,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+picture-frame-033,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+picture-frame-037,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+pizza-box-005,plane-skew,2026-11-12,区域 1 Logo 框转角 11.2° → 11.3°
+pizza-box-006,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+pizza-box-007,plane-skew,2026-11-12,区域 1 Logo 框转角 6.9° → 7.1°
+pizza-box-010,plane-skew,2026-11-12,区域 1 Logo 框转角 15.8° → 15.9°
+pizza-box-012,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2°
+pizza-box-014,plane-skew,2026-11-12,区域 1 Logo 框转角 -13.9° → -14°
+pizza-box-016,plane-skew,2026-11-12,区域 1 Logo 框转角 -14.9° → -15.1°
+pizza-box-018,plane-skew,2026-11-12,区域 1 Logo 框转角 12.7° → 12.9°
+pizza-box-020,plane-skew,2026-11-12,区域 1 Logo 框转角 8.5° → 8.6°
+pizza-box-021,plane-skew,2026-11-12,区域 1 Logo 框转角 -12.4° → -12.5°
+pizza-box-024,plane-skew,2026-11-12,区域 1 Logo 框转角 9.7° → 9.9°
+pizza-box-028,plane-skew,2026-11-12,透视变了
+pizza-box-032,plane-skew,2026-11-12,区域 1 Logo 框转角 7.8° → 7.9°
+pizza-box-034,plane-skew,2026-11-12,区域 1 Logo 框转角 -5.3° → -5.5°
+pizza-box-039,plane-skew,2026-11-12,区域 1 Logo 框转角 5.2° → 6.3°
+poster-11x17-poster-004,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -2.6°
+poster-11x17-poster-011,plane-skew,2026-11-12,透视变了
+poster-11x17-poster-016,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-11x17-poster-018,plane-skew,2026-11-12,区域 1 Logo 框转角 -4.1° → -4°
+poster-11x17-poster-019,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-11x17-poster-020,plane-skew,2026-11-12,区域 1 Logo 框转角 -3° → -2.4°
+poster-11x17-poster-021,plane-skew,2026-11-12,区域 1 Logo 框转角 6° → 4.5°
+poster-11x17-poster-026,plane-skew,2026-11-12,透视变了
+poster-11x17-poster-034,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-11x17-poster-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+poster-11x17-poster-040,plane-skew,2026-11-12,区域 1 Logo 框转角 6° → 6.2°
+poster-canvas-poster-006,plane-skew,2026-11-12,区域 1 Logo 框转角 -4° → -3.6°
+poster-canvas-poster-008,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-canvas-poster-020,plane-skew,2026-11-12,区域 1 Logo 框转角 -13° → -16.6°
+poster-canvas-poster-021,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+poster-canvas-poster-022,plane-skew,2026-11-12,区域 1 Logo 框转角 5° → 2.6°
+poster-canvas-poster-028,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-canvas-poster-040,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+poster-mdf-poster-003,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+poster-mdf-poster-004,plane-skew,2026-11-12,透视变了
+poster-mdf-poster-016,plane-skew,2026-11-12,透视变了
+poster-mdf-poster-019,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+poster-mdf-poster-020,plane-skew,2026-11-12,区域 1 Logo 框转角 -7° → -1.5°
+poster-mdf-poster-029,plane-skew,2026-11-12,透视变了
+poster-mdf-poster-036,plane-skew,2026-11-12,区域 1 Logo 框转角 -5° → -6°
+poster-mdf-poster-038,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 3.8°
+poster-minimal-poster-002,plane-skew,2026-11-12,区域 1 Logo 框转角 17° → 20.1°
+poster-minimal-poster-004,plane-skew,2026-11-12,区域 1 Logo 框转角 7° → 11.1°
+poster-minimal-poster-011,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-minimal-poster-012,plane-skew,2026-11-12,区域 1 Logo 框转角 -22° → -26.6°
+poster-minimal-poster-023,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-minimal-poster-024,plane-skew,2026-11-12,透视变了
+poster-minimal-poster-026,plane-skew,2026-11-12,区域 1 Logo 框转角 4° → 6°
+poster-minimal-poster-028,plane-skew,2026-11-12,透视变了
+poster-minimal-poster-034,plane-skew,2026-11-12,区域 1 Logo 框转角 -3.7° → -3.6°
+poster-minimal-poster-036,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-minimal-poster-037,plane-skew,2026-11-12,区域 1 Logo 框转角 6° → 7°
+poster-movie-poster-009,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+poster-movie-poster-017,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-movie-poster-021,plane-skew,2026-11-12,透视变了
+poster-movie-poster-034,plane-skew,2026-11-12,区域 1 Logo 框转角 5° → 2.4°
+poster-movie-poster-035,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+poster-movie-poster-037,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-street-poster-001,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-street-poster-018,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-street-poster-030,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+poster-wall-poster-004,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-wall-poster-005,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-wall-poster-018,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+poster-wall-poster-034,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-wall-poster-037,plane-skew,2026-11-12,透视变了
+shopify-008,plane-skew,2026-11-12,区域 1 Logo 框转角 -14.3° → -14.5°
+shopify-024,plane-skew,2026-11-12,区域 1 Logo 框转角 -17° → -15°
+software-box-011,plane-skew,2026-11-12,区域 1 Logo 框转角 26.7° → 26.8°
+software-box-014,plane-skew,2026-11-12,区域 1 Logo 框转角 -20.6° → -20.7°
+software-box-015,plane-skew,2026-11-12,透视变了
+software-box-019,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+software-box-023,plane-skew,2026-11-12,区域 1 Logo 框转角 -14.4° → -14.5°
+software-box-032,plane-skew,2026-11-12,区域 1 Logo 框转角 -32.3° → -32.4°
+software-box-036,plane-skew,2026-11-12,区域 1 Logo 框转角 -15.7° → -15.9°
+square-box-004,plane-skew,2026-11-12,区域 1 Logo 框转角 9.3° → 9.4°
+square-box-005,plane-skew,2026-11-12,区域 1 Logo 框转角 -17.3° → -17.5°
+square-box-006,plane-skew,2026-11-12,透视变了
+square-box-009,plane-skew,2026-11-12,区域 1 Logo 框转角 -16° → -16.2°
+square-box-012,plane-skew,2026-11-12,透视变了
+square-box-013,plane-skew,2026-11-12,透视变了
+square-box-016,plane-skew,2026-11-12,透视变了
+square-box-019,plane-skew,2026-11-12,透视变了
+square-box-022,plane-skew,2026-11-12,区域 1 Logo 框转角 12.8° → 13.1°
+square-box-028,plane-skew,2026-11-12,区域 1 Logo 框转角 -15.9° → -16°
+square-box-030,plane-skew,2026-11-12,透视变了
+square-box-032,plane-skew,2026-11-12,透视变了
+square-box-034,plane-skew,2026-11-12,区域 1 Logo 框转角 -14.8° → -15.5°
+square-box-038,plane-skew,2026-11-12,透视变了
+sticker-blank-sticker-017,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -1.7°
+sticker-blank-sticker-028,plane-skew,2026-11-12,区域 1 Logo 框转角 6° → 8.2°
+sticker-blank-sticker-036,plane-skew,2026-11-12,区域 1 Logo 框转角 26° → 31.1°
+sticker-blank-sticker-039,plane-skew,2026-11-12,区域 1 Logo 框转角 10° → 10.3°
+sticker-bumper-sticker-009,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → -5°
+sticker-bumper-sticker-030,plane-skew,2026-11-12,区域 1 Logo 框转角 9° → 9.9°
+thanksgiving-016,plane-skew,2026-11-12,区域 1 Logo 框转角 -15° → -15.8°
+valentine-032,plane-skew,2026-11-12,透视变了
+wall-art-033,plane-skew,2026-11-12,区域 1 Logo 框转角 0° → 2°
+album-cover-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.7°
+album-cover-002,plane-turn,2026-11-12,区域 1 Logo 框转角 11° → 12.8°
+album-cover-004,plane-turn,2026-11-12,区域 1 Logo 框转角 -4.1° → -4°
+album-cover-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+album-cover-006,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -5°
+album-cover-008,plane-turn,2026-11-12,区域 1 Logo 框转角 -13° → -15.6°
+album-cover-009,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2.8°
+album-cover-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+album-cover-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+album-cover-014,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -11.9°
+album-cover-016,plane-turn,2026-11-12,区域 1 Logo 框转角 9° → 11.4°
+album-cover-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+album-cover-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+album-cover-019,plane-turn,2026-11-12,区域 1 Logo 框转角 15° → 16.9°
+album-cover-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+album-cover-022,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+album-cover-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+album-cover-026,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+album-cover-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+album-cover-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+album-cover-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+album-cover-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+album-cover-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+album-cover-040,plane-turn,2026-11-12,区域 1 Logo 框转角 -10° → -13.5°
+amazon-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+amazon-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+bar-coaster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.6°
+beer-coaster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+beer-coaster-028,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-cover-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+book-cover-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+book-cover-005,plane-turn,2026-11-12,区域 1 Logo 框转角 -8° → -12.5°
+book-cover-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+book-cover-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -7.8° → -7.1°
+book-cover-011,plane-turn,2026-11-12,区域 1 Logo 框转角 -14° → -13.9°
+book-cover-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.7°
+book-cover-015,plane-turn,2026-11-12,区域 1 Logo 框转角 -9° → -11.7°
+book-cover-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-cover-021,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-cover-022,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -15.6°
+book-cover-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+book-cover-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -18° → -19.8°
+book-cover-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+book-cover-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+book-cover-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+book-cover-031,plane-turn,2026-11-12,区域 1 Logo 框转角 -10° → -18°
+book-cover-035,plane-turn,2026-11-12,区域 1 Logo 框转角 -13° → -17.2°
+book-cover-036,plane-turn,2026-11-12,区域 1 Logo 框转角 9° → 3.4°
+book-cover-037,plane-turn,2026-11-12,区域 1 Logo 框转角 -11° → -6.7°
+book-cover-038,plane-turn,2026-11-12,区域 1 Logo 框转角 -11° → -20.6°
+book-cover-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-hardcover-book-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3.4°
+book-hardcover-book-002,plane-turn,2026-11-12,区域 1 Logo 框转角 -20° → -19.7°
+book-hardcover-book-003,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-hardcover-book-004,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-hardcover-book-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-hardcover-book-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.2°
+book-hardcover-book-008,plane-turn,2026-11-12,区域 1 Logo 框转角 -14° → -18.8°
+book-hardcover-book-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+book-hardcover-book-013,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -2.4°
+book-hardcover-book-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+book-hardcover-book-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+book-hardcover-book-018,plane-turn,2026-11-12,区域 1 Logo 框转角 -10° → -31.8°
+book-hardcover-book-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+book-hardcover-book-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+book-hardcover-book-021,plane-turn,2026-11-12,区域 1 Logo 框转角 -14° → -17.2°
+book-hardcover-book-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -13° → -19.7°
+book-hardcover-book-026,plane-turn,2026-11-12,区域 1 Logo 框转角 -8° → -5.4°
+book-hardcover-book-029,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -2.5°
+book-hardcover-book-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -5.3°
+book-hardcover-book-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.2°
+book-hardcover-book-033,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-hardcover-book-035,plane-turn,2026-11-12,区域 1 Logo 框转角 -9° → -13.8°
+book-hardcover-book-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+book-hardcover-book-039,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -3.5°
+book-hardcover-book-040,plane-turn,2026-11-12,区域 1 Logo 框转角 -11° → -6.3°
+book-paperback-book-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+book-paperback-book-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+book-paperback-book-011,plane-turn,2026-11-12,区域 1 Logo 框转角 26° → 21.8°
+book-paperback-book-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+book-paperback-book-013,plane-turn,2026-11-12,区域 1 Logo 框转角 16° → 10°
+book-paperback-book-014,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -10.5°
+book-paperback-book-019,plane-turn,2026-11-12,区域 1 Logo 框转角 -24° → -18.7°
+book-paperback-book-021,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -7.5°
+book-paperback-book-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -24° → -23.5°
+book-paperback-book-027,plane-turn,2026-11-12,区域 1 Logo 框转角 -27° → -28.6°
+book-paperback-book-031,plane-turn,2026-11-12,区域 1 Logo 框转角 -13° → -12.7°
+book-paperback-book-032,plane-turn,2026-11-12,区域 1 Logo 框转角 3.9° → 3.8°
+book-paperback-book-033,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-paperback-book-034,plane-turn,2026-11-12,区域 1 Logo 框转角 -18° → -18.3°
+book-paperback-book-036,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-paperback-book-037,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 4.8°
+book-paperback-book-038,plane-turn,2026-11-12,区域 1 Logo 框转角 -12° → -12.4°
+book-paperback-book-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-paperback-book-040,plane-turn,2026-11-12,区域 1 Logo 框转角 13° → 12.2°
+book-square-book-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+book-square-book-004,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.1°
+book-square-book-005,plane-turn,2026-11-12,区域 1 Logo 框转角 8° → 9.2°
+book-square-book-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+book-square-book-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+book-square-book-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+book-square-book-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+book-square-book-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.1°
+book-square-book-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+book-square-book-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.6°
+book-square-book-025,plane-turn,2026-11-12,区域 1 Logo 框转角 4.5° → 4.3°
+book-square-book-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.1°
+book-square-book-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+book-square-book-029,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-square-book-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+book-square-book-035,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -9.3°
+book-square-book-036,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-square-book-037,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+book-square-book-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+brochure-trifold-brochure-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.4°
+brochure-trifold-brochure-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+brochure-trifold-brochure-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+brochure-trifold-brochure-009,plane-turn,2026-11-12,区域 1 Logo 框转角 4.7° → 4.8°
+brochure-trifold-brochure-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+brochure-trifold-brochure-012,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+brochure-trifold-brochure-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+brochure-trifold-brochure-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+brochure-trifold-brochure-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+brochure-trifold-brochure-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+brochure-trifold-brochure-023,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+brochure-trifold-brochure-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+brochure-trifold-brochure-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+brochure-trifold-brochure-028,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 2.5°
+brochure-trifold-brochure-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+brochure-trifold-brochure-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.6°
+brochure-trifold-brochure-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+brochure-trifold-brochure-038,plane-turn,2026-11-12,区域 1 Logo 框转角 7° → 7.1°
+business-card-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3°
+business-card-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+business-card-009,plane-turn,2026-11-12,区域 1 Logo 框转角 16° → 18.6°
+business-card-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -19° → -21.7°
+business-card-011,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -1.3°
+business-card-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+business-card-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+business-card-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+business-card-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+business-card-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+business-card-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.7°
+business-card-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+business-card-022,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+business-card-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+business-card-027,plane-turn,2026-11-12,区域 2 Logo 框转角 0° → -0.6°
+business-card-031,plane-turn,2026-11-12,区域 2 Logo 框转角 -13° → -15.6°
+business-card-032,plane-turn,2026-11-12,区域 1 Logo 框转角 -6.2° → -6.3°
+business-card-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.7°
+business-card-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+business-card-038,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2.2°
+business-card-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+calendar-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+calendar-002,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+calendar-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+calendar-007,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+calendar-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+calendar-010,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+calendar-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+calendar-013,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-014,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-015,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+calendar-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+calendar-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+calendar-019,plane-turn,2026-11-12,区域 1 Logo 框转角 4.1° → 4°
+calendar-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+calendar-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+calendar-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+calendar-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+calendar-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -3.4° → -3.3°
+calendar-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+calendar-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.6°
+calendar-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+calendar-031,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-032,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2.8°
+calendar-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+calendar-035,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+calendar-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+calendar-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.5°
+calendar-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+calendar-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+calendar-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+canvas-001,plane-turn,2026-11-12,区域 1 Logo 框转角 3.1° → 3°
+canvas-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+canvas-004,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.3°
+canvas-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+canvas-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+canvas-007,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 1.2°
+canvas-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+canvas-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+canvas-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -0.1°
+canvas-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+canvas-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.3°
+canvas-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+canvas-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+canvas-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+canvas-020,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 3.1°
+canvas-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+canvas-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+canvas-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+canvas-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+canvas-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+canvas-028,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.5°
+canvas-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+canvas-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+canvas-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+canvas-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+canvas-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+canvas-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+canvas-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.3°
+canvas-037,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 1.6°
+canvas-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+canvas-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3.6°
+canvas-040,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2°
+cd-case-002,plane-turn,2026-11-12,区域 1 Logo 框转角 -12.2° → -12.3°
+cd-case-004,plane-turn,2026-11-12,区域 1 Logo 框转角 10.4° → 10.5°
+cd-case-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+cd-case-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -11.4° → -11.5°
+cd-case-011,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+cd-case-013,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+cd-case-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-019,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-020,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-021,plane-turn,2026-11-12,区域 1 Logo 框转角 -3.5° → -3.7°
+cd-case-022,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-023,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-025,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+cd-case-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.7°
+cd-case-029,plane-turn,2026-11-12,区域 1 Logo 框转角 6.9° → 6.8°
+cd-case-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-033,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-case-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+cd-case-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.6°
+cd-case-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.6°
+cd-case-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.5°
+cd-cover-003,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-004,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.7°
+cd-cover-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.2°
+cd-cover-007,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+cd-cover-009,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-010,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+cd-cover-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+cd-cover-017,plane-turn,2026-11-12,区域 1 Logo 框转角 4.5° → 4.6°
+cd-cover-020,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.3°
+cd-cover-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+cd-cover-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+cd-cover-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.3°
+cd-cover-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+cd-cover-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+cd-cover-034,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+cd-cover-037,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-038,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-cover-039,plane-turn,2026-11-12,区域 1 Logo 框转角 -10.8° → -10.9°
+cd-cover-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+cd-sleeve-002,plane-turn,2026-11-12,区域 1 Logo 框转角 13.2° → 13.3°
+cd-sleeve-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+cd-sleeve-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+cd-sleeve-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+cd-sleeve-009,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-sleeve-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+cd-sleeve-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+cd-sleeve-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+cd-sleeve-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+cd-sleeve-019,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-sleeve-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.4°
+cd-sleeve-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+cd-sleeve-023,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-sleeve-025,plane-turn,2026-11-12,区域 1 Logo 框转角 10.7° → 10.8°
+cd-sleeve-026,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-sleeve-028,plane-turn,2026-11-12,区域 1 Logo 框转角 -17° → -17.1°
+cd-sleeve-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-sleeve-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+cd-sleeve-034,plane-turn,2026-11-12,区域 1 Logo 框转角 13.4° → 13.5°
+cd-sleeve-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+cd-sleeve-038,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cd-sleeve-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.5°
+cereal-box-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3.1°
+cereal-box-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+cereal-box-003,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cereal-box-004,plane-turn,2026-11-12,区域 1 Logo 框转角 3.2° → 3.3°
+cereal-box-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cereal-box-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+cereal-box-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+cereal-box-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.4°
+cereal-box-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.4°
+cereal-box-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -6.4° → -6.5°
+cereal-box-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+cereal-box-013,plane-turn,2026-11-12,区域 1 Logo 框转角 14.6° → 14.7°
+cereal-box-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.2°
+cereal-box-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+cereal-box-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+cereal-box-019,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cereal-box-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+cereal-box-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+cereal-box-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+cereal-box-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+cereal-box-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+cereal-box-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.3°
+cereal-box-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+cereal-box-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+cereal-box-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cereal-box-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+cereal-box-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.7°
+cereal-box-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+cereal-box-037,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cereal-box-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+cereal-box-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+cereal-box-040,plane-turn,2026-11-12,区域 1 Logo 框转角 -3.3° → -3.5°
+christmas-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+christmas-012,plane-turn,2026-11-12,区域 1 Logo 框转角 12.3° → 12.4°
+christmas-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+christmas-031,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+christmas-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+coffee-bag-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.5°
+coffee-bag-002,plane-turn,2026-11-12,区域 1 Logo 框挪动 11.3%
+coffee-bag-006,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-010,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-015,plane-turn,2026-11-12,区域 1 Logo 框转角 5.4° → 5.3°
+coffee-bag-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+coffee-bag-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+coffee-bag-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-033,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-036,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-bag-040,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+coffee-pouch-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 23.2°
+coffee-pouch-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-002,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 3.9°
+cosmetic-004,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -15.7°
+cosmetic-008,plane-turn,2026-11-12,区域 1 Logo 框转角 -16° → -16.4°
+cosmetic-010,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3°
+cosmetic-013,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-017,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -4.7°
+cosmetic-021,plane-turn,2026-11-12,区域 1 Logo 框挪动 3.6%
+cosmetic-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-028,plane-turn,2026-11-12,区域 1 Logo 框转角 12.4° → 12°
+cosmetic-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-033,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-034,plane-turn,2026-11-12,区域 1 Logo 框转角 -7.9° → -7.1°
+cosmetic-036,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+cosmetic-038,plane-turn,2026-11-12,区域 1 Logo 框转角 -19° → -19.1°
+cosmetic-040,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+easter-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.5°
+easter-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+etsy-014,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+etsy-038,plane-turn,2026-11-12,区域 1 Logo 框转角 -11° → -11.1°
+etsy-040,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+flyer-005,plane-turn,2026-11-12,区域 1 Logo 框转角 12° → 17.1°
+flyer-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+flyer-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+flyer-010,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 1.8°
+flyer-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+flyer-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+flyer-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+flyer-016,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+flyer-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+flyer-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+flyer-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+flyer-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+flyer-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+flyer-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+flyer-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+flyer-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+flyer-028,plane-turn,2026-11-12,区域 1 Logo 框转角 -11° → -20.6°
+flyer-029,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.4°
+flyer-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+flyer-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+flyer-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+flyer-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+flyer-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+flyer-039,plane-turn,2026-11-12,区域 1 Logo 框转角 -4.5° → -4.4°
+flyer-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+greeting-card-postcard-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+greeting-card-postcard-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+greeting-card-postcard-010,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2.4°
+greeting-card-postcard-012,plane-turn,2026-11-12,区域 2 Logo 框转角 4° → 6.5°
+greeting-card-postcard-013,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+greeting-card-postcard-016,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -5.2°
+greeting-card-postcard-017,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -8.6°
+greeting-card-postcard-019,plane-turn,2026-11-12,区域 2 Logo 框转角 10° → 11.7°
+greeting-card-postcard-021,plane-turn,2026-11-12,区域 1 Logo 框转角 3.8° → 3.9°
+greeting-card-postcard-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+greeting-card-postcard-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+greeting-card-postcard-026,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2°
+greeting-card-postcard-029,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -4.2°
+greeting-card-postcard-032,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -2.8°
+greeting-card-postcard-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+greeting-card-postcard-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+greeting-card-postcard-040,plane-turn,2026-11-12,区域 1 Logo 框转角 3.4° → 3.3°
+halloween-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+halloween-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+halloween-036,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+halloween-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+id-card-id-badge-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+id-card-id-badge-006,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+id-card-id-badge-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+id-card-id-badge-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+id-card-id-badge-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+id-card-id-badge-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+id-card-id-badge-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+id-card-id-badge-028,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 2.8°
+id-card-id-badge-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+id-card-id-badge-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+id-card-id-badge-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+id-card-name-badge-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+id-card-name-badge-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+id-card-name-badge-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+id-card-name-badge-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+id-card-name-badge-027,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 2.8°
+id-card-name-badge-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+id-card-name-badge-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+id-card-name-badge-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+id-card-name-badge-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.7°
+magazine-ad-004,plane-turn,2026-11-12,区域 1 Logo 框转角 8° → 10.4°
+magazine-ad-039,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 7.8°
+magazine-cover-002,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-cover-004,plane-turn,2026-11-12,区域 1 Logo 框转角 3.4° → 3.5°
+magazine-cover-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-cover-006,plane-turn,2026-11-12,区域 1 Logo 框转角 -8° → -6.4°
+magazine-cover-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+magazine-cover-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.4°
+magazine-cover-011,plane-turn,2026-11-12,区域 1 Logo 框转角 -25° → -25.7°
+magazine-cover-012,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -3.6°
+magazine-cover-013,plane-turn,2026-11-12,区域 1 Logo 框转角 7° → 6.7°
+magazine-cover-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.2°
+magazine-cover-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.5°
+magazine-cover-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+magazine-cover-022,plane-turn,2026-11-12,区域 1 Logo 框转角 -8° → -9.9°
+magazine-cover-023,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -3.5°
+magazine-cover-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-cover-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -11° → -11.9°
+magazine-cover-027,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -7.5°
+magazine-cover-029,plane-turn,2026-11-12,区域 1 Logo 框转角 -5.1° → -5.2°
+magazine-cover-030,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 6.4°
+magazine-cover-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+magazine-cover-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+magazine-cover-037,plane-turn,2026-11-12,区域 1 Logo 框转角 12° → 10.2°
+magazine-cover-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+magazine-newspaper-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+magazine-newspaper-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+magazine-newspaper-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+magazine-newspaper-015,plane-turn,2026-11-12,区域 1 Logo 框转角 7.8° → 8°
+magazine-newspaper-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+magazine-newspaper-021,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-newspaper-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+magazine-newspaper-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+magazine-newspaper-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.6°
+magazine-newspaper-032,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -6.4°
+magazine-newspaper-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+magazine-newspaper-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+magazine-newspaper-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-newspaper-ad-005,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -7.5°
+magazine-newspaper-ad-007,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.8°
+magazine-newspaper-ad-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+magazine-newspaper-ad-013,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.9°
+magazine-newspaper-ad-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+magazine-newspaper-ad-017,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-newspaper-ad-020,plane-turn,2026-11-12,区域 1 Logo 框挪动 8.0%
+magazine-newspaper-ad-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+magazine-newspaper-ad-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+magazine-newspaper-ad-026,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -7.6°
+magazine-newspaper-ad-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+magazine-newspaper-ad-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2°
+magazine-newspaper-ad-034,plane-turn,2026-11-12,区域 1 Logo 框转角 9.4° → 9.5°
+magazine-newspaper-ad-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+mailer-box-002,plane-turn,2026-11-12,区域 1 Logo 框转角 -5.8° → -5.7°
+mailer-box-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+mailer-box-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+mailer-box-011,plane-turn,2026-11-12,区域 1 Logo 框转角 11.5° → 11.8°
+mailer-box-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+mailer-box-014,plane-turn,2026-11-12,区域 1 Logo 框转角 10.5° → 10.6°
+mailer-box-016,plane-turn,2026-11-12,区域 1 Logo 框转角 16.4° → 16.7°
+mailer-box-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+mailer-box-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+mailer-box-019,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+mailer-box-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+mailer-box-022,plane-turn,2026-11-12,区域 1 Logo 框转角 20.2° → 20.4°
+mailer-box-025,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+mailer-box-028,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+mailer-box-029,plane-turn,2026-11-12,区域 1 Logo 框转角 -12.9° → -13°
+mailer-box-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+mailer-box-034,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+mailer-box-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+mailer-box-036,plane-turn,2026-11-12,区域 1 Logo 框转角 -10.8° → -10.9°
+mailer-box-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+menu-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+menu-002,plane-turn,2026-11-12,区域 1 Logo 框转角 9.1° → 9.2°
+menu-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+menu-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+menu-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3°
+menu-008,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -5.7°
+menu-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+menu-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+menu-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+menu-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+menu-015,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 4.3°
+menu-018,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -6.8°
+menu-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+menu-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+menu-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+menu-023,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2.9°
+menu-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+menu-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.1°
+menu-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+menu-029,plane-turn,2026-11-12,区域 1 Logo 框挪动 8.9%
+menu-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+menu-031,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+menu-032,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.6°
+menu-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+menu-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+menu-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+menu-038,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -7.5°
+menu-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+new-year-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+new-year-009,plane-turn,2026-11-12,区域 1 Logo 框转角 15° → 15.4°
+new-year-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+new-year-025,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+new-year-028,plane-turn,2026-11-12,区域 1 Logo 框转角 18.8° → 19.1°
+new-year-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+new-year-037,plane-turn,2026-11-12,区域 1 Logo 框转角 -10° → -13.4°
+notebook-leather-notebook-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+notebook-leather-notebook-002,plane-turn,2026-11-12,区域 1 Logo 框转角 11.4° → 11.3°
+notebook-leather-notebook-005,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+notebook-leather-notebook-011,plane-turn,2026-11-12,区域 1 Logo 框转角 12° → 12.5°
+notebook-leather-notebook-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+notebook-leather-notebook-015,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+notebook-leather-notebook-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+notebook-leather-notebook-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+notebook-leather-notebook-031,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+notebook-leather-notebook-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+notebook-spiral-notebook-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+notebook-spiral-notebook-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+notebook-spiral-notebook-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+notebook-spiral-notebook-006,plane-turn,2026-11-12,区域 1 Logo 框转角 -3.3° → -3.1°
+notebook-spiral-notebook-007,plane-turn,2026-11-12,区域 1 Logo 框转角 9° → 13.6°
+notebook-spiral-notebook-013,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -5.3°
+notebook-spiral-notebook-014,plane-turn,2026-11-12,区域 1 Logo 框转角 6.5° → 6.6°
+notebook-spiral-notebook-017,plane-turn,2026-11-12,区域 1 Logo 框转角 -7.4° → -7.3°
+notebook-spiral-notebook-020,plane-turn,2026-11-12,区域 1 Logo 框转角 10.5° → 10.4°
+notebook-spiral-notebook-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.6°
+notebook-spiral-notebook-022,plane-turn,2026-11-12,区域 1 Logo 框转角 -9° → -13.8°
+notebook-spiral-notebook-035,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+notebook-spiral-notebook-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+notebook-spiral-notebook-037,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+notebook-spiral-notebook-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+perfume-001,plane-turn,2026-11-12,区域 1 Logo 框挪动 5.7%
+perfume-006,plane-turn,2026-11-12,区域 1 Logo 框挪动 2.6%
+perfume-009,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.6°
+perfume-011,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-015,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-016,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-018,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-021,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+perfume-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.2°
+perfume-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+perfume-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+perfume-040,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+picture-frame-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+picture-frame-003,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+picture-frame-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+picture-frame-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+picture-frame-008,plane-turn,2026-11-12,区域 1 Logo 框转角 4.6° → 4.5°
+picture-frame-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+picture-frame-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+picture-frame-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.2°
+picture-frame-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+picture-frame-016,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 1.8°
+picture-frame-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+picture-frame-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+picture-frame-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+picture-frame-021,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -4.9°
+picture-frame-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+picture-frame-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.1°
+picture-frame-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+picture-frame-028,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 2.6°
+picture-frame-030,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 4°
+picture-frame-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+picture-frame-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+picture-frame-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+picture-frame-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+picture-frame-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+picture-frame-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+pizza-box-005,plane-turn,2026-11-12,区域 1 Logo 框转角 11.2° → 11.3°
+pizza-box-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+pizza-box-007,plane-turn,2026-11-12,区域 1 Logo 框转角 6.9° → 7.1°
+pizza-box-010,plane-turn,2026-11-12,区域 1 Logo 框转角 15.8° → 15.9°
+pizza-box-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+pizza-box-014,plane-turn,2026-11-12,区域 1 Logo 框转角 -13.9° → -14°
+pizza-box-015,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+pizza-box-016,plane-turn,2026-11-12,区域 1 Logo 框转角 -14.9° → -15.1°
+pizza-box-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+pizza-box-018,plane-turn,2026-11-12,区域 1 Logo 框转角 12.7° → 12.9°
+pizza-box-020,plane-turn,2026-11-12,区域 1 Logo 框转角 8.5° → 8.6°
+pizza-box-021,plane-turn,2026-11-12,区域 1 Logo 框转角 -12.4° → -12.5°
+pizza-box-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+pizza-box-024,plane-turn,2026-11-12,区域 1 Logo 框转角 9.7° → 9.9°
+pizza-box-026,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+pizza-box-028,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+pizza-box-032,plane-turn,2026-11-12,区域 1 Logo 框转角 7.8° → 7.9°
+pizza-box-034,plane-turn,2026-11-12,区域 1 Logo 框转角 -5.3° → -5.5°
+pizza-box-036,plane-turn,2026-11-12,区域 1 Logo 框转角 -20.1° → -21.3°
+pizza-box-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+pizza-box-039,plane-turn,2026-11-12,区域 1 Logo 框转角 5.2° → 6.3°
+pizza-box-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+playing-cards-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+playing-cards-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+playing-cards-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+pod-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-11x17-poster-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-11x17-poster-004,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.6°
+poster-11x17-poster-005,plane-turn,2026-11-12,区域 1 Logo 框挪动 7.5%
+poster-11x17-poster-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+poster-11x17-poster-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+poster-11x17-poster-008,plane-turn,2026-11-12,区域 1 Logo 框挪动 7.5%
+poster-11x17-poster-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+poster-11x17-poster-011,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-11x17-poster-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.2°
+poster-11x17-poster-014,plane-turn,2026-11-12,区域 1 Logo 框转角 -10° → -6.9°
+poster-11x17-poster-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-11x17-poster-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.5°
+poster-11x17-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 -4.1° → -4°
+poster-11x17-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-11x17-poster-020,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.4°
+poster-11x17-poster-021,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 4.5°
+poster-11x17-poster-023,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -3.5°
+poster-11x17-poster-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+poster-11x17-poster-026,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-11x17-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-11x17-poster-028,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-11x17-poster-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-11x17-poster-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-11x17-poster-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+poster-11x17-poster-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-11x17-poster-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+poster-11x17-poster-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+poster-11x17-poster-037,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.8°
+poster-11x17-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-11x17-poster-039,plane-turn,2026-11-12,区域 1 Logo 框挪动 14.1%
+poster-11x17-poster-040,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 6.2°
+poster-canvas-poster-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-canvas-poster-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+poster-canvas-poster-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-canvas-poster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-canvas-poster-006,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -3.6°
+poster-canvas-poster-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+poster-canvas-poster-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-canvas-poster-009,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 1.7°
+poster-canvas-poster-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+poster-canvas-poster-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+poster-canvas-poster-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-canvas-poster-013,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 2.7°
+poster-canvas-poster-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-canvas-poster-015,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 5.5°
+poster-canvas-poster-017,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -2.6°
+poster-canvas-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-canvas-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-canvas-poster-020,plane-turn,2026-11-12,区域 1 Logo 框转角 -13° → -16.6°
+poster-canvas-poster-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+poster-canvas-poster-022,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 2.6°
+poster-canvas-poster-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-canvas-poster-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-canvas-poster-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-canvas-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.7°
+poster-canvas-poster-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-canvas-poster-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-canvas-poster-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+poster-canvas-poster-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-canvas-poster-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-canvas-poster-033,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -4.1°
+poster-canvas-poster-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-canvas-poster-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+poster-canvas-poster-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-canvas-poster-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+poster-canvas-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-canvas-poster-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-canvas-poster-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.8°
+poster-mdf-poster-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-mdf-poster-002,plane-turn,2026-11-12,区域 1 Logo 框转角 -4.2° → -4.3°
+poster-mdf-poster-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+poster-mdf-poster-004,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-mdf-poster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -2.2°
+poster-mdf-poster-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-mdf-poster-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+poster-mdf-poster-009,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -3.2°
+poster-mdf-poster-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2°
+poster-mdf-poster-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-mdf-poster-013,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -3.5°
+poster-mdf-poster-014,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -4.8°
+poster-mdf-poster-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+poster-mdf-poster-016,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-mdf-poster-017,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -2.9°
+poster-mdf-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -3.1°
+poster-mdf-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+poster-mdf-poster-020,plane-turn,2026-11-12,区域 1 Logo 框转角 -7° → -1.5°
+poster-mdf-poster-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-mdf-poster-022,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-mdf-poster-023,plane-turn,2026-11-12,区域 1 Logo 框转角 6.6° → 6.5°
+poster-mdf-poster-025,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -2.2°
+poster-mdf-poster-026,plane-turn,2026-11-12,区域 1 Logo 框转角 -6° → -4.5°
+poster-mdf-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -1.9°
+poster-mdf-poster-028,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -1.2°
+poster-mdf-poster-029,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-mdf-poster-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+poster-mdf-poster-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+poster-mdf-poster-032,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -1.5°
+poster-mdf-poster-034,plane-turn,2026-11-12,区域 1 Logo 框挪动 14.0%
+poster-mdf-poster-035,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -3.3°
+poster-mdf-poster-036,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -6°
+poster-mdf-poster-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-mdf-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 3.8°
+poster-mdf-poster-039,plane-turn,2026-11-12,区域 1 Logo 框转角 4.1° → 4°
+poster-minimal-poster-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-minimal-poster-002,plane-turn,2026-11-12,区域 1 Logo 框转角 17° → 20.1°
+poster-minimal-poster-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-minimal-poster-004,plane-turn,2026-11-12,区域 1 Logo 框转角 7° → 11.1°
+poster-minimal-poster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-minimal-poster-006,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 3.4°
+poster-minimal-poster-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.9°
+poster-minimal-poster-008,plane-turn,2026-11-12,区域 1 Logo 框转角 6.7° → 6.8°
+poster-minimal-poster-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.5°
+poster-minimal-poster-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-minimal-poster-012,plane-turn,2026-11-12,区域 1 Logo 框转角 -22° → -26.6°
+poster-minimal-poster-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-minimal-poster-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-minimal-poster-016,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-minimal-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 1.7°
+poster-minimal-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-minimal-poster-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.8°
+poster-minimal-poster-022,plane-turn,2026-11-12,区域 1 Logo 框转角 3° → 2°
+poster-minimal-poster-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-minimal-poster-024,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-minimal-poster-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.1°
+poster-minimal-poster-026,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 6°
+poster-minimal-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+poster-minimal-poster-028,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-minimal-poster-029,plane-turn,2026-11-12,区域 1 Logo 框挪动 13.7%
+poster-minimal-poster-030,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 2.6°
+poster-minimal-poster-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-minimal-poster-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-minimal-poster-034,plane-turn,2026-11-12,区域 1 Logo 框转角 -3.7° → -3.6°
+poster-minimal-poster-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-minimal-poster-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-minimal-poster-037,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 7°
+poster-minimal-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-minimal-poster-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+poster-minimal-poster-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-movie-poster-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-movie-poster-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+poster-movie-poster-003,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -1.9°
+poster-movie-poster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-movie-poster-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.3°
+poster-movie-poster-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-movie-poster-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+poster-movie-poster-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+poster-movie-poster-010,plane-turn,2026-11-12,区域 1 Logo 框转角 -5° → -2.7°
+poster-movie-poster-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-movie-poster-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-movie-poster-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-movie-poster-016,plane-turn,2026-11-12,区域 1 Logo 框转角 -4° → -2.7°
+poster-movie-poster-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-movie-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 7° → 4.2°
+poster-movie-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.2°
+poster-movie-poster-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+poster-movie-poster-021,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-movie-poster-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-movie-poster-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-movie-poster-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-movie-poster-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-movie-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+poster-movie-poster-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-movie-poster-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-movie-poster-031,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.3°
+poster-movie-poster-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-movie-poster-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-movie-poster-034,plane-turn,2026-11-12,区域 1 Logo 框转角 5° → 2.4°
+poster-movie-poster-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+poster-movie-poster-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-movie-poster-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-movie-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-movie-poster-039,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-movie-poster-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-street-poster-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-street-poster-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+poster-street-poster-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+poster-street-poster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-street-poster-006,plane-turn,2026-11-12,区域 1 Logo 框挪动 4.4%
+poster-street-poster-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.3°
+poster-street-poster-009,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-street-poster-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-street-poster-011,plane-turn,2026-11-12,区域 1 Logo 框挪动 5.9%
+poster-street-poster-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-street-poster-013,plane-turn,2026-11-12,区域 1 Logo 框挪动 10.5%
+poster-street-poster-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.2°
+poster-street-poster-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-street-poster-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-street-poster-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-street-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-street-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+poster-street-poster-020,plane-turn,2026-11-12,区域 1 Logo 框挪动 17.5%
+poster-street-poster-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-street-poster-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+poster-street-poster-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-street-poster-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.6°
+poster-street-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+poster-street-poster-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.6°
+poster-street-poster-029,plane-turn,2026-11-12,区域 1 Logo 框挪动 8.9%
+poster-street-poster-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+poster-street-poster-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-street-poster-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-street-poster-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-street-poster-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+poster-street-poster-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-street-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.1°
+poster-street-poster-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+poster-wall-poster-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-wall-poster-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+poster-wall-poster-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+poster-wall-poster-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-wall-poster-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+poster-wall-poster-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-wall-poster-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+poster-wall-poster-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-wall-poster-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+poster-wall-poster-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-wall-poster-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+poster-wall-poster-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-wall-poster-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.2°
+poster-wall-poster-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-wall-poster-017,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-wall-poster-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+poster-wall-poster-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-wall-poster-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-wall-poster-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 3°
+poster-wall-poster-022,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+poster-wall-poster-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.9°
+poster-wall-poster-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+poster-wall-poster-025,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-wall-poster-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-wall-poster-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-wall-poster-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+poster-wall-poster-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+poster-wall-poster-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+poster-wall-poster-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+poster-wall-poster-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+poster-wall-poster-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+poster-wall-poster-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+poster-wall-poster-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+poster-wall-poster-037,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+poster-wall-poster-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+poster-wall-poster-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+poster-wall-poster-040,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+printful-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+printful-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+printful-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+shopify-008,plane-turn,2026-11-12,区域 1 Logo 框转角 -14.3° → -14.5°
+shopify-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -3.3°
+shopify-024,plane-turn,2026-11-12,区域 1 Logo 框转角 -17° → -15°
+shopify-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.3°
+shopify-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+software-box-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.5°
+software-box-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.4°
+software-box-004,plane-turn,2026-11-12,区域 1 Logo 框转角 -3.3° → -3.4°
+software-box-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+software-box-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.6°
+software-box-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.5°
+software-box-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.7°
+software-box-011,plane-turn,2026-11-12,区域 1 Logo 框转角 26.7° → 26.8°
+software-box-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+software-box-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.2°
+software-box-014,plane-turn,2026-11-12,区域 1 Logo 框转角 -20.6° → -20.7°
+software-box-015,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+software-box-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+software-box-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+software-box-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+software-box-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+software-box-021,plane-turn,2026-11-12,区域 1 Logo 框转角 -4.4° → -4.5°
+software-box-023,plane-turn,2026-11-12,区域 1 Logo 框转角 -14.4° → -14.5°
+software-box-025,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+software-box-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2°
+software-box-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.3°
+software-box-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.7°
+software-box-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.9°
+software-box-032,plane-turn,2026-11-12,区域 1 Logo 框转角 -32.3° → -32.4°
+software-box-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+software-box-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.6°
+software-box-036,plane-turn,2026-11-12,区域 1 Logo 框转角 -15.7° → -15.9°
+software-box-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+software-box-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.4°
+software-box-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.8°
+software-box-040,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.6°
+square-box-004,plane-turn,2026-11-12,区域 1 Logo 框转角 9.3° → 9.4°
+square-box-005,plane-turn,2026-11-12,区域 1 Logo 框转角 -17.3° → -17.5°
+square-box-006,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-007,plane-turn,2026-11-12,区域 1 Logo 框转角 4° → 4.1°
+square-box-009,plane-turn,2026-11-12,区域 1 Logo 框转角 -16° → -16.2°
+square-box-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.4°
+square-box-012,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-013,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-014,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-016,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+square-box-018,plane-turn,2026-11-12,区域 1 Logo 框转角 4.6° → 4.7°
+square-box-019,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.7°
+square-box-022,plane-turn,2026-11-12,区域 1 Logo 框转角 12.8° → 13.1°
+square-box-028,plane-turn,2026-11-12,区域 1 Logo 框转角 -15.9° → -16°
+square-box-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.9°
+square-box-030,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-033,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-034,plane-turn,2026-11-12,区域 1 Logo 框转角 -14.8° → -15.5°
+square-box-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+square-box-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+square-box-038,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+square-box-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2.7°
+sticker-blank-sticker-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.6°
+sticker-blank-sticker-017,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.7°
+sticker-blank-sticker-028,plane-turn,2026-11-12,区域 1 Logo 框转角 6° → 8.2°
+sticker-blank-sticker-036,plane-turn,2026-11-12,区域 1 Logo 框转角 26° → 31.1°
+sticker-blank-sticker-039,plane-turn,2026-11-12,区域 1 Logo 框转角 10° → 10.3°
+sticker-bumper-sticker-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+sticker-bumper-sticker-004,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2°
+sticker-bumper-sticker-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+sticker-bumper-sticker-008,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+sticker-bumper-sticker-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -5°
+sticker-bumper-sticker-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+sticker-bumper-sticker-019,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+sticker-bumper-sticker-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+sticker-bumper-sticker-024,plane-turn,2026-11-12,区域 1 Logo 框挪动 1.5%
+sticker-bumper-sticker-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.1°
+sticker-bumper-sticker-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2°
+sticker-bumper-sticker-030,plane-turn,2026-11-12,区域 1 Logo 框转角 9° → 9.9°
+sticker-bumper-sticker-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2°
+sticker-bumper-sticker-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1°
+sticker-bumper-sticker-035,plane-turn,2026-11-12,区域 1 Logo 框转角 -3° → -2.1°
+sticker-bumper-sticker-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+sticker-laptop-sticker-007,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.5°
+sticker-laptop-sticker-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -2.9°
+thanksgiving-016,plane-turn,2026-11-12,区域 1 Logo 框转角 -15° → -15.8°
+thanksgiving-027,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+thanksgiving-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.3°
+thanksgiving-038,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+valentine-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.9°
+valentine-032,plane-turn,2026-11-12,"流向图变了,Logo 框没变"
+valentine-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 1.8°
+wall-art-001,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-002,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-003,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+wall-art-005,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+wall-art-006,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+wall-art-007,plane-turn,2026-11-12,区域 1 Logo 框挪动 14.3%
+wall-art-008,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+wall-art-009,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.7°
+wall-art-010,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+wall-art-011,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+wall-art-012,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.4°
+wall-art-013,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-014,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+wall-art-015,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+wall-art-016,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-017,plane-turn,2026-11-12,区域 2 Logo 框转角 0° → 0.2°
+wall-art-018,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.8°
+wall-art-019,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.3°
+wall-art-020,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.9°
+wall-art-021,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.8°
+wall-art-023,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+wall-art-024,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+wall-art-026,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.7°
+wall-art-027,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-028,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+wall-art-029,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+wall-art-030,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+wall-art-031,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.1°
+wall-art-032,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1°
+wall-art-033,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 2°
+wall-art-034,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -1.1°
+wall-art-035,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.2°
+wall-art-036,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-037,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.4°
+wall-art-038,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.1°
+wall-art-039,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → 0.2°
+wall-art-040,plane-turn,2026-11-12,区域 1 Logo 框转角 0° → -0.5°
+beer-can-010,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+beer-can-025,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+beer-can-037,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+candle-039,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+coffee-cup-008,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+coffee-cup-026,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+coffee-tumbler-008,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+coffee-tumbler-014,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+coffee-tumbler-016,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+coffee-tumbler-032,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+drink-bottle-013,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+drink-bottle-025,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+pod-014,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+soda-can-019,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+soda-can-024,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+soda-can-032,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+supplement-bottle-014,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+water-bottle-008,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+water-bottle-016,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+water-bottle-037,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+wine-bottle-011,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+wine-bottle-023,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+wine-bottle-029,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+wine-bottle-039,cylinder-axis,2026-11-12,区域 1 曲面 → 圆柱
+christmas-018,package-shape,2026-11-12,区域 1 改按圆柱贴;区域 2 改按圆柱贴
+coffee-bag-001,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-002,package-shape,2026-11-12,区域 1 改按曲面贴
+coffee-bag-006,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-010,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-015,package-shape,2026-11-12,区域 1 曲面 → 平面
+coffee-bag-018,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-024,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-027,package-shape,2026-11-12,区域 1 曲面 → 平面
+coffee-bag-028,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-030,package-shape,2026-11-12,区域 1 曲面 → 平面
+coffee-bag-033,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-bag-036,package-shape,2026-11-12,区域 1 改按曲面贴
+coffee-bag-040,package-shape,2026-11-12,区域 1 曲面 → 平面
+coffee-pouch-002,package-shape,2026-11-12,区域 1 改按平面贴
+coffee-pouch-024,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-002,package-shape,2026-11-12,区域 1 改按曲面贴
+cosmetic-003,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-004,package-shape,2026-11-12,区域 1 曲面 → 圆柱
+cosmetic-006,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-008,package-shape,2026-11-12,区域 1 曲面 → 平面
+cosmetic-010,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-012,package-shape,2026-11-12,区域 1 曲面 → 平面
+cosmetic-013,package-shape,2026-11-12,区域 1 曲面 → 平面
+cosmetic-017,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-018,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-020,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-021,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-024,package-shape,2026-11-12,区域 1 改按曲面贴
+cosmetic-027,package-shape,2026-11-12,区域 1 曲面 → 圆柱
+cosmetic-028,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-030,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-032,package-shape,2026-11-12,区域 1 改按曲面贴
+cosmetic-033,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-034,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-036,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-038,package-shape,2026-11-12,区域 1 改按平面贴
+cosmetic-040,package-shape,2026-11-12,区域 1 曲面 → 圆柱
+new-year-025,package-shape,2026-11-12,区域 1 改按圆柱贴
+perfume-001,package-shape,2026-11-12,"贴法不变(曲面),输出变了"
+perfume-006,package-shape,2026-11-12,区域 1 曲面 → 平面
+perfume-009,package-shape,2026-11-12,区域 1 改按圆柱贴
+perfume-010,package-shape,2026-11-12,区域 1 曲面 → 平面
+perfume-011,package-shape,2026-11-12,区域 1 曲面 → 圆柱
+perfume-015,package-shape,2026-11-12,区域 1 改按圆柱贴
+perfume-016,package-shape,2026-11-12,区域 1 改按曲面贴
+perfume-018,package-shape,2026-11-12,区域 1 改按圆柱贴
+perfume-021,package-shape,2026-11-12,区域 1 改按圆柱贴
+perfume-024,package-shape,2026-11-12,区域 1 曲面 → 圆柱
+perfume-025,package-shape,2026-11-12,区域 1 改按平面贴
+perfume-031,package-shape,2026-11-12,区域 1 曲面 → 平面
+perfume-034,package-shape,2026-11-12,区域 1 改按平面贴
+perfume-040,package-shape,2026-11-12,"贴法不变(曲面),输出变了"
+shopify-011,package-shape,2026-11-12,"贴法不变(曲面),输出变了"
+thanksgiving-027,package-shape,2026-11-12,区域 1 改按圆柱贴
+cosmetic-015,package-shape,2026-11-12,"本机缺 3D 点云(老格式),要先付费补跑 geometry 才能重算"
+amazon-028,package-shape,2026-11-12,"本机缺 3D 点云(老格式),要先付费补跑 geometry 才能重算"

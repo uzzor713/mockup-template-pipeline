@@ -87,7 +87,7 @@ poster-017,其他,画框也被改色,,,,,,1
 
 ### 平面透视例外
 
-按平面贴的商品个别要改四角校准时,写在 `presets/plane-exceptions.json`:`{模板 id: {商品 key: 设置}}`,生成配置时并进那件商品,不论哪个批次、不用 `--overrides`。设置只有两种:`planeOutline: product`(改按商品外缘的四角),`print.quad`(可印区和手写的四边形取交集),见[模板配置](spec.md)。这两项不算进分割比较,改了只重跑 `pipeline.py` 往后的步骤。
+个别模板的贴法和预设不同、或按平面贴要改四角校准时,写在 `presets/plane-exceptions.json`:`{模板 id: {商品 key: 设置}}`,生成配置时并进那件商品(`print` 里的几项和预设的合并),不论哪个批次、不用 `--overrides`。能写的设置:`surface`(`plane` 或 `cylinder`,同一个预设里方盒、按压瓶、软袋混着的化妆品、香水、咖啡袋按模板定)、`print.face`(只印正对的一面,方盒、立着的袋子)、`planeOutline: product`(改按商品外缘的四角)、`print.quad`(可印区和手写的四边形取交集),见[模板配置](spec.md)。这几项都不算进分割比较,改了只重跑 `pipeline.py` 往后的步骤。
 
 ## 预设
 

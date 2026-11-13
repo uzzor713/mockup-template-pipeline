@@ -255,24 +255,33 @@ def stored_beyond(flow, guard, inside, limit=None):
 
 
 def plane_outline(printable, center):
-    """清晰的近直立矩形:从照片里的四边形取得中心处的拉伸和透视梯度。"""
+    """轮廓清晰的四边形(海报、卡片、盒子面,斜放、斜着拍的也算):从照片里的四角取得中心处的拉伸和透视梯度。"""
     contours, _ = cv2.findContours((printable > 0.5).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return None
     contour = max(contours, key=cv2.contourArea)
-    quad = cv2.approxPolyDP(contour, 0.005 * cv2.arcLength(contour, True), True)[:, 0].astype(np.float64)
+    # 盒子棱角的小倒角、盖沿会多出一两个角:近似的容差从 0.5% 周长逐步放宽到 2%,取第一个四边形,面积差照样卡 PLANE_QUAD_ERROR
+    for tolerance in (0.005, 0.01, 0.015, 0.02):
+        quad = cv2.approxPolyDP(contour, tolerance * cv2.arcLength(contour, True), True)[:, 0].astype(np.float64)
+        if len(quad) <= 4:
+            break
     if len(quad) != 4 or not cv2.isContourConvex(quad.astype(np.float32)):
         return None
     area = cv2.contourArea(contour)
     if area == 0 or abs(area - cv2.contourArea(quad.astype(np.float32))) / area > PLANE_QUAD_ERROR:
         return None
-    ordered = quad[np.argsort(quad[:, 1])]
-    top, bottom = (pair[np.argsort(pair[:, 0])] for pair in (ordered[:2], ordered[2:]))
-    tl, tr, bl, br = *top, *bottom
+    # 四角按绕中心的方向排(屏幕上顺时针),上边取中点在中心以上、最接近水平的那条:斜放、斜着拍的盒子面也认
+    centroid = quad.mean(0)
+    quad = quad[np.argsort(np.arctan2(quad[:, 1] - centroid[1], quad[:, 0] - centroid[0]))]
+    def flatness(k):
+        a, b = quad[k], quad[(k + 1) % 4]
+        d = b - a
+        return (0 if (a[1] + b[1]) / 2 < centroid[1] else 1, abs(d[1]) / (np.hypot(*d) + 1e-9))
+    k = min(range(4), key=flatness)
+    tl, tr, br, bl = (quad[(k + i) % 4] for i in range(4))
     width = (np.linalg.norm(tr - tl) + np.linalg.norm(br - bl)) / 2
     height = (np.linalg.norm(bl - tl) + np.linalg.norm(br - tr)) / 2
-    if width < 100 or height < 100 or abs(tr[1] - tl[1]) > width / 4 or abs(br[1] - bl[1]) > width / 4 \
-            or abs(bl[0] - tl[0]) > height / 4 or abs(br[0] - tr[0]) > height / 4:
+    if width < 100 or height < 100:
         return None
     target = np.array([[0, 0], [width, 0], [width, height], [0, height]], np.float32)
     homography = cv2.getPerspectiveTransform(np.array([tl, tr, br, bl], np.float32), target)
@@ -295,15 +304,16 @@ def plane_flow(points, intrinsics, product, printable, small_size, gap, outline_
     """平的商品(配置写 surface: plane):可印区的 3D 坐标拟合一个平面,屏幕到平面是单应(透视变换),设计稿按它贴上去,直线还是直的。
     surface_flow 只记每格拉伸多少、不记方向,积分时斜着拍的平面也会被弯成弧。
     长度单位和 surface_flow 相同;可印区中心处只拉伸、不转,拉伸截到 SURFACE_RANGE。
-    返回 (位移, 说明);可印区离平面远(贴在罐子上的贴纸、三折页、拿在手里的报纸)或透视太陡的,位移为 None,照旧按曲面算"""
+    返回 (位移, 说明, 框转几度);可印区离平面远(贴在罐子上的贴纸、三折页、拿在手里的报纸)或透视太陡的,位移为 None,照旧按曲面算。
+    按四角校准的,中心处丢掉的那一下转动就是设计稿该跟着面转的角度(屏幕上顺时针为正),交给 Logo 框;没校准的为 None"""
     inside = printable > 0.5
     if not inside.any():
-        return None, '没有可印区'
+        return None, '没有可印区', None
     fit = cv2.erode(inside.astype(np.uint8), np.ones((2 * PLANE_INSET + 1,) * 2, np.uint8)) > 0
     pts = points[::DISP_SCALE, ::DISP_SCALE][(fit if fit.sum() >= 500 else inside)[::DISP_SCALE, ::DISP_SCALE]].astype(np.float64)
     pts = pts[np.isfinite(pts).all(1)]
     if len(pts) < 50:
-        return None, '可印区太小'
+        return None, '可印区太小', None
     keep = np.ones(len(pts), bool)
     for _ in range(3):  # 剔除离面 3 倍中位距离以外的点(没分出去的手指、夹子)再拟合
         center = pts[keep].mean(0)
@@ -314,7 +324,7 @@ def plane_flow(points, intrinsics, product, printable, small_size, gap, outline_
     unit = np.median(points[..., 2][solid if solid.any() else product > 0.5]) / intrinsics[0, 0]
     bend = np.percentile(distance, 90) / unit / np.sqrt(inside.sum())
     if bend > PLANE_BEND:
-        return None, f'可印区离平面 {bend:.1%}(边长的),按曲面'
+        return None, f'可印区离平面 {bend:.1%}(边长的),按曲面', None
     fx, fy, ox, oy = intrinsics[0, 0], intrinsics[1, 1], intrinsics[0, 2], intrinsics[1, 2]
     normal, offset = axes[2], center @ axes[2]
 
@@ -333,18 +343,22 @@ def plane_flow(points, intrinsics, product, printable, small_size, gap, outline_
     jac = np.stack([on_plane(np.float64(cx + 0.5), np.float64(cy)) - on_plane(np.float64(cx - 0.5), np.float64(cy)),
                     on_plane(np.float64(cx), np.float64(cy + 0.5)) - on_plane(np.float64(cx), np.float64(cy - 0.5))], -1)
     outline = plane_outline(printable if outline_mask is None else outline_mask, (cx, cy))
+    turn = None
     if outline is not None:
         jac, tilt = outline
     # 设计稿坐标的差 = M Δ / (1 + α h·Δ),仍是单应,直线照样直。J = U S Vᵀ,M = V S' Vᵀ:中心处只拉伸不转,
     # S' 是 S 截到 SURFACE_RANGE;α 是透视留多少,1 时和照片里的平面一样近大远小
-    _, s, vt = np.linalg.svd(jac)
+    u, s, vt = np.linalg.svd(jac)
+    if outline is not None:
+        rotation = u @ vt  # J = (U Vᵀ)(V S Vᵀ),位移只用后一半,设计稿比面多转了 (U Vᵀ)ᵀ,框转回来
+        turn = round(-float(np.degrees(np.arctan2(rotation[1, 0], rotation[0, 0]))), 1) + 0.0
     gy, gx = (np.mgrid[0:small_size[1], 0:small_size[0]] * DISP_SCALE + (DISP_SCALE - 1) / 2).astype(np.float64)
     delta = np.stack([gx - cx, gy - cy], -1)  # 缩小后每格的中心相对 c 的模板像素坐标,和双线性放大对齐
     product_cells = cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0
     region = (cv2.dilate(product_cells.astype(np.uint8), np.ones((9, 9), np.uint8)) > 0) | gap  # 算位移的格子(含可印区几块之间的缝),再往外铺最近值
     guard = (cv2.dilate(product_cells.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0) | gap  # 和存图时一样,按这些格子定 8 位的范围
     if (1 + delta[region] @ tilt).min() < 0.2:
-        return None, '平面在商品范围里转到镜头后面,按曲面'
+        return None, '平面在商品范围里转到镜头后面,按曲面', None
     cells = cv2.resize(printable, small_size, interpolation=cv2.INTER_AREA) > 0.5
     _, (iy, ix) = ndimage.distance_transform_edt(~region, return_indices=True)
 
@@ -375,7 +389,7 @@ def plane_flow(points, intrinsics, product, printable, small_size, gap, outline_
             break
         scale[0] = max(1.0, scale[0] * 0.9)
     if under + over > STRETCH_OUTLIER / 2:
-        return None, f'透视太陡,可印区 {under:.1%} 前进量不到 {STRETCH_RANGE[0]}、{over:.1%} 超过 {STRETCH_RANGE[1]},按曲面'
+        return None, f'透视太陡,可印区 {under:.1%} 前进量不到 {STRETCH_RANGE[0]}、{over:.1%} 超过 {STRETCH_RANGE[1]},按曲面', None
     notes = [f'可印区离平面 {bend:.1%}', f'前进量 {spread.min():.2f}–{spread.max():.2f}']
     if outline is not None:
         notes.append('透视按商品轮廓校准' if outline_mask is not None else '透视按可印区轮廓校准')
@@ -383,7 +397,7 @@ def plane_flow(points, intrinsics, product, printable, small_size, gap, outline_
         notes.append(f'透视留 {perspective:.0%}')
     if scale[0] < clipped[0] * 0.995:
         notes.append(f'压得最扁的方向少压到 {scale[0] / clipped[0]:.0%}')
-    return flow, f"按平面({','.join(notes)})"
+    return flow, f"按平面({','.join(notes)})", turn
 
 
 def robust_line(y, x):
@@ -422,67 +436,87 @@ def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small
     part_near = grow(parts, 3)
     ys, xs = np.nonzero(inside)
     center = np.array([xs.mean(), ys.mean()])
-    # 转到轴竖直的坐标系 (x', y') 量轮廓,按量出的轴再转一次
-    angle = 0.0
-    for _ in range(2):
-        M = cv2.getRotationMatrix2D(tuple(center), -angle, 1.0)
-        turn = lambda mask, border=0: cv2.warpAffine(mask.astype(np.uint8), M, (W, H), flags=cv2.INTER_NEAREST, borderValue=border) > 0
-        rb, rw, rpn, ri = largest(turn(body)), turn(wall, 1), turn(part_near), turn(inside)
-        iy = np.nonzero(ri.any(1))[0]
-        y0, y1 = iy[0], iy[-1]
-        rows = np.arange(y0, y1 + 1)
-        rows = rows[rb[rows].any(1)]
-        left = np.array([np.argmax(rb[y]) for y in rows])
-        right = np.array([W - 1 - np.argmax(rb[y][::-1]) for y in rows])
-        # 挨着背景的轮廓才是商品自己的边
-        free_l = np.array([not rw[y, max(x - 4, 0):x].any() and not rpn[y, max(x - 4, 0):x + 1].any() for y, x in zip(rows, left)])
-        free_r = np.array([not rw[y, x + 1:x + 5].any() and not rpn[y, x:x + 5].any() for y, x in zip(rows, right)])
-        # 先拿够宽的最长一段拟合左右两条线,再接上落在线上的行(被挡住的行也算):瓶颈、瓶肩、圆底不算,圆台窄的那头算
-        span = np.ones(max(3, len(rows) // 12), bool)
-        run = longest_run(right - left >= CYL_WIDE * np.percentile(right - left, 90), span)
-        for extend in (True, False):
-            trim = max(1, int(0.05 * len(run)))
-            fit = run[trim:len(run) - trim] if len(run) > 2 * trim + 10 else run
-            ok_l, ok_r = free_l[fit], free_r[fit]
-            if ok_l.mean() < CYL_ROWS or ok_r.mean() < CYL_ROWS:
-                return None, f'左右轮廓挨着背景的行不够(左 {ok_l.mean():.0%}、右 {ok_r.mean():.0%}),按曲面'
-            pl, sl = robust_line(rows[fit][ok_l].astype(float), left[fit][ok_l].astype(float))
-            pr, sr = robust_line(rows[fit][ok_r].astype(float), right[fit][ok_r].astype(float))
-            if extend:
-                tol = max(3.0, 0.03 * np.polyval((pr - pl) / 2, rows[run].mean()))
-                on = ((np.abs(left - np.polyval(pl, rows)) < tol) | ~free_l) & ((np.abs(right - np.polyval(pr, rows)) < tol) | ~free_r)
-                run = longest_run(on, span, near=run[len(run) // 2])
-        if rows[run[-1]] - rows[run[0]] < CYL_ROWS * (y1 - y0):
-            return None, f'直的一段只占可印区高度的 {(rows[run[-1]] - rows[run[0]]) / max(y1 - y0, 1):.0%},按曲面'
-        tilt = np.degrees(np.arctan((pl[0] + pr[0]) / 2))
-        angle += tilt
-        if abs(tilt) < 0.3:
-            break
-    if abs(angle) > CYL_TILT:
-        return None, f'轴歪了 {angle:.0f}°,按曲面'
+    def measure(angle, CW, CH, shift):
+        """从 angle 度起转到轴竖直的坐标系 (x', y') 量轮廓,按量出的轴再转一次。画布 CW × CH,转完再平移 shift。
+        返回 (说明, 量到的东西);量不出的说明里写原因,量到的东西为 None"""
+        for _ in range(2):
+            M = cv2.getRotationMatrix2D(tuple(center), -angle, 1.0)
+            M[:, 2] += shift
+            turn = lambda mask, border=0: cv2.warpAffine(mask.astype(np.uint8), M, (CW, CH), flags=cv2.INTER_NEAREST, borderValue=border) > 0
+            rb, rw, rpn, ri = largest(turn(body)), turn(wall, 1), turn(part_near), turn(inside)
+            iy = np.nonzero(ri.any(1))[0]
+            y0, y1 = iy[0], iy[-1]
+            rows = np.arange(y0, y1 + 1)
+            rows = rows[rb[rows].any(1)]
+            left = np.array([np.argmax(rb[y]) for y in rows])
+            right = np.array([CW - 1 - np.argmax(rb[y][::-1]) for y in rows])
+            # 挨着背景的轮廓才是商品自己的边
+            free_l = np.array([not rw[y, max(x - 4, 0):x].any() and not rpn[y, max(x - 4, 0):x + 1].any() for y, x in zip(rows, left)])
+            free_r = np.array([not rw[y, x + 1:x + 5].any() and not rpn[y, x:x + 5].any() for y, x in zip(rows, right)])
+            # 先拿够宽的最长一段拟合左右两条线,再接上落在线上的行(被挡住的行也算):瓶颈、瓶肩、圆底不算,圆台窄的那头算
+            span = np.ones(max(3, len(rows) // 12), bool)
+            run = longest_run(right - left >= CYL_WIDE * np.percentile(right - left, 90), span)
+            for extend in (True, False):
+                trim = max(1, int(0.05 * len(run)))
+                fit = run[trim:len(run) - trim] if len(run) > 2 * trim + 10 else run
+                ok_l, ok_r = free_l[fit], free_r[fit]
+                if ok_l.mean() < CYL_ROWS or ok_r.mean() < CYL_ROWS:
+                    return f'左右轮廓挨着背景的行不够(左 {ok_l.mean():.0%}、右 {ok_r.mean():.0%})', None
+                pl, sl = robust_line(rows[fit][ok_l].astype(float), left[fit][ok_l].astype(float))
+                pr, sr = robust_line(rows[fit][ok_r].astype(float), right[fit][ok_r].astype(float))
+                if extend:
+                    tol = max(3.0, 0.03 * np.polyval((pr - pl) / 2, rows[run].mean()))
+                    on = ((np.abs(left - np.polyval(pl, rows)) < tol) | ~free_l) & ((np.abs(right - np.polyval(pr, rows)) < tol) | ~free_r)
+                    run = longest_run(on, span, near=run[len(run) // 2])
+            if rows[run[-1]] - rows[run[0]] < CYL_ROWS * (y1 - y0):
+                return f'直的一段只占可印区高度的 {(rows[run[-1]] - rows[run[0]]) / max(y1 - y0, 1):.0%}', None
+            tilt = np.degrees(np.arctan((pl[0] + pr[0]) / 2))
+            angle += tilt
+            if abs(tilt) < 0.3:
+                break
+        if max(sl, sr) > max(2.0, 0.03 * np.polyval((pr - pl) / 2, (y0 + y1) / 2)):
+            return f'左右轮廓不直(残差 {max(sl, sr):.1f}px)', None
+        return '', (angle, M, CW, CH, rb, rw, rpn, y0, y1, pl, pr)
+
+    # 先从竖直起量;量不出或轴歪了 CYL_TILT 以上(横放、斜放的瓶罐:左右轮廓量到的是两头)时,按商品身子的主轴转正再量一次,
+    # 画布放大成对角线长的正方形、中心挪到可印区中心,转过去不出界。从主轴起量出来的轴不限角度
+    ys, xs = np.nonzero(inside)
+    center = np.array([xs.mean(), ys.mean()])
+    note, measured = measure(0.0, W, H, np.zeros(2))
+    if measured is not None and abs(measured[0]) > CYL_TILT:
+        note, measured = f'轴歪了 {measured[0]:.0f}°', None
+    if measured is None:
+        m = cv2.moments(largest(body).astype(np.uint8), True)
+        theta = 0.5 * np.arctan2(2 * m['mu11'], m['mu20'] - m['mu02'])  # 主轴和 x 轴的夹角,屏幕上顺时针为正
+        dx, dy = np.cos(theta), np.sin(theta)
+        axis = float(np.degrees(np.arctan2(dx, dy) if dy >= 0 else np.arctan2(-dx, -dy)))  # 同 tilt:轴往下偏右为正
+        side = int(np.ceil(np.hypot(W, H)))
+        again, measured = measure(axis, side, side, side / 2 - center)
+        if measured is None:
+            return None, f'{note};按主轴 {axis:.0f}° 转正后{again},按曲面'
+        note = f'按主轴转正(从竖直起量:{note})'
+    angle, M, CW, CH, rb, rw, rpn, y0, y1, pl, pr = measured
     c_line, a_line = (pl + pr) / 2, (pr - pl) / 2  # 轴的 x' 和半宽,都是 y' 的一次函数
-    if max(sl, sr) > max(2.0, 0.03 * np.polyval(a_line, (y0 + y1) / 2)):
-        return None, f'左右轮廓不直(残差 {max(sl, sr):.1f}px),按曲面'
 
     def half_width(y):
         """第 y' 行商品最左到最右的一半(罐口里面没分进商品的也算)"""
-        span = np.flatnonzero(rb[int(np.clip(round(y), 0, H - 1))])
+        span = np.flatnonzero(rb[int(np.clip(round(y), 0, CH - 1))])
         return (span[-1] - span[0]) / 2 if len(span) else 0.0
 
     def arc(side):
         """上沿 / 下沿中间一段量弧 y' = yc + s·√(1 − u²),u = (x' − 轴) / r,返回 (yc, 扁度 s/r, 挨着部件的占比);量不准的返回 None。
         r 从那头的半宽起,弧往里几行的半宽比它窄就换成那个半宽再量:罐口收窄的一圈量的是它自己;
         瓶颈、瓶肩量出来的那一圈不到身子的 CYL_RING,不算"""
-        profile = np.where(rb.any(0), np.argmax(rb, 0) if side == 'top' else H - 1 - np.argmax(rb[::-1], 0), -1)
+        profile = np.where(rb.any(0), np.argmax(rb, 0) if side == 'top' else CH - 1 - np.argmax(rb[::-1], 0), -1)
         out = -1 if side == 'top' else 1
         yc = float(np.median(profile[profile >= 0]))
         r = float(np.polyval(a_line, yc))
         for _ in range(4):
             cx = np.polyval(c_line, yc)
             cols = np.arange(int(cx - CYL_ARC * r), int(cx + CYL_ARC * r) + 1)
-            cols = cols[(cols >= 0) & (cols < W)]
+            cols = cols[(cols >= 0) & (cols < CW)]
             yy = profile[cols]
-            good = (yy >= 0) & np.array([0 <= y + 4 * out < H and not rw[min(y, y + 4 * out):max(y, y + 4 * out) + 1, x].any() for x, y in zip(cols, yy)])
+            good = (yy >= 0) & np.array([0 <= y + 4 * out < CH and not rw[min(y, y + 4 * out):max(y, y + 4 * out) + 1, x].any() for x, y in zip(cols, yy)])
             if good.mean() < 0.7:
                 return None
             cols, yy = cols[good], yy[good].astype(float)
@@ -504,7 +538,7 @@ def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small
             return None
         if 1.4826 * np.median(np.abs(residual(fit.x))) > max(2.0, 0.015 * r):
             return None
-        touching = np.mean([rpn[int(y) + 2 * out, x] for x, y in zip(cols, yy) if 0 <= int(y) + 2 * out < H])
+        touching = np.mean([rpn[int(y) + 2 * out, x] for x, y in zip(cols, yy) if 0 <= int(y) + 2 * out < CH])
         return yc, s / r, float(touching)
 
     top, bottom = arc('top'), arc('bottom')
@@ -547,7 +581,7 @@ def cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small
             if not keep:
                 return None, '上下沿的弧对不上,按曲面'
             top, bottom = (keep[0], None) if keep[0] is top else (None, keep[0])
-    notes = []
+    notes = [note] if note else []
     if top and bottom:
         kt, kb = pairs[0]
         slope = (kb - kt) / max(bottom[0] - top[0], 1)
@@ -966,25 +1000,26 @@ bridges = [gaps(printable, small_size) for printable in prints]
 
 def build(bridges):
     """各件商品缩小后的大曲面层、褶皱层。bridges 是各件要接上的缝(gaps 的格子,不接的全 False)。
-    返回 (大曲面层, 褶皱层, 贴法, 守住范围, 大曲面层收到几成, 褶皱系数, 说明)"""
+    返回 (大曲面层, 褶皱层, 贴法, 按平面贴的框转几度, 守住范围, 大曲面层收到几成, 褶皱系数, 说明)"""
     # 配置写 surface: plane 的先按平面贴,surface: cylinder 的先按圆柱贴;真弯的、透视太陡的、轮廓不像圆柱的照旧按曲面
-    surfaces, fits, notes = [], [], []
+    surfaces, fits, turns, notes = [], [], [], []
     for item, product, printable, parts, blocked, gap in zip(spec['products'], carriers, prints, part_masks, blocks, bridges):
         kind = item.get('surface')
         if kind == 'plane':
             reference = item.get('planeOutline', 'print')
             if reference not in ('print', 'product'):
                 raise ValueError(f"{item['id']}:planeOutline 必须是 print 或 product")
-            shaped, note = plane_flow(points, intrinsics, product, printable, small_size, gap,
-                                      product if reference == 'product' else None)
+            shaped, note, turn = plane_flow(points, intrinsics, product, printable, small_size, gap,
+                                            product if reference == 'product' else None)
         elif kind == 'cylinder':
-            shaped, note = cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size, gap)
+            (shaped, note), turn = cylinder_flow(product, printable, parts, blocked, normals, intrinsics, small_size, gap), None
         else:
-            shaped, note = None, ''
+            shaped, note, turn = None, '', None
         if note:
             notes.append(f"{item['id']} 大曲面层:{note}")
         surfaces.append(surface_flow(points, focal, product, small_size, SURFACE_RATIO * W, gap) if shaped is None else shaped)
         fits.append('curved' if shaped is None else kind)
+        turns.append(turn)
     # 存图时按这些格子定 8 位的范围:沾到商品的格子再往外两格,双线性放大时商品边上的像素会插到外面一格
     # 可印区几块之间的缝也守住:位移是按不变形接过去的,不能再换成最近值
     guards = [cv2.dilate((cv2.resize(product, small_size, interpolation=cv2.INTER_AREA) > 0).astype(np.uint8),
@@ -1040,7 +1075,7 @@ def build(bridges):
         # 守住范围的格子原样留着(商品边上的像素插值要用到它们),从它们往外铺
         surfaces[index] = extend_outside(surfaces[index], guarded)
         folds.append(extend_outside(np.dstack([ox, oy]).astype(np.float32), guarded))
-    return surfaces, folds, fits, guards, keeps, gains, notes
+    return surfaces, folds, fits, turns, guards, keeps, gains, notes
 
 
 # 先不接缝算一遍;可印区几块之间有缝的,模拟设计稿中心拖过缝(同自动校验),往回退的那件把缝按不变形接上再算一遍。
@@ -1051,7 +1086,7 @@ joins = [bool(gap.any()) and not never_back(lambda warp, s=surface, f=fold: cv2.
          for surface, fold, printable, gap in zip(built[0], built[1], prints, bridges)]
 if any(joins):
     built = build([gap if join else np.zeros_like(gap) for gap, join in zip(bridges, joins)])
-surfaces, folds, fits, guards, keeps, gains, notes = built
+surfaces, folds, fits, turns, guards, keeps, gains, notes = built
 for note in notes:
     print(note)
 for item, join in zip(spec['products'], joins):
@@ -1093,7 +1128,7 @@ for index, (printable, item, logo_settings) in enumerate(zip(prints, spec['produ
         'surface': f'surface-{index}.png',
         'folds': f'folds-{index}.png',
         'recolorable': item.get('recolorable', True),
-        'logo': logo.box(printable > 0.5, logo_settings),
+        'logo': logo.box(printable > 0.5, {**logo_settings, 'plane': fits[index - 1] == 'plane', 'turn': turns[index - 1]}),
     })
 template = {
     'id': spec['id'],
@@ -1113,7 +1148,7 @@ template = {
                  'displacementScale': 1 / DISP_SCALE, 'slopeBlur': SLOPE_BLUR, 'stretchRange': list(STRETCH_RANGE),
                  'capArea': CAP_AREA, 'slackShare': SLACK_SHARE, 'slopeGainMax': SLOPE_GAIN_MAX, 'slopeGain': [float(f'{g:.3g}') for g in gains],
                  'surfaceSigma': round(SURFACE_RATIO * W, 1), 'surfaceRange': list(SURFACE_RANGE),
-                 'surfaceFit': fits, 'surfaceKeep': keeps, 'surfaceKeepMin': SURFACE_KEEP_MIN, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE,
+                 'surfaceFit': fits, **({'planeTurn': turns} if 'plane' in fits else {}), 'surfaceKeep': keeps, 'surfaceKeepMin': SURFACE_KEEP_MIN, 'planeBend': PLANE_BEND, 'cylinderPerspective': PERSPECTIVE,
                  'baseCssSplit': css_split},
 }
 (OUT / 'template.json').write_text(json.dumps(template, ensure_ascii=False, indent=2))

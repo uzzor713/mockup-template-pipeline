@@ -75,7 +75,8 @@ LATER = {'size'}  # 后加的配置字段,没写时不算进下面的比较,加�
 USES_LOGO = {'logo.py', 'preview.py'}
 # 商品设置里不算进分割比较的:print、surface 分割不读,只给 pipeline.py;alternatives 只在主说法分不出时换着试,上次分成功的加了也一样
 # (上次失败的没记比较值,照样重跑;上次放低阈值才分出的,加了备选说法可能改用备选说法,要重分单独跑 run_segment.py)。
-# 早先的比较值含或不含这几项,都算对得上;含的 alternatives 只有现在的前几个(之后在末尾加过说法)也算。不为这些重跑、重新计费
+# 早先的比较值含或不含这几项,都算对得上;含的 alternatives 只有现在的前几个(之后在末尾加过说法)、含的 print 只有现在的其中几项
+# (之后按模板并进过 face 这类设置)也算。不为这些重跑、重新计费
 SEGMENT_IGNORES = ('alternatives', 'print', 'surface', 'planeOutline')
 # 在本机算的步骤:每个峰值约 2GB 内存、一两核,同一时间至多 --local 个模板在跑,其余排队;前四步大半时间在等 Replicate,不限。
 # pipeline.py 里问 Gemini、分单只(logo.py)也占着名额,几秒到一分钟
@@ -86,8 +87,8 @@ STEPS = [
     ('intrinsic.py', ['crop', 'size'], 0),
     ('normals.py', ['crop', 'size'], 0),
     ('geometry.py', ['crop', 'size'], 0),
-    ('pipeline.py', None, 10),
-    ('logo.py', None, 0),
+    ('pipeline.py', None, 11),
+    ('logo.py', None, 1),
     ('preview.py', None, 0),
 ]
 
@@ -278,7 +279,7 @@ def digest(spec, fields, photo_sha, logo=False, version=0):
 
 def keys(spec, script, fields, photo_sha, version):
     """这一步的比较值:第一个是这次跑完记下的;分割另算早先各件商品含 SEGMENT_IGNORES 里任几项时的
-    (alternatives 含只有现在的前几个时的),对上了也不重跑"""
+    (alternatives 含只有现在的前几个、print 只含其中几项时的),对上了也不重跑"""
     if script != 'run_segment.py':
         return [digest(spec, fields, photo_sha, script in USES_LOGO, version)]
 
@@ -287,7 +288,13 @@ def keys(spec, script, fields, photo_sha, version):
         choices = []
         for k in SEGMENT_IGNORES:
             if k in item:
-                values = [item[k][:n] for n in range(1, len(item[k]) + 1)] if k == 'alternatives' else [item[k]]
+                if k == 'alternatives':
+                    values = [item[k][:n] for n in range(1, len(item[k]) + 1)]
+                elif k == 'print':
+                    values = [{key: item[k][key] for key in subset} for n in range(1, len(item[k]) + 1)
+                              for subset in itertools.combinations(item[k], n)]
+                else:
+                    values = [item[k]]
                 choices.append([{}, *({k: v} for v in values)])
         bare = {k: v for k, v in item.items() if k not in SEGMENT_IGNORES}
         return [{**bare, **{k: v for extra in extras for k, v in extra.items()}} for extras in itertools.product(*choices)]
