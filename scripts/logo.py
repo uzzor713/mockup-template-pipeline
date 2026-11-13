@@ -25,6 +25,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 TILT_MIN = 3  # 可印区是四边形(海报、卡片)时,倾角(度)小于它算摆正,框不转;按平面贴的(plane)不取整,框跟着面的实际倾角转
 TILT_FREE = 10  # 可印区不是四边形(衣服等)时摆正的上限:人穿着站直时躯干轮廓不对称,会算出 3–9.4°;平放、搭着的歪 10° 以上的都是真歪
@@ -106,6 +107,8 @@ def box(inside, settings):
     H, W = inside.shape
     if settings.get('within') is not None:
         inside = inside & settings['within']
+    if settings.get('ignoreHoles'):
+        inside = ndimage.binary_fill_holes(inside)
     plane, turn = settings.get('plane', False), settings.get('turn')
     # 按平面贴、透视按四角校准过的,pipeline.py 给出设计稿该跟着面转的角度(turn),直接用:斜得厉害的梯形四条边平均、放得下最大矩形的方向都会偏 2–5°
     rotation = tilt(inside, settings.get('freeform', False), plane) if turn is None else turn
@@ -282,7 +285,9 @@ def settle(spec, cover, prints, work):
 def centered(prints, products, logos):
     """框的中心在可印区里(铺满的框中心可以落在可印区外,比如几张卡片之间)"""
     H, W = prints[0].shape
-    return all(item.get('logo', {}).get('fill') or printable[min(int(l['cy'] * H), H - 1), min(int(l['cx'] * W), W - 1)] > 0.5
+    return all(item.get('logo', {}).get('fill') or
+               (ndimage.binary_fill_holes(printable > 0.5) if item.get('logo', {}).get('ignoreHoles') else printable)
+               [min(int(l['cy'] * H), H - 1), min(int(l['cx'] * W), W - 1)] > 0.5
                for printable, item, l in zip(prints, products, logos))
 
 
@@ -291,6 +296,7 @@ if __name__ == '__main__':
     import config
 
     spec = config.load(sys.argv[1])
+    spec['products'] = config.region_products(spec)
     out = config.folder(spec, 'output')
     template = json.loads((out / 'template.json').read_text())
     prints = [np.asarray(Image.open(out / region['print']).getchannel('A')).astype(np.float32) / 255 for region in template['regions']]

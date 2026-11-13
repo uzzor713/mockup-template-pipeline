@@ -1,0 +1,1344 @@
+{
+  "_layouts": [
+    {
+      "axis": "x",
+      "breaks": [
+        0.5
+      ],
+      "name": "Page",
+      "ids": [
+        "notebook-leather-notebook-004",
+        "notebook-spiral-notebook-016",
+        "notebook-spiral-notebook-036",
+        "magazine-spread-023",
+        "magazine-spread-026",
+        "menu-002",
+        "menu-005",
+        "menu-012",
+        "menu-021",
+        "menu-025",
+        "menu-028",
+        "menu-030",
+        "menu-035",
+        "magazine-newspaper-008",
+        "magazine-newspaper-011",
+        "magazine-newspaper-017",
+        "magazine-newspaper-020",
+        "magazine-newspaper-024",
+        "magazine-newspaper-027",
+        "magazine-newspaper-029",
+        "magazine-newspaper-033",
+        "magazine-newspaper-034",
+        "magazine-newspaper-040",
+        "magazine-newspaper-ad-005",
+        "magazine-newspaper-ad-010",
+        "magazine-newspaper-ad-013",
+        "magazine-newspaper-ad-014",
+        "magazine-newspaper-ad-015",
+        "magazine-newspaper-ad-016",
+        "magazine-newspaper-ad-017",
+        "magazine-newspaper-ad-022",
+        "magazine-newspaper-ad-025",
+        "magazine-newspaper-ad-026",
+        "magazine-newspaper-ad-027",
+        "magazine-newspaper-ad-029",
+        "magazine-newspaper-ad-031",
+        "magazine-newspaper-ad-037",
+        "magazine-newspaper-ad-038",
+        "magazine-newspaper-ad-039"
+      ]
+    },
+    {
+      "axis": "y",
+      "breaks": [
+        0.5
+      ],
+      "name": "Panel",
+      "ids": [
+        "magazine-newspaper-019",
+        "magazine-newspaper-025",
+        "magazine-newspaper-ad-009"
+      ]
+    },
+    {
+      "axis": "x",
+      "breaks": [
+        0.333,
+        0.667
+      ],
+      "name": "Panel",
+      "ids": [
+        "menu-010",
+        "menu-020",
+        "menu-039"
+      ]
+    },
+    {
+      "axis": "xy",
+      "fit": "oriented",
+      "breaks": [
+        0.5,
+        0.5
+      ],
+      "name": "Panel",
+      "omit": "bottom-left",
+      "ids": [
+        "magazine-newspaper-002",
+        "magazine-newspaper-031",
+        "magazine-newspaper-039"
+      ]
+    },
+    {
+      "axis": "xy",
+      "fit": "oriented",
+      "breaks": [
+        0.5,
+        0.5
+      ],
+      "name": "Panel",
+      "omit": "bottom-right",
+      "ids": [
+        "magazine-newspaper-005",
+        "magazine-newspaper-006",
+        "magazine-newspaper-013",
+        "magazine-newspaper-015",
+        "magazine-newspaper-036",
+        "magazine-newspaper-038",
+        "magazine-newspaper-ad-012",
+        "magazine-newspaper-ad-019",
+        "magazine-newspaper-ad-036",
+        "magazine-newspaper-ad-040"
+      ]
+    },
+    {
+      "axis": "xy",
+      "fit": "oriented",
+      "breaks": [
+        0.5,
+        0.5
+      ],
+      "name": "Panel",
+      "omit": "top-left",
+      "ids": [
+        "magazine-newspaper-001",
+        "magazine-newspaper-004",
+        "magazine-newspaper-009",
+        "magazine-newspaper-014",
+        "magazine-newspaper-023",
+        "magazine-newspaper-026",
+        "magazine-newspaper-032",
+        "magazine-newspaper-037",
+        "magazine-newspaper-ad-001",
+        "magazine-newspaper-ad-004",
+        "magazine-newspaper-ad-008",
+        "magazine-newspaper-ad-021",
+        "magazine-newspaper-ad-023",
+        "magazine-newspaper-ad-030",
+        "magazine-newspaper-ad-034"
+      ]
+    },
+    {
+      "axis": "xy",
+      "fit": "oriented",
+      "breaks": [
+        0.5,
+        0.5
+      ],
+      "name": "Panel",
+      "omit": "top-right",
+      "ids": [
+        "magazine-newspaper-021",
+        "magazine-newspaper-ad-007"
+      ]
+    }
+  ],
+  "_foreground": {
+    "business-card-001": [
+      [
+        0.147,
+        0.46
+      ],
+      [
+        0.635,
+        0.39
+      ],
+      [
+        0.665,
+        0.74
+      ],
+      [
+        0.17,
+        0.83
+      ]
+    ],
+    "business-card-002": [
+      [
+        0.12,
+        0.35
+      ],
+      [
+        0.62,
+        0.3
+      ],
+      [
+        0.66,
+        0.67
+      ],
+      [
+        0.14,
+        0.72
+      ]
+    ],
+    "business-card-003": [
+      [
+        0.45,
+        0.22
+      ],
+      [
+        0.67,
+        0.24
+      ],
+      [
+        0.63,
+        0.77
+      ],
+      [
+        0.39,
+        0.74
+      ]
+    ],
+    "business-card-005": [
+      [
+        0.19,
+        0.41
+      ],
+      [
+        0.59,
+        0.41
+      ],
+      [
+        0.59,
+        0.73
+      ],
+      [
+        0.19,
+        0.73
+      ]
+    ],
+    "business-card-008": [
+      [
+        0.16,
+        0.27
+      ],
+      [
+        0.64,
+        0.22
+      ],
+      [
+        0.7,
+        0.54
+      ],
+      [
+        0.17,
+        0.61
+      ]
+    ],
+    "business-card-012": [
+      [
+        0.18,
+        0.28
+      ],
+      [
+        0.66,
+        0.39
+      ],
+      [
+        0.60,
+        0.79
+      ],
+      [
+        0.08,
+        0.71
+      ]
+    ],
+    "business-card-019": [
+      [
+        0.17,
+        0.17
+      ],
+      [
+        0.54,
+        0.07
+      ],
+      [
+        0.67,
+        0.82
+      ],
+      [
+        0.29,
+        0.92
+      ]
+    ],
+    "business-card-023": [
+      [
+        0.16,
+        0.32
+      ],
+      [
+        0.66,
+        0.25
+      ],
+      [
+        0.74,
+        0.62
+      ],
+      [
+        0.2,
+        0.69
+      ]
+    ],
+    "business-card-036": [
+      [
+        0.25,
+        0.24
+      ],
+      [
+        0.77,
+        0.3
+      ],
+      [
+        0.74,
+        0.63
+      ],
+      [
+        0.21,
+        0.56
+      ]
+    ],
+    "greeting-card-postcard-001": [
+      [
+        0.11,
+        0.23
+      ],
+      [
+        0.74,
+        0.17
+      ],
+      [
+        0.81,
+        0.71
+      ],
+      [
+        0.13,
+        0.77
+      ]
+    ],
+    "greeting-card-postcard-004": [
+      [
+        0.11,
+        0.41
+      ],
+      [
+        0.64,
+        0.37
+      ],
+      [
+        0.69,
+        0.84
+      ],
+      [
+        0.06,
+        0.9
+      ]
+    ],
+    "greeting-card-postcard-011": [
+      [
+        0.0,
+        0.4
+      ],
+      [
+        0.57,
+        0.34
+      ],
+      [
+        0.67,
+        0.75
+      ],
+      [
+        0.05,
+        0.87
+      ]
+    ],
+    "greeting-card-postcard-014": [
+      [
+        0.21,
+        0.34
+      ],
+      [
+        0.67,
+        0.22
+      ],
+      [
+        0.76,
+        0.61
+      ],
+      [
+        0.24,
+        0.71
+      ]
+    ],
+    "greeting-card-postcard-020": [
+      [
+        0.296,
+        0.225
+      ],
+      [
+        0.717,
+        0.218
+      ],
+      [
+        0.675,
+        0.776
+      ],
+      [
+        0.243,
+        0.742
+      ]
+    ],
+    "greeting-card-postcard-023": [
+      [
+        0.21,
+        0.395
+      ],
+      [
+        0.595,
+        0.385
+      ],
+      [
+        0.664,
+        0.775
+      ],
+      [
+        0.2,
+        0.797
+      ]
+    ],
+    "greeting-card-postcard-030": [
+      [
+        0.1,
+        0.43
+      ],
+      [
+        0.6,
+        0.37
+      ],
+      [
+        0.66,
+        0.74
+      ],
+      [
+        0.12,
+        0.83
+      ]
+    ],
+    "greeting-card-postcard-034": [
+      [
+        0.28,
+        0.266
+      ],
+      [
+        0.745,
+        0.3
+      ],
+      [
+        0.678,
+        0.816
+      ],
+      [
+        0.128,
+        0.77
+      ]
+    ],
+    "menu-033": [
+      [
+        0.15,
+        0.43
+      ],
+      [
+        0.57,
+        0.39
+      ],
+      [
+        0.62,
+        0.74
+      ],
+      [
+        0.16,
+        0.79
+      ]
+    ]
+  },
+  "book-cover-029": {
+    "faceLayouts": {
+      "main": {
+        "axis": "x",
+        "breaks": [
+          0.44
+        ],
+        "name": "Page"
+      }
+    }
+  },
+  "magazine-newspaper-012": {
+    "faceLayouts": {
+      "main": {
+        "axis": "y",
+        "breaks": [
+          0.43
+        ],
+        "name": "Panel"
+      }
+    }
+  },
+  "magazine-newspaper-ad-039": {
+    "faces": {
+      "main": [
+        {"key": "top-left", "name": "Top Left Panel", "polygon": [[0, 0], [0.46, 0], [0.47, 0.54], [0, 0.54]]},
+        {"key": "bottom-left", "name": "Bottom Left Panel", "polygon": [[0, 0.54], [0.47, 0.54], [0.49, 1], [0, 1]]},
+        {"key": "right", "name": "Right Page", "remainder": true}
+      ]
+    }
+  },
+  "vinyl-001": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.6879,
+          0.583,
+          0.0113
+        ]
+      ]
+    }
+  },
+  "vinyl-003": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.507,
+          0.4683,
+          0.0098
+        ]
+      ]
+    }
+  },
+  "vinyl-004": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.7469,
+          0.5161,
+          0.0103
+        ]
+      ]
+    }
+  },
+  "vinyl-005": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4897,
+          0.4652,
+          0.0103
+        ]
+      ]
+    }
+  },
+  "vinyl-006": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4871,
+          0.4692,
+          0.0132
+        ]
+      ]
+    }
+  },
+  "vinyl-007": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5863,
+          0.4805,
+          0.0142
+        ]
+      ]
+    }
+  },
+  "vinyl-008": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5166,
+          0.4336,
+          0.0098
+        ]
+      ]
+    }
+  },
+  "vinyl-009": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4809,
+          0.4146,
+          0.0083
+        ]
+      ]
+    }
+  },
+  "vinyl-010": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5133,
+          0.478,
+          0.0156
+        ]
+      ]
+    }
+  },
+  "vinyl-011": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5029,
+          0.4676,
+          0.0107
+        ]
+      ]
+    }
+  },
+  "vinyl-012": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4504,
+          0.5034,
+          0.0103
+        ]
+      ]
+    }
+  },
+  "vinyl-013": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.6262,
+          0.5596,
+          0.0112
+        ]
+      ]
+    }
+  },
+  "vinyl-014": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5312,
+          0.4527,
+          0.0117
+        ]
+      ]
+    }
+  },
+  "vinyl-016": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5445,
+          0.4512,
+          0.0137
+        ]
+      ]
+    }
+  },
+  "vinyl-017": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4961,
+          0.4723,
+          0.0122
+        ]
+      ]
+    }
+  },
+  "vinyl-018": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4961,
+          0.4463,
+          0.0146
+        ]
+      ]
+    }
+  },
+  "vinyl-019": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5961,
+          0.5127,
+          0.0137
+        ]
+      ]
+    }
+  },
+  "vinyl-020": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4797,
+          0.5366,
+          0.0122
+        ]
+      ]
+    }
+  },
+  "vinyl-021": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5127,
+          0.4934,
+          0.0098
+        ]
+      ]
+    }
+  },
+  "vinyl-022": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4164,
+          0.5176,
+          0.0122
+        ]
+      ]
+    }
+  },
+  "vinyl-023": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4926,
+          0.4556,
+          0.0117
+        ]
+      ]
+    }
+  },
+  "vinyl-024": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.598,
+          0.6211,
+          0.0132
+        ]
+      ]
+    }
+  },
+  "vinyl-025": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5039,
+          0.459,
+          0.0098
+        ]
+      ]
+    }
+  },
+  "vinyl-027": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5563,
+          0.5991,
+          0.0181
+        ]
+      ]
+    }
+  },
+  "vinyl-028": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5357,
+          0.4148,
+          0.0095
+        ]
+      ]
+    }
+  },
+  "vinyl-031": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4978,
+          0.4879,
+          0.01
+        ]
+      ]
+    }
+  },
+  "vinyl-029": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5672,
+          0.4585,
+          0.0117
+        ]
+      ]
+    }
+  },
+  "vinyl-030": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4977,
+          0.4883,
+          0.02
+        ]
+      ]
+    }
+  },
+  "vinyl-032": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4324,
+          0.4844,
+          0.0146
+        ]
+      ]
+    }
+  },
+  "vinyl-033": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4375,
+          0.4463,
+          0.0083
+        ]
+      ]
+    }
+  },
+  "vinyl-034": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5773,
+          0.4761,
+          0.0122
+        ]
+      ]
+    }
+  },
+  "vinyl-035": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5308,
+          0.4527,
+          0.0137
+        ]
+      ]
+    }
+  },
+  "vinyl-037": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5238,
+          0.5508,
+          0.0142
+        ]
+      ]
+    }
+  },
+  "vinyl-038": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.5122,
+          0.4867,
+          0.0112
+        ]
+      ]
+    }
+  },
+  "vinyl-039": {
+    "logos": {
+      "main": {
+        "ignoreHoles": true
+      }
+    },
+    "cutouts": {
+      "main": [
+        [
+          0.4473,
+          0.4683,
+          0.0122
+        ]
+      ]
+    }
+  },
+  "menu-015": {
+    "faces": {
+      "main": [
+        {
+          "key": "left",
+          "name": "Left Page",
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              0.546,
+              0
+            ],
+            [
+              0.487,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "key": "right",
+          "name": "Right Page",
+          "polygon": [
+            [
+              0.546,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0.487,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "notebook-spiral-notebook-007": {
+    "faces": {
+      "main": [
+        {
+          "key": "left",
+          "name": "Left Page",
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              0.607,
+              0
+            ],
+            [
+              0.341,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "key": "right",
+          "name": "Right Page",
+          "polygon": [
+            [
+              0.625,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0.359,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "magazine-newspaper-ad-011": {
+    "faces": {
+      "main": [
+        {
+          "key": "left",
+          "name": "Left Page",
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              0.51,
+              0
+            ],
+            [
+              0.257,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "key": "right",
+          "name": "Right Page",
+          "polygon": [
+            [
+              0.51,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0.257,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "brochure-trifold-brochure-001": {
+    "faces": {
+      "main": [
+        {
+          "key": "left",
+          "name": "Left Panel",
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              0.441,
+              0
+            ],
+            [
+              0.293,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "key": "center",
+          "name": "Center Panel",
+          "polygon": [
+            [
+              0.441,
+              0
+            ],
+            [
+              0.652,
+              0
+            ],
+            [
+              0.568,
+              1
+            ],
+            [
+              0.293,
+              1
+            ]
+          ]
+        },
+        {
+          "key": "right",
+          "name": "Right Panel",
+          "polygon": [
+            [
+              0.652,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0.568,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "magazine-newspaper-ad-032": {
+    "faces": {
+      "main": [
+        {
+          "key": "left",
+          "name": "Left Page",
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              0.516,
+              0
+            ],
+            [
+              0.529,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "key": "right",
+          "name": "Right Page",
+          "polygon": [
+            [
+              0.516,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0.529,
+              1
+            ]
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,5 +1,8 @@
 {
   "category": "brochure",
+  "faceLayouts": {
+    "main": {"axis": "x", "breaks": [0.333, 0.667], "name": "Panel"}
+  },
   "occluders": [
     {
       "text": "hand"

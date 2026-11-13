@@ -82,6 +82,23 @@ SEGMENT_IGNORES = ('alternatives', 'print', 'surface', 'planeOutline')
 # pipeline.py 里问 Gemini、分单只(logo.py)也占着名额,几秒到一分钟
 LOCAL_STEPS = {'pipeline.py', 'logo.py', 'preview.py'}
 PLANE_EXCEPTIONS = json.loads((ROOT / 'presets' / 'plane-exceptions.json').read_text())
+REGION_EXCEPTIONS = json.loads((ROOT / 'presets' / 'region-exceptions.json').read_text())
+for group in REGION_EXCEPTIONS.pop('_layouts', []):
+    layout = {key: group[key] for key in ('axis', 'breaks', 'name', 'omit', 'fit') if key in group}
+    for template_id in group['ids']:
+        exception = REGION_EXCEPTIONS.setdefault(template_id, {})
+        layouts = exception.setdefault('faceLayouts', {})
+        if group.get('key', 'main') in layouts:
+            raise ValueError(f'{template_id}:重复的 faceLayouts')
+        layouts[group.get('key', 'main')] = layout
+for template_id, polygon in REGION_EXCEPTIONS.pop('_foreground', {}).items():
+    exception = REGION_EXCEPTIONS.setdefault(template_id, {})
+    if 'faces' in exception:
+        raise ValueError(f'{template_id}:重复的 faces')
+    exception['faces'] = {'main': [
+        {'key': 'front', 'name': 'Front Card', 'polygon': polygon},
+        {'key': 'back', 'name': 'Back Card', 'remainder': True},
+    ]}
 STEPS = [
     ('run_segment.py', ['crop', 'size', 'occluders', 'products'], 0),
     ('intrinsic.py', ['crop', 'size'], 0),
@@ -261,12 +278,21 @@ def make_spec(row):
     if remote:
         spec['fetch'] = {photo: {'url': source, 'sha256': sha256(ROOT / photo)}}
     spec |= {'occluders': occluders, 'products': products}
+    if preset.get('faceLayouts'):
+        spec['faceLayouts'] = preset['faceLayouts'].copy()
     for item in spec['products']:
         exception = PLANE_EXCEPTIONS.get(spec['id'], {}).get(item['key'])
         if exception:
             item.update({key: value for key, value in exception.items() if key != 'print'})
             if 'print' in exception:
                 item['print'] = {**item.get('print', {}), **exception['print']}
+    region_exception = REGION_EXCEPTIONS.get(spec['id'], {})
+    for item in spec['products']:
+        if item['key'] in region_exception.get('logos', {}):
+            item['logo'] = {**item.get('logo', {}), **region_exception['logos'][item['key']]}
+    spec.update({key: value for key, value in region_exception.items() if key != 'logos'})
+    for key in region_exception.get('faces', {}):
+        spec.get('faceLayouts', {}).pop(key, None)
     return spec
 
 

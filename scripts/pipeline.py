@@ -808,6 +808,12 @@ for item in spec['products']:
     # 下层商品在上层下面接着铺,交界处相加为 1;重叠处归上层
     _, (iy, ix) = ndimage.distance_transform_edt(above_bin, return_indices=True)
     product = quantize(np.minimum(alpha[iy, ix], 1 - above))
+    for cx, cy, radius in spec.get('cutouts', {}).get(item['key'], []):
+        if not all(0 <= value <= 1 for value in (cx, cy, radius)) or radius <= 0:
+            raise ValueError(f"{item['id']}:cutouts 的圆心和半径必须是归一化坐标")
+        hole = np.zeros((H, W), np.uint8)
+        cv2.circle(hole, (round(cx * W), round(cy * H)), round(radius * W), 1, -1)
+        product = quantize(product * (1 - soft(hole > 0)))
     products.append(product)
     part_masks.append(read_mask(f"{item['id']}-parts.png"))
     blocks.append(occluders | above_bin)
@@ -821,6 +827,75 @@ for item in spec['products']:
     if item.get('print', {}).get('face') and (prints[-1] > 0.5).any():
         prints[-1] = main_face(prints[-1], normals)
     above, above_bin = np.minimum(above + product, 1), above_bin | (segmented > 0.5)
+if spec.get('faces') or spec.get('faceLayouts'):
+    expanded = config.region_products(spec)
+    divided = ([], [], [], [])
+    for item, product, printable, parts, blocked in zip(spec['products'], products, prints, part_masks, blocks):
+        faces = config.region_faces(spec, item)
+        if not faces:
+            for target, value in zip(divided, (product, printable, parts, blocked)):
+                target.append(value)
+            continue
+        owned = np.zeros((H, W), bool)
+        bounds = {}
+        if 'axes' in faces[0]:
+            contours, _ = cv2.findContours((product > 0.5).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            corners = cv2.boxPoints(cv2.minAreaRect(max(contours, key=cv2.contourArea))).astype(np.float32)
+            sums, differences = corners.sum(axis=1), corners[:, 1] - corners[:, 0]
+            top_left, top_right = corners[np.argmin(sums)], corners[np.argmin(differences)]
+            bottom_left = corners[np.argmax(differences)]
+            across, downward = top_right - top_left, bottom_left - top_left
+            xx = np.arange(W, dtype=np.float32)[None, :] - top_left[0]
+            yy = np.arange(H, dtype=np.float32)[:, None] - top_left[1]
+            grid_x = (xx * across[0] + yy * across[1]) / max(float(across @ across), 1)
+            grid_y = (xx * downward[0] + yy * downward[1]) / max(float(downward @ downward), 1)
+        elif 'axis' in faces[0]:
+            visible = product > 0.5
+            for direction in (faces[0]['axis'],):
+                if direction == 'x':
+                    bounds['x'] = (visible.any(axis=1), np.argmax(visible, axis=1),
+                                   W - 1 - np.argmax(visible[:, ::-1], axis=1))
+                else:
+                    bounds['y'] = (visible.any(axis=0), np.argmax(visible, axis=0),
+                                   H - 1 - np.argmax(visible[::-1, :], axis=0))
+
+        def stripe(direction, interval):
+            lower, upper = interval
+            occupied, lo, hi = bounds[direction]
+            start = lo + (hi - lo) * lower
+            end = lo + (hi - lo) * upper
+            if direction == 'x':
+                coordinate = np.arange(W)[None, :]
+                return occupied[:, None] & (coordinate >= start[:, None]) & (
+                    coordinate < end[:, None] if upper < 1 else coordinate <= end[:, None])
+            coordinate = np.arange(H)[:, None]
+            return occupied[None, :] & (coordinate >= start[None, :]) & (
+                coordinate < end[None, :] if upper < 1 else coordinate <= end[None, :])
+        for face in faces:
+            if 'axes' in face:
+                x0, x1 = face['axes']['x']
+                y0, y1 = face['axes']['y']
+                face_mask = (grid_x >= x0) & (grid_x < x1 if x1 < 1 else grid_x <= x1) & (
+                    grid_y >= y0) & (grid_y < y1 if y1 < 1 else grid_y <= y1)
+            elif 'axis' in face:
+                face_mask = stripe(face['axis'], face['interval'])
+            elif face.get('remainder'):
+                face_mask = ~owned
+            else:
+                polygon = face['polygon']
+                if len(polygon) < 3 or any(len(point) != 2 or not all(0 <= value <= 1 for value in point) for point in polygon):
+                    raise ValueError(f"{item['id']}:{face['key']} 的 polygon 必须是归一化坐标")
+                mask = np.zeros((H, W), np.uint8)
+                cv2.fillPoly(mask, [np.round(np.array(polygon) * [W - 1, H - 1]).astype(np.int32)], 1)
+                face_mask = mask > 0
+            face_mask &= ~owned
+            owned |= face_mask
+            divided[0].append(quantize(product * face_mask))
+            divided[1].append(quantize(printable * face_mask))
+            divided[2].append(parts & face_mask)
+            divided[3].append(blocked)
+    products, prints, part_masks, blocks = divided
+    spec['products'] = expanded
 empty = [item['id'] for item, product in zip(spec['products'], products) if not (product > 0.5).any()]
 if empty:
     raise SystemExit(f"分割没分出商品:{', '.join(empty)}(提示词分不出,或源图里没有这件商品)")
